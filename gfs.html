@@ -1,0 +1,292 @@
+<head>
+<!-- ...existing code... -->
+<style>
+  #top-navbar {
+    width: 100vw;
+    background: #263159;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 32px;
+    height: 54px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2000;
+    font-size: 1.5em;
+    font-family: Arial, sans-serif;
+    letter-spacing: 1.5px;
+  }
+  body {
+    margin: 0;
+    padding-top: 54px; /* prevent content underlap */
+  }
+  .layout-container {
+    display: flex;
+    min-height: 100vh;
+    background: #f5f7fa;
+  }
+  .left-panel, .right-panel {
+    width: 80px;
+    background: #31416a;
+    color: #fff;
+    padding: 0;
+    box-sizing: border-box;
+    min-height: calc(100vh - 54px);
+  }
+  .main-content {
+    flex: 1;
+    padding: 32px 24px;
+    background: #fff;
+    min-height: calc(100vh - 54px);
+  }
+  @media (max-width: 900px) {
+    .left-panel, .right-panel {
+      display: none;
+    }
+    .main-content {
+      padding: 16px 4vw;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="top-navbar">
+    ADKwx.com
+  </div>
+  <div class="layout-container">
+    <div class="left-panel">
+      <!-- Left panel content -->
+    </div>
+    <div class="main-content">
+      <div id="gfs-image-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;">
+        <!--IMAGES-->
+      </div>
+      <div id="fullscreen-modal" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(20,30,50,0.92);align-items:center;justify-content:center;flex-direction:column;">
+        <img id="fullscreen-img" src="" alt="" style="max-width:80vw;max-height:75vh;box-shadow:0 4px 32px #000;border-radius:10px;transition:opacity 0.25s;">
+        <div id="arrow-controls" style="margin-top:18px;display:flex;justify-content:center;align-items:center;gap:40px;">
+          <button id="left-arrow" style="font-size:2.2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;transition:background 0.2s;">&#8592;</button>
+          <button id="right-arrow" style="font-size:2.2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;transition:background 0.2s;">&#8594;</button>
+          <button id="zoom-btn" style="font-size:1.3em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px #0003;transition:background 0.2s;">🔍 Zoom</button>
+        </div>
+      </div>
+      <script>
+        // Dynamically generate image grid for prate_000.png to prate_384.png every 6 hours
+        const grid = document.getElementById('gfs-image-grid');
+        const modal = document.getElementById('fullscreen-modal');
+        const modalImg = document.getElementById('fullscreen-img');
+        const hours = [];
+        for (let hour = 0; hour <= 384; hour += 6) {
+          hours.push(hour);
+        }
+        // Store all image sources for navigation
+        const imgSrcs = hours.map(hour => {
+          const hourStr = hour.toString().padStart(3, '0');
+          return `/PRATEGFS/prate_${hourStr}.png`; // <-- FIXED: leading slash, no full path
+        });
+
+        let currentIdx = 0;
+        // Only show available PNGs
+        const availableImgs = [];
+        const availableHours = [];
+
+        function addImgToGrid(src, idx) {
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = `prate_${hours[idx].toString().padStart(3, '0')}`;
+          img.style.width = "100%";
+          img.style.maxWidth = "100%";
+          img.style.borderRadius = "6px";
+          img.style.cursor = "pointer";
+          img.onclick = function() {
+            showModal(idx);
+          };
+          grid.appendChild(img);
+        }
+
+        // Check which images exist before displaying
+        let checked = 0;
+        imgSrcs.forEach((src, idx) => {
+          const img = new Image();
+          img.onload = function() {
+            availableImgs.push(src);
+            availableHours.push(hours[idx]);
+            addImgToGrid(src, availableImgs.length - 1);
+            checked++;
+            if (checked === imgSrcs.length) {
+              // All checks done, update navigation to use only availableImgs
+              setupModalNavigation();
+            }
+          };
+          img.onerror = function() {
+            checked++;
+            if (checked === imgSrcs.length) {
+              setupModalNavigation();
+            }
+          };
+          img.src = src;
+        });
+
+        // Modal navigation using only availableImgs
+        function setupModalNavigation() {
+          // Override navigation to use availableImgs
+          window.availableImgs = availableImgs; // for access in handlers
+          window.availableHours = availableHours;
+        }
+
+        function showModal(idx) {
+          currentIdx = idx;
+          resetZoomState();
+          modalImg.style.opacity = 0;
+          modal.style.display = "flex";
+          // Preload image for smooth transition
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = availableImgs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+          };
+          tempImg.src = availableImgs[currentIdx];
+        }
+
+        // Close modal on click outside image
+        modal.onclick = function(e) {
+          if (e.target === modal) modal.style.display = "none";
+        };
+
+        // Keyboard navigation for modal with smooth transition
+        document.addEventListener('keydown', function(e) {
+          if (modal.style.display === "flex" && availableImgs.length > 0) {
+            if (e.key === "Escape") {
+              modal.style.display = "none";
+            } else if (e.key === "ArrowLeft") {
+              currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
+              modalImg.style.opacity = 0;
+              const tempImg = new Image();
+              tempImg.onload = function() {
+                modalImg.src = availableImgs[currentIdx];
+                setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+              };
+              tempImg.src = availableImgs[currentIdx];
+            } else if (e.key === "ArrowRight") {
+              currentIdx = (currentIdx + 1) % availableImgs.length;
+              modalImg.style.opacity = 0;
+              const tempImg = new Image();
+              tempImg.onload = function() {
+                modalImg.src = availableImgs[currentIdx];
+                setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+              };
+              tempImg.src = availableImgs[currentIdx];
+            }
+          }
+        });
+
+        // Arrow button navigation
+        document.getElementById('left-arrow').onclick = function(e) {
+          e.stopPropagation();
+          if (availableImgs.length === 0) return;
+          currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
+          resetZoomState();
+          modalImg.style.opacity = 0;
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = availableImgs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+          };
+          tempImg.src = availableImgs[currentIdx];
+        };
+        document.getElementById('right-arrow').onclick = function(e) {
+          e.stopPropagation();
+          if (availableImgs.length === 0) return;
+          currentIdx = (currentIdx + 1) % availableImgs.length;
+          resetZoomState();
+          modalImg.style.opacity = 0;
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = availableImgs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+          };
+          tempImg.src = availableImgs[currentIdx];
+        };
+
+        // Zoom functionality
+        let zoomMode = false;
+        let zoomed = false;
+        const zoomBtn = document.getElementById('zoom-btn');
+        const fullscreenImg = document.getElementById('fullscreen-img');
+
+        zoomBtn.onclick = function(e) {
+          e.stopPropagation();
+          zoomMode = !zoomMode;
+          zoomBtn.style.background = zoomMode ? "#41507a" : "#263159";
+          zoomBtn.textContent = zoomMode ? "🔎 Click Image" : "🔍 Zoom";
+          if (!zoomMode && zoomed) {
+            // Reset zoom if exiting zoom mode
+            fullscreenImg.style.transform = "";
+            fullscreenImg.style.cursor = "pointer";
+            zoomed = false;
+          }
+        };
+
+        fullscreenImg.onclick = function(e) {
+          if (!zoomMode) return;
+          if (!zoomed) {
+            // Zoom in centered at click
+            const rect = fullscreenImg.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const xPct = (x / rect.width) * 100;
+            const yPct = (y / rect.height) * 100;
+            fullscreenImg.style.transformOrigin = `${xPct}% ${yPct}%`;
+            fullscreenImg.style.transform = "scale(2.2)";
+            fullscreenImg.style.cursor = "zoom-out";
+            zoomed = true;
+          } else {
+            // Reset zoom
+            fullscreenImg.style.transform = "";
+            fullscreenImg.style.cursor = "pointer";
+            zoomed = false;
+          }
+        };
+
+        // When closing modal or changing image, reset zoom/zoom mode
+        function resetZoomState() {
+          zoomMode = false;
+          zoomed = false;
+          zoomBtn.style.background = "#263159";
+          zoomBtn.textContent = "🔍 Zoom";
+          fullscreenImg.style.transform = "";
+          fullscreenImg.style.cursor = "pointer";
+        }
+
+        // --- Auto-refresh image grid every 30 seconds ---
+        function refreshImageGrid() {
+          fetch(window.location.pathname, {cache: "reload"})
+            .then(response => response.text())
+            .then(html => {
+              // Extract new images from the returned HTML
+              const temp = document.createElement('div');
+              temp.innerHTML = html;
+              const newGrid = temp.querySelector('#gfs-image-grid');
+              if (newGrid) {
+                document.getElementById('gfs-image-grid').innerHTML = newGrid.innerHTML;
+
+                // Re-bind modal logic to new images
+                const images = Array.from(document.querySelectorAll('#gfs-image-grid img'));
+                images.forEach((img, idx) => {
+                  img.style.cursor = "pointer";
+                  img.onclick = () => showModal(idx);
+                });
+              }
+            });
+        }
+        setInterval(refreshImageGrid, 10000); // 30 seconds
+      </script>
+      <!-- ...existing code... -->
+    </div>
+    <div class="right-panel">
+      <!-- Right panel content -->
+    </div>
+  </div>
+<!-- ...existing code... -->
