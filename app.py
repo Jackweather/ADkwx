@@ -43,11 +43,10 @@ def run_task1():
         # --- Run gfsmodel/mslp_prate.py ---
         try:
             result = subprocess.run(
-             ["python", "mslp_prate.py"],
-            check=True, cwd=os.path.join(os.path.dirname(__file__), "gfsmodel"),
+                ["python", "/opt/render/project/src/gfsmodel/mslp_prate.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-)
-
+            )
             print("mslp_prate.py ran successfully!")
             print("STDOUT:", result.stdout)
             print("STDERR:", result.stderr)
