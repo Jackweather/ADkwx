@@ -50,6 +50,61 @@
       padding: 16px 4vw;
     }
   }
+  #fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(20,30,50,0.92);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #fullscreen-img {
+    max-width: 80vw;
+    max-height: 75vh;
+    width: auto;
+    height: auto;
+    box-shadow: 0 4px 32px #000;
+    border-radius: 10px;
+    transition: opacity 0.25s;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  #arrow-controls {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+  }
+  #left-arrow, #right-arrow {
+    font-size: 2.2em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  #zoom-btn {
+    font-size: 1.3em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
 </style>
 </head>
 <body>
@@ -64,33 +119,34 @@
       <div id="gfs-image-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;">
         <!--IMAGES-->
       </div>
-      <div id="fullscreen-modal" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(20,30,50,0.92);align-items:center;justify-content:center;flex-direction:column;">
-        <img id="fullscreen-img" src="" alt="" style="max-width:80vw;max-height:75vh;box-shadow:0 4px 32px #000;border-radius:10px;transition:opacity 0.25s;">
-        <div id="arrow-controls" style="margin-top:18px;display:flex;justify-content:center;align-items:center;gap:40px;">
-          <button id="left-arrow" style="font-size:2.2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;transition:background 0.2s;">&#8592;</button>
-          <button id="right-arrow" style="font-size:2.2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;transition:background 0.2s;">&#8594;</button>
-          <button id="zoom-btn" style="font-size:1.3em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px #0003;transition:background 0.2s;">🔍 Zoom</button>
+      <div id="fullscreen-modal">
+        <img id="fullscreen-img" src="" alt="">
+        <div id="arrow-controls">
+          <button id="left-arrow">&#8592;</button>
+          <button id="right-arrow">&#8594;</button>
+          <button id="zoom-btn">🔍 Zoom</button>
         </div>
       </div>
       <script>
-        // Dynamically generate image grid for prate_000.png to prate_384.png every 6 hours
+        // --- Image grid and modal logic ---
         const grid = document.getElementById('gfs-image-grid');
         const modal = document.getElementById('fullscreen-modal');
         const modalImg = document.getElementById('fullscreen-img');
-        const hours = [];
-        for (let hour = 0; hour <= 384; hour += 6) {
-          hours.push(hour);
-        }
-        // Store all image sources for navigation
-        const imgSrcs = hours.map(hour => {
-          const hourStr = hour.toString().padStart(3, '0');
-          return `/PRATEGFS/prate_${hourStr}.png`; // <-- FIXED: leading slash, no full path
-        });
-
+        const leftArrow = document.getElementById('left-arrow');
+        const rightArrow = document.getElementById('right-arrow');
+        const zoomBtn = document.getElementById('zoom-btn');
+        let hours = [];
+        for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
+        let imgSrcs = hours.map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`);
+        let availableImgs = [];
+        let availableHours = [];
         let currentIdx = 0;
-        // Only show available PNGs
-        const availableImgs = [];
-        const availableHours = [];
+        let zoomMode = false;
+        let zoomed = false;
+
+        function clearGrid() {
+          while (grid.firstChild) grid.removeChild(grid.firstChild);
+        }
 
         function addImgToGrid(src, idx) {
           const img = document.createElement('img');
@@ -106,33 +162,30 @@
           grid.appendChild(img);
         }
 
-        // Check which images exist before displaying
-        let checked = 0;
-        imgSrcs.forEach((src, idx) => {
-          const img = new Image();
-          img.onload = function() {
-            availableImgs.push(src);
-            availableHours.push(hours[idx]);
-            addImgToGrid(src, availableImgs.length - 1);
-            checked++;
-            if (checked === imgSrcs.length) {
-              // All checks done, update navigation to use only availableImgs
-              setupModalNavigation();
-            }
-          };
-          img.onerror = function() {
-            checked++;
-            if (checked === imgSrcs.length) {
-              setupModalNavigation();
-            }
-          };
-          img.src = src;
-        });
+        function loadAvailableImages() {
+          availableImgs = [];
+          availableHours = [];
+          clearGrid();
+          let checked = 0;
+          imgSrcs.forEach((src, idx) => {
+            const img = new Image();
+            img.onload = function() {
+              availableImgs.push(src);
+              availableHours.push(hours[idx]);
+              addImgToGrid(src, availableImgs.length - 1);
+              checked++;
+              if (checked === imgSrcs.length) setupModalNavigation();
+            };
+            img.onerror = function() {
+              checked++;
+              if (checked === imgSrcs.length) setupModalNavigation();
+            };
+            img.src = src;
+          });
+        }
 
-        // Modal navigation using only availableImgs
         function setupModalNavigation() {
-          // Override navigation to use availableImgs
-          window.availableImgs = availableImgs; // for access in handlers
+          window.availableImgs = availableImgs;
           window.availableHours = availableHours;
         }
 
@@ -141,7 +194,6 @@
           resetZoomState();
           modalImg.style.opacity = 0;
           modal.style.display = "flex";
-          // Preload image for smooth transition
           const tempImg = new Image();
           tempImg.onload = function() {
             modalImg.src = availableImgs[currentIdx];
@@ -150,12 +202,10 @@
           tempImg.src = availableImgs[currentIdx];
         }
 
-        // Close modal on click outside image
         modal.onclick = function(e) {
           if (e.target === modal) modal.style.display = "none";
         };
 
-        // Keyboard navigation for modal with smooth transition
         document.addEventListener('keydown', function(e) {
           if (modal.style.display === "flex" && availableImgs.length > 0) {
             if (e.key === "Escape") {
@@ -182,8 +232,7 @@
           }
         });
 
-        // Arrow button navigation
-        document.getElementById('left-arrow').onclick = function(e) {
+        leftArrow.onclick = function(e) {
           e.stopPropagation();
           if (availableImgs.length === 0) return;
           currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
@@ -196,7 +245,7 @@
           };
           tempImg.src = availableImgs[currentIdx];
         };
-        document.getElementById('right-arrow').onclick = function(e) {
+        rightArrow.onclick = function(e) {
           e.stopPropagation();
           if (availableImgs.length === 0) return;
           currentIdx = (currentIdx + 1) % availableImgs.length;
@@ -210,78 +259,54 @@
           tempImg.src = availableImgs[currentIdx];
         };
 
-        // Zoom functionality
-        let zoomMode = false;
-        let zoomed = false;
-        const zoomBtn = document.getElementById('zoom-btn');
-        const fullscreenImg = document.getElementById('fullscreen-img');
-
         zoomBtn.onclick = function(e) {
           e.stopPropagation();
           zoomMode = !zoomMode;
           zoomBtn.style.background = zoomMode ? "#41507a" : "#263159";
           zoomBtn.textContent = zoomMode ? "🔎 Click Image" : "🔍 Zoom";
           if (!zoomMode && zoomed) {
-            // Reset zoom if exiting zoom mode
-            fullscreenImg.style.transform = "";
-            fullscreenImg.style.cursor = "pointer";
+            modalImg.style.transform = "";
+            modalImg.style.cursor = "pointer";
             zoomed = false;
           }
         };
 
-        fullscreenImg.onclick = function(e) {
+        modalImg.onclick = function(e) {
           if (!zoomMode) return;
           if (!zoomed) {
-            // Zoom in centered at click
-            const rect = fullscreenImg.getBoundingClientRect();
+            const rect = modalImg.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             const xPct = (x / rect.width) * 100;
             const yPct = (y / rect.height) * 100;
-            fullscreenImg.style.transformOrigin = `${xPct}% ${yPct}%`;
-            fullscreenImg.style.transform = "scale(2.2)";
-            fullscreenImg.style.cursor = "zoom-out";
+            modalImg.style.transformOrigin = `${xPct}% ${yPct}%`;
+            modalImg.style.transform = "scale(2.2)";
+            modalImg.style.cursor = "zoom-out";
             zoomed = true;
           } else {
-            // Reset zoom
-            fullscreenImg.style.transform = "";
-            fullscreenImg.style.cursor = "pointer";
+            modalImg.style.transform = "";
+            modalImg.style.cursor = "pointer";
             zoomed = false;
           }
         };
 
-        // When closing modal or changing image, reset zoom/zoom mode
         function resetZoomState() {
           zoomMode = false;
           zoomed = false;
           zoomBtn.style.background = "#263159";
           zoomBtn.textContent = "🔍 Zoom";
-          fullscreenImg.style.transform = "";
-          fullscreenImg.style.cursor = "pointer";
+          modalImg.style.transform = "";
+          modalImg.style.cursor = "pointer";
         }
 
-        // --- Auto-refresh image grid every 30 seconds ---
+        // --- Auto-refresh image grid every 10 seconds ---
         function refreshImageGrid() {
-          fetch(window.location.pathname, {cache: "reload"})
-            .then(response => response.text())
-            .then(html => {
-              // Extract new images from the returned HTML
-              const temp = document.createElement('div');
-              temp.innerHTML = html;
-              const newGrid = temp.querySelector('#gfs-image-grid');
-              if (newGrid) {
-                document.getElementById('gfs-image-grid').innerHTML = newGrid.innerHTML;
-
-                // Re-bind modal logic to new images
-                const images = Array.from(document.querySelectorAll('#gfs-image-grid img'));
-                images.forEach((img, idx) => {
-                  img.style.cursor = "pointer";
-                  img.onclick = () => showModal(idx);
-                });
-              }
-            });
+          loadAvailableImages();
         }
-        setInterval(refreshImageGrid, 10000); // 30 seconds
+        setInterval(refreshImageGrid, 10000);
+
+        // Initial load
+        loadAvailableImages();
       </script>
       <!-- ...existing code... -->
     </div>
