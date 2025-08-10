@@ -1,10 +1,21 @@
-from flask import Flask, send_from_directory, abort
+from flask import Flask, send_from_directory, abort, request
 import os
 import subprocess
 import traceback
 import getpass
+import logging
 
 app = Flask(__name__)
+
+# Suppress 404 logging for /PRATEGFS/ image requests in werkzeug logger
+class WerkzeugFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        if 'GET /PRATEGFS/' in msg and '404' in msg:
+            return False
+        return True
+
+logging.getLogger('werkzeug').addFilter(WerkzeugFilter())
 
 @app.route('/')
 def index():
