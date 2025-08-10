@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, abort, request
+from flask import Flask, send_from_directory, abort
 import os
 import subprocess
 import traceback
@@ -38,25 +38,29 @@ def serve_prate_image(filename):
 
 @app.route("/run-task1")
 def run_task1():
-    def run_all_scripts():
-        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
-        # --- Run gfsmodel/mslp_prate.py ---
-        try:
-            result = subprocess.run(
-                ["python", "gfsmodel/mslp_prate.py"],
-                check=True, cwd=os.path.join(os.path.dirname(__file__), "gfsmodel"),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("mslp_prate.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running mslp_prate.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-    run_all_scripts()
-    return "Task 1 executed."
+    try:
+        print("Flask is running as user:", getpass.getuser())  # Debug user
+
+        result = subprocess.run(
+            ["python", "mslp_prate.py"],
+            check=True,
+            cwd=os.path.join(os.path.dirname(__file__), "gfsmodel"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        print("mslp_prate.py ran successfully!")
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
+
+        return "Task 1 executed successfully."
+    except subprocess.CalledProcessError as e:
+        error_trace = traceback.format_exc()
+        print(f"Error running mslp_prate.py:\n{error_trace}")
+        print("STDOUT:", e.stdout)
+        print("STDERR:", e.stderr)
+        return f"Task 1 failed with error:\n{e.stderr}", 500
 
 if __name__ == '__main__':
     app.run(debug=True)
