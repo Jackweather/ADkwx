@@ -5,7 +5,7 @@ gunicorn==20.1.0
 
 Flask==2.2.3
 xarray==2023.6.0
-pillow==9.5.0
+
 Werkzeug==2.2.2
 schedule==1.1.0
 shapely==2.1.0
@@ -50,6 +50,7 @@ tf-keras
 psutil
 arm_pyart
  fsspec
+
 
 
 
