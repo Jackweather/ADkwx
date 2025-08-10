@@ -162,26 +162,30 @@
           grid.appendChild(img);
         }
 
-        function loadAvailableImages() {
-          availableImgs = [];
-          availableHours = [];
-          clearGrid();
+        function loadAvailableImages(callback) {
+          let newAvailableImgs = [];
+          let newAvailableHours = [];
           let checked = 0;
+          let total = imgSrcs.length;
           imgSrcs.forEach((src, idx) => {
             const img = new Image();
             img.onload = function() {
-              availableImgs.push(src);
-              availableHours.push(hours[idx]);
-              addImgToGrid(src, availableImgs.length - 1);
+              newAvailableImgs.push(src);
+              newAvailableHours.push(hours[idx]);
               checked++;
-              if (checked === imgSrcs.length) setupModalNavigation();
+              if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
             };
             img.onerror = function() {
               checked++;
-              if (checked === imgSrcs.length) setupModalNavigation();
+              if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
             };
             img.src = src;
           });
+        }
+
+        function renderGrid(imgs, hrs) {
+          clearGrid();
+          imgs.forEach((src, idx) => addImgToGrid(src, idx));
         }
 
         function setupModalNavigation() {
@@ -299,14 +303,34 @@
           modalImg.style.cursor = "pointer";
         }
 
-        // --- Auto-refresh image grid every 10 seconds ---
-        function refreshImageGrid() {
-          loadAvailableImages();
+        // --- Auto-refresh image grid every 10 seconds, with background preloading ---
+        function arraysEqual(a, b) {
+          if (a.length !== b.length) return false;
+          for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+          return true;
         }
-        setInterval(refreshImageGrid, 10000);
+
+        function refreshImageGrid() {
+          loadAvailableImages(function(newImgs, newHours) {
+            // Only update if the available images have changed
+            if (!arraysEqual(newImgs, availableImgs)) {
+              availableImgs = newImgs;
+              availableHours = newHours;
+              renderGrid(availableImgs, availableHours);
+              setupModalNavigation();
+            }
+          });
+        }
 
         // Initial load
-        loadAvailableImages();
+        loadAvailableImages(function(newImgs, newHours) {
+          availableImgs = newImgs;
+          availableHours = newHours;
+          renderGrid(availableImgs, availableHours);
+          setupModalNavigation();
+        });
+
+        setInterval(refreshImageGrid, 10000);
       </script>
       <!-- ...existing code... -->
     </div>
