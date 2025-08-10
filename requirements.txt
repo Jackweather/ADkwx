@@ -9,7 +9,7 @@ xarray==2023.6.0
 Werkzeug==2.2.2
 schedule==1.1.0
 shapely==2.1.0
-pyproj==3.4.1
+
 cfgrib
 eccodes
 numpy==1.26.4
@@ -50,6 +50,7 @@ tf-keras
 psutil
 arm_pyart
  fsspec
+
 
 
 
