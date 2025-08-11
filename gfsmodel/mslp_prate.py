@@ -152,9 +152,10 @@ def plot_combined(mslp_path, prate_path, step):
     valid_time = base_time + timedelta(hours=step)
     hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()  # '08AM' -> '8am'
     day_of_week = valid_time.strftime('%A')
+    run_str = f"{hour_str}z"  # Add run time string (e.g., "12z")
     # Add forecast hour (just the number, no 'f')
     title_str = (
-        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}\n"
+        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
         f"Precipitation Rate & Mean Sea Level Pressure"
     )
     # Add title above plot
