@@ -4,6 +4,7 @@ import subprocess
 import traceback
 import getpass
 import logging
+import threading
 
 app = Flask(__name__)
 
@@ -55,8 +56,8 @@ def run_task1():
             print(f"Error running mslp_prate.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
-    run_all_scripts()
-    return "Task 1 executed."
+    threading.Thread(target=run_all_scripts).start()
+    return "Task started in background! Check logs folder for output.", 200
 
 if __name__ == '__main__':
     app.run(debug=True)
