@@ -29,7 +29,7 @@
     background: #f5f7fa;
   }
   .left-panel, .right-panel {
-    width: 80px;
+    width: 140px;
     background: #31416a;
     color: #fff;
     padding: 0;
@@ -105,15 +105,61 @@
     box-shadow: 0 2px 8px #0003;
     transition: background 0.2s;
   }
+  .side-btn {
+    width: 90%;
+    margin: 18px auto 0 auto;
+    display: block;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 0;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  .side-btn.active,
+  .side-btn:active {
+    background: #263159;
+  }
+  #gifs-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #gifs-navbar-btn:hover {
+    background: #263159;
+  }
 </style>
 </head>
 <body>
   <div id="top-navbar">
-    ADKwx.com
+    ADKWX.com
+    <button id="gifs-navbar-btn" onclick="window.location.href='gifs.html'">GIFS</button>
   </div>
   <div class="layout-container">
     <div class="left-panel">
+      <!-- GFS label box (smaller) -->
+      <div style="width:60%;margin:10px auto 0 auto;padding:4px 0;background:#263159;color:#fff;text-align:center;border-radius:5px;font-size:0.95em;letter-spacing:1px;">
+        GFS
+      </div>
       <!-- Left panel content -->
+      <button id="prate-btn" class="side-btn">Prate</button>
+      <button id="tmp-btn" class="side-btn">Tmp</button>
+      <button id="precip6-btn" class="side-btn">6hPrecip</button>
+      <button id="precip12-btn" class="side-btn">12hPrecip</button>
+      <button id="precip24-btn" class="side-btn">24hPrecip</button>
+      <button id="total_precip_btn" class="side-btn">Total Precip</button>
+
+      <!-- MANUAL: Add new button here for another image type -->
     </div>
     <div class="main-content">
       <div id="gfs-image-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;">
@@ -126,6 +172,8 @@
           <button id="right-arrow">&#8594;</button>
           <button id="zoom-btn">🔍 Zoom</button>
         </div>
+        <input type="range" id="img-slider" min="0" max="0" value="0" style="width: 70%; margin-top: 18px; display: none;">
+        <div id="slider-label" style="color: #fff; margin-top: 6px; font-size: 1.1em; display: none;"></div>
       </div>
       <script>
         // --- Image grid and modal logic ---
@@ -135,14 +183,51 @@
         const leftArrow = document.getElementById('left-arrow');
         const rightArrow = document.getElementById('right-arrow');
         const zoomBtn = document.getElementById('zoom-btn');
+        const prateBtn = document.getElementById('prate-btn');
+        const tmpBtn = document.getElementById('tmp-btn');
+        const precip6Btn = document.getElementById('precip6-btn');
+        const precip12Btn = document.getElementById('precip12-btn');
+        const precip24Btn = document.getElementById('precip24-btn');
+        const totalPrecipBtn = document.getElementById('total_precip_btn');
+        // MANUAL: Add new button variable here for another image type
+
+        const imgSlider = document.getElementById('img-slider');
+        const sliderLabel = document.getElementById('slider-label');
         let hours = [];
         for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
-        let imgSrcs = hours.map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`);
+
+        function getPrateSrcs() {
+          return hours.map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`);
+        }
+        function getTmpSrcs() {
+          return hours.map(hour => `/tmp_surface/2mtemp_${hour.toString().padStart(3, '0')}.png`);
+        }
+        function getPrecip6Srcs() {
+          return hours.map(hour => `/6hour_precip_total/precip6_${hour.toString().padStart(3, '0')}.png`);
+        }
+        function getPrecip24Srcs() {
+          let hours24 = [];
+          for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
+          return hours24.map(hour => `/24hour_precip_total/precip24_${hour.toString().padStart(3, '0')}.png`);
+        }
+        function getPrecip12Srcs() {
+          let hours12 = [];
+          for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
+          return hours12.map(hour => `/12hour_precip_total/precip12_${hour.toString().padStart(3, '0')}.png`);
+        }
+        function getTotalPrecipSrcs() {
+          return hours.map(hour => `/total_precip/totalprecip_${hour.toString().padStart(3, '0')}.png`);
+        }
+        // MANUAL: Add new get*Srcs function here for another image type
+
+        let imgSrcs = [];
         let availableImgs = [];
         let availableHours = [];
         let currentIdx = 0;
         let zoomMode = false;
         let zoomed = false;
+        let currentType = null; // "prate" or "tmp"
+        let refreshInterval = null;
 
         function clearGrid() {
           while (grid.firstChild) grid.removeChild(grid.firstChild);
@@ -151,7 +236,21 @@
         function addImgToGrid(src, idx) {
           const img = document.createElement('img');
           img.src = src;
-          img.alt = `prate_${hours[idx].toString().padStart(3, '0')}`;
+          if (currentType === "prate") {
+            img.alt = `prate_${hours[idx].toString().padStart(3, '0')}`;
+          } else if (currentType === "tmp") {
+            img.alt = `2mtemp_${hours[idx].toString().padStart(3, '0')}`;
+          } else if (currentType === "precip6") {
+            img.alt = `precip6_${hours[idx].toString().padStart(3, '0')}`;
+          } else if (currentType === "precip24") {
+            img.alt = `precip24_${(24 * (idx + 1)).toString().padStart(3, '0')}`;
+          } else if (currentType === "precip12") {
+            img.alt = `precip12_${(12 * (idx + 1)).toString().padStart(3, '0')}`;
+          } else if (currentType === "total_precip") {
+            img.alt = `totalprecip_${hours[idx].toString().padStart(3, '0')}`;
+          }
+          
+          // MANUAL: Add new alt logic here for another image type
           img.style.width = "100%";
           img.style.maxWidth = "100%";
           img.style.borderRadius = "6px";
@@ -167,6 +266,10 @@
           let newAvailableHours = [];
           let checked = 0;
           let total = imgSrcs.length;
+          if (!total) {
+            if (callback) callback([], []);
+            return;
+          }
           imgSrcs.forEach((src, idx) => {
             const img = new Image();
             img.onload = function() {
@@ -186,6 +289,7 @@
         function renderGrid(imgs, hrs) {
           clearGrid();
           imgs.forEach((src, idx) => addImgToGrid(src, idx));
+          updateSlider();
         }
 
         function setupModalNavigation() {
@@ -193,59 +297,66 @@
           window.availableHours = availableHours;
         }
 
+        function updateSlider() {
+          if (availableImgs.length > 1 && modal.style.display === "flex") {
+            imgSlider.style.display = "";
+            sliderLabel.style.display = "";
+            imgSlider.min = 0;
+            imgSlider.max = availableImgs.length - 1;
+            imgSlider.value = currentIdx;
+            sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
+          } else {
+            imgSlider.style.display = "none";
+            sliderLabel.style.display = "none";
+          }
+        }
+
         function showModal(idx) {
           currentIdx = idx;
-          resetZoomState();
+          // Only reset zoom if not in zoomMode
+          if (!zoomMode) resetZoomState();
           modalImg.style.opacity = 0;
           modal.style.display = "flex";
           const tempImg = new Image();
           tempImg.onload = function() {
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+            updateSlider();
+            // If zoomMode and zoomed, keep zoom
+            if (zoomMode && zoomed) {
+              modalImg.style.transform = "scale(2.2)";
+              modalImg.style.cursor = "zoom-out";
+            }
           };
           tempImg.src = availableImgs[currentIdx];
         }
 
+        // Update slider when modal is shown/hidden or images change
         modal.onclick = function(e) {
-          if (e.target === modal) modal.style.display = "none";
+          if (e.target === modal) {
+            modal.style.display = "none";
+            updateSlider();
+          }
         };
 
-        document.addEventListener('keydown', function(e) {
-          if (modal.style.display === "flex" && availableImgs.length > 0) {
-            if (e.key === "Escape") {
-              modal.style.display = "none";
-            } else if (e.key === "ArrowLeft") {
-              currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
-              modalImg.style.opacity = 0;
-              const tempImg = new Image();
-              tempImg.onload = function() {
-                modalImg.src = availableImgs[currentIdx];
-                setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-              };
-              tempImg.src = availableImgs[currentIdx];
-            } else if (e.key === "ArrowRight") {
-              currentIdx = (currentIdx + 1) % availableImgs.length;
-              modalImg.style.opacity = 0;
-              const tempImg = new Image();
-              tempImg.onload = function() {
-                modalImg.src = availableImgs[currentIdx];
-                setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-              };
-              tempImg.src = availableImgs[currentIdx];
-            }
-          }
-        });
-
+        // Update slider on navigation
         leftArrow.onclick = function(e) {
           e.stopPropagation();
           if (availableImgs.length === 0) return;
           currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
-          resetZoomState();
+          // Only reset zoom if not in zoomMode
+          if (!zoomMode) resetZoomState();
           modalImg.style.opacity = 0;
           const tempImg = new Image();
           tempImg.onload = function() {
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+            updateSlider();
+            // If zoomMode and zoomed, keep zoom
+            if (zoomMode && zoomed) {
+              modalImg.style.transform = "scale(2.2)";
+              modalImg.style.cursor = "zoom-out";
+            }
           };
           tempImg.src = availableImgs[currentIdx];
         };
@@ -253,12 +364,40 @@
           e.stopPropagation();
           if (availableImgs.length === 0) return;
           currentIdx = (currentIdx + 1) % availableImgs.length;
-          resetZoomState();
+          // Only reset zoom if not in zoomMode
+          if (!zoomMode) resetZoomState();
           modalImg.style.opacity = 0;
           const tempImg = new Image();
           tempImg.onload = function() {
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+            updateSlider();
+            // If zoomMode and zoomed, keep zoom
+            if (zoomMode && zoomed) {
+              modalImg.style.transform = "scale(2.2)";
+              modalImg.style.cursor = "zoom-out";
+            }
+          };
+          tempImg.src = availableImgs[currentIdx];
+        };
+
+        // Slider logic
+        imgSlider.oninput = function() {
+          if (availableImgs.length === 0) return;
+          currentIdx = parseInt(imgSlider.value, 10);
+          // Only reset zoom if not in zoomMode
+          if (!zoomMode) resetZoomState();
+          modalImg.style.opacity = 0;
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = availableImgs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+            updateSlider();
+            // If zoomMode and zoomed, keep zoom
+            if (zoomMode && zoomed) {
+              modalImg.style.transform = "scale(2.2)";
+              modalImg.style.cursor = "zoom-out";
+            }
           };
           tempImg.src = availableImgs[currentIdx];
         };
@@ -303,7 +442,6 @@
           modalImg.style.cursor = "pointer";
         }
 
-        // --- Auto-refresh image grid every 10 seconds, with background preloading ---
         function arraysEqual(a, b) {
           if (a.length !== b.length) return false;
           for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
@@ -312,7 +450,6 @@
 
         function refreshImageGrid() {
           loadAvailableImages(function(newImgs, newHours) {
-            // Only update if the available images have changed
             if (!arraysEqual(newImgs, availableImgs)) {
               availableImgs = newImgs;
               availableHours = newHours;
@@ -322,15 +459,79 @@
           });
         }
 
-        // Initial load
-        loadAvailableImages(function(newImgs, newHours) {
-          availableImgs = newImgs;
-          availableHours = newHours;
-          renderGrid(availableImgs, availableHours);
-          setupModalNavigation();
+        function activate(type) {
+          if (currentType === type) return;
+          currentType = type;
+          prateBtn.classList.toggle('active', type === "prate");
+          tmpBtn.classList.toggle('active', type === "tmp");
+          precip6Btn.classList.toggle('active', type === "precip6");
+          precip12Btn.classList.toggle('active', type === "precip12");
+          precip24Btn.classList.toggle('active', type === "precip24");
+          totalPrecipBtn.classList.toggle('active', type === "total_precip");
+          // MANUAL: Add new .classList.toggle for another image type
+          if (type === "prate") {
+            imgSrcs = getPrateSrcs();
+            availableHours = hours;
+          } else if (type === "tmp") {
+            imgSrcs = getTmpSrcs();
+            availableHours = hours;
+          } else if (type === "precip6") {
+            imgSrcs = getPrecip6Srcs();
+            availableHours = hours;
+          } else if (type === "precip12") {
+            let hours12 = [];
+            for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
+            imgSrcs = getPrecip12Srcs();
+            availableHours = hours12;
+          } else if (type === "precip24") {
+            let hours24 = [];
+            for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
+            imgSrcs = getPrecip24Srcs();
+            availableHours = hours24;
+          } else if (type === "total_precip") {
+            imgSrcs = getTotalPrecipSrcs();
+            availableHours = hours;
+          }
+          // MANUAL: Add new logic here for another image type
+          availableImgs = [];
+          clearGrid();
+          loadAvailableImages(function(newImgs, newHours) {
+            availableImgs = newImgs;
+            availableHours = newHours;
+            renderGrid(availableImgs, availableHours);
+            setupModalNavigation();
+          });
+          if (refreshInterval) clearInterval(refreshInterval);
+          refreshInterval = setInterval(refreshImageGrid, 10000);
+        }
+
+        prateBtn.onclick = function() { activate("prate"); };
+        tmpBtn.onclick = function() { activate("tmp"); };
+        precip6Btn.onclick = function() { activate("precip6"); };
+        precip12Btn.onclick = function() { activate("precip12"); };
+        precip24Btn.onclick = function() { activate("precip24"); };
+        totalPrecipBtn.onclick = function() { activate("total_precip"); };
+        // MANUAL: Add new button onclick here for another image type
+
+        // Show all prate PNGs on page load
+        window.addEventListener('DOMContentLoaded', function() {
+          activate("prate");
         });
 
-        setInterval(refreshImageGrid, 3000);
+        // Do NOT load images on page load
+
+        // Keyboard navigation for modal
+        document.addEventListener('keydown', function(e) {
+          if (modal.style.display === "flex") {
+            if (e.key === "ArrowLeft") {
+              leftArrow.click();
+              e.preventDefault();
+            } else if (e.key === "ArrowRight") {
+              rightArrow.click();
+              e.preventDefault();
+            }
+          }
+        });
       </script>
       <!-- ...existing code... -->
     </div>
@@ -339,4 +540,3 @@
     </div>
   </div>
 <!-- ...existing code... -->
-
