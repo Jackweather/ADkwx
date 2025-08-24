@@ -5,7 +5,7 @@ import xarray as xr
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 import numpy as np
 import cartopy.crs as ccrs
 import matplotlib.patheffects as path_effects
@@ -64,10 +64,21 @@ mslp_cmap = LinearSegmentedColormap.from_list(
 )
 prate_levels = [0.1, 0.25, 0.5, 0.75, 1.5, 2, 2.5, 3, 4, 6, 10, 16, 24]
 prate_colors = [
-    "#b6ffb6", "#90ee90", "#32cd32", "#228b22", "#bfff00", "#ffff00",
-    "#ffd700", "#ffa500", "#ff7f50", "#ff4500", "#ff1493", "#9400d3"
+    "#b6ffb6",  # very light green
+    "#54f354",  # light green
+    "#19a319",  # medium green
+    "#016601",  # dark green
+    "#c9c938",  # bright yellow
+    "#f5f825",  # dark yellow
+    "#ffd700",  # gold
+    "#ffa500",  # orange
+    "#ff7f50",  # coral
+    "#ff4500",  # orange-red
+    "#ff1493",  # deep pink
+    "#9400d3"   # dark violet
 ]
 prate_cmap = LinearSegmentedColormap.from_list("prate_custom", prate_colors, N=len(prate_colors))
+prate_norm = BoundaryNorm(prate_levels, prate_cmap.N)
 
 # Forecast steps
 forecast_steps = [0] + list(range(6, 385, 6))
@@ -147,8 +158,15 @@ def plot_combined(mslp_path, prate_path, step):
     margin = 1.0  # degrees margin to avoid plotting on the very edge
 
     # --- Title block ---
-    # Calculate valid time: f000 = 8am, f006 = 2pm, etc.
-    base_time = datetime.strptime(date_str + "08", "%Y%m%d%H")  # f000 = 8am
+    # Map GFS run hour to local base time for f000
+    run_hour_map = {
+        "00": 20,  # 00z run: f000 = 8pm previous day
+        "06": 2,   # 06z run: f000 = 2am
+        "12": 8,   # 12z run: f000 = 8am
+        "18": 14   # 18z run: f000 = 2pm
+    }
+    base_hour = run_hour_map.get(hour_str, 8)  # default to 8am if unknown
+    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
     valid_time = base_time + timedelta(hours=step)
     hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()  # '08AM' -> '8am'
     day_of_week = valid_time.strftime('%A')
@@ -181,18 +199,26 @@ def plot_combined(mslp_path, prate_path, step):
         Lon2d, Lat2d, prate2d,
         levels=prate_levels,
         cmap=prate_cmap,
+        norm=prate_norm,
         extend='max',
         transform=ccrs.PlateCarree(),
         alpha=0.7
     )
 
+    # Add ADKWX.com to bottom right
+    fig.text(
+        0.99, 0.01, "adkwx.com",
+        fontsize=10, color="black", ha="right", va="bottom",
+        alpha=0.7, fontweight="bold"
+    )
+
     # Add colorbar for PRATE, tightly below the plot
-    # Shrink and aspect already reduced; now use tight layout and manual position
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)  # minimize bottom margin
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
     cbar = plt.colorbar(
         mesh, ax=ax, orientation='horizontal',
-        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,  # fraction makes bar thinner
-        anchor=(0.5, 0.0), location='bottom'
+        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,
+        anchor=(0.5, 0.0), location='bottom',
+        ticks=prate_levels, boundaries=prate_levels
     )
     cbar.set_label("Precipitation Rate (mm/hr)", fontsize=8)
     cbar.ax.tick_params(labelsize=7)
@@ -223,14 +249,23 @@ def plot_combined(mslp_path, prate_path, step):
     high_y, high_x = np.where(highs)
     highs_plotted = 0
     max_highs = 4
-    plotted_points = set()
+    min_high_distance = 60  # minimum grid points between plotted highs
+    plotted_high_points = []
     for y, x in zip(high_y, high_x):
         if highs_plotted >= max_highs:
             break
         lon, lat = Lon2d[y, x], Lat2d[y, x]
         if not in_extent(lon, lat):
             continue
-        plotted_points.add((y, x))
+        # Check if this high is too close to any already plotted high
+        too_close = False
+        for py, px in plotted_high_points:
+            if np.hypot(y - py, x - px) < min_high_distance:
+                too_close = True
+                break
+        if too_close:
+            continue
+        plotted_high_points.append((y, x))
         ax.text(
             lon, lat, "H",
             color='blue', fontsize=16, fontweight='bold',
@@ -251,13 +286,13 @@ def plot_combined(mslp_path, prate_path, step):
     low_y, low_x = np.where(lows)
     lows_plotted = 0
     max_lows = 4
-    min_low_distance = 12  # minimum grid points between plotted lows (tune as needed)
+    min_low_distance = 60  # increased minimum grid points between plotted lows
     plotted_low_points = []
 
     for y, x in zip(low_y, low_x):
         if lows_plotted >= max_lows:
             break
-        if (y, x) in plotted_points:
+        if (y, x) in plotted_high_points:
             continue  # Skip if already plotted as a High
         lon, lat = Lon2d[y, x], Lat2d[y, x]
         if not in_extent(lon, lat):
@@ -286,15 +321,12 @@ def plot_combined(mslp_path, prate_path, step):
         plotted_low_points.append((y, x))
         lows_plotted += 1
 
-    # Always plot the absolute minimum pressure as "L" if not already plotted
-    # --- Search the entire domain, not just masked region ---
+    # Always plot the absolute minimum pressure as "L" if not already plotted and not too close to existing lows
     flat_data = data2d.flatten()
     min_idx = np.nanargmin(flat_data)
     min_y_full, min_x_full = np.unravel_index(min_idx, data2d.shape)
 
-    # Only plot if inside extent
     if in_extent(Lon2d[min_y_full, min_x_full], Lat2d[min_y_full, min_x_full]):
-        # Always plot an L at the absolute minimum if contours are very close (strong gradient)
         window = 2
         y0, x0 = min_y_full, min_x_full
         y1, y2 = max(0, y0 - window), min(data2d.shape[0], y0 + window + 1)
@@ -305,23 +337,24 @@ def plot_combined(mslp_path, prate_path, step):
         max_grad = np.nanmax(grad_mag)
         close_contour_threshold = 2.0  # hPa/grid, tune as needed
 
-        # Always plot if strong gradient, or if not already plotted nearby
         already_plotted = any(np.hypot(min_y_full - py, min_x_full - px) < min_low_distance for py, px in plotted_low_points)
-        if (not already_plotted) or (max_grad > close_contour_threshold):
-            ax.text(
-                Lon2d[min_y_full, min_x_full], Lat2d[min_y_full, min_x_full], "L",
-                color='red', fontsize=16, fontweight='bold',
-                ha='center', va='center', transform=ccrs.PlateCarree(),
-                zorder=3, path_effects=[path_effects.Stroke(linewidth=1, foreground='white'), path_effects.Normal()]
-            )
-            ax.text(
-                Lon2d[min_y_full, min_x_full], Lat2d[min_y_full, min_x_full]-0.7, f"{data2d[min_y_full, min_x_full]:.0f}",
-                color='red', fontsize=5, fontweight='bold',
-                ha='center', va='top', transform=ccrs.PlateCarree(),
-                zorder=3, path_effects=[path_effects.Stroke(linewidth=0.5, foreground='white'), path_effects.Normal()]
-            )
+        if (not already_plotted) or (max_grad > close_contour_threshold and not already_plotted):
+            if not already_plotted:
+                ax.text(
+                    Lon2d[min_y_full, min_x_full], Lat2d[min_y_full, min_x_full], "L",
+                    color='red', fontsize=16, fontweight='bold',
+                    ha='center', va='center', transform=ccrs.PlateCarree(),
+                    zorder=3, path_effects=[path_effects.Stroke(linewidth=1, foreground='white'), path_effects.Normal()]
+                )
+                ax.text(
+                    Lon2d[min_y_full, min_x_full], Lat2d[min_y_full, min_x_full]-0.7, f"{data2d[min_y_full, min_x_full]:.0f}",
+                    color='red', fontsize=5, fontweight='bold',
+                    ha='center', va='top', transform=ccrs.PlateCarree(),
+                    zorder=3, path_effects=[path_effects.Stroke(linewidth=0.5, foreground='white'), path_effects.Normal()]
+                )
+                plotted_low_points.append((min_y_full, min_x_full))
 
-    # Always plot an L at the location of the tightest pressure gradient (if extreme)
+    # Always plot an L at the location of the tightest pressure gradient (if extreme and not too close to existing lows)
     grad_y_full, grad_x_full = np.gradient(data2d)
     grad_mag_full = np.sqrt(grad_y_full**2 + grad_x_full**2)
     max_grad_idx = np.nanargmax(grad_mag_full)
@@ -329,7 +362,6 @@ def plot_combined(mslp_path, prate_path, step):
     max_grad_value = grad_mag_full[grad_y, grad_x]
     tight_gradient_threshold = 3.0  # hPa/grid, adjust as needed
 
-    # Find the lowest pressure in a small window around the tightest gradient
     window = 2
     y1, y2 = max(0, grad_y - window), min(data2d.shape[0], grad_y + window + 1)
     x1, x2 = max(0, grad_x - window), min(data2d.shape[1], grad_x + window + 1)
@@ -340,7 +372,6 @@ def plot_combined(mslp_path, prate_path, step):
         abs_min_y = y1 + local_min_y
         abs_min_x = x1 + local_min_x
 
-        # Only plot if inside extent and not already plotted nearby
         if (extent[0] <= Lon2d[abs_min_y, abs_min_x] <= extent[1] and
             extent[2] <= Lat2d[abs_min_y, abs_min_x] <= extent[3]):
             already_plotted = any(np.hypot(abs_min_y - py, abs_min_x - px) < min_low_distance for py, px in plotted_low_points)
@@ -357,6 +388,7 @@ def plot_combined(mslp_path, prate_path, step):
                     ha='center', va='top', transform=ccrs.PlateCarree(),
                     zorder=3, path_effects=[path_effects.Stroke(linewidth=0.5, foreground='white'), path_effects.Normal()]
                 )
+                plotted_low_points.append((abs_min_y, abs_min_x))
 
     ax.set_axis_off()
     png_path = os.path.join(combined_dir, f"prate_{step:03d}.png")
@@ -374,4 +406,5 @@ for step in forecast_steps:
         gc.collect()
         time.sleep(3)
 
-print("All combined PNG creation tasks complete!")
+        print("All combined PNG creation tasks complete!")
+        time.sleep(3)
