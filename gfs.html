@@ -292,32 +292,12 @@
           img.onclick = function() {
             showModal(idx);
           };
+          img.onerror = function() {
+            if (img.parentNode) {
+              img.parentNode.removeChild(img);
+            }
+          };
           grid.appendChild(img);
-        }
-
-        function loadAvailableImages(callback) {
-          let newAvailableImgs = [];
-          let newAvailableHours = [];
-          let checked = 0;
-          let total = imgSrcs.length;
-          if (!total) {
-            if (callback) callback([], []);
-            return;
-          }
-          imgSrcs.forEach((src, idx) => {
-            const img = new Image();
-            img.onload = function() {
-              newAvailableImgs.push(src);
-              newAvailableHours.push(hours[idx]);
-              checked++;
-              if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
-            };
-            img.onerror = function() {
-              checked++;
-              if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
-            };
-            img.src = src;
-          });
         }
 
         function renderGrid(imgs, hrs) {
@@ -493,6 +473,14 @@
           });
         }
 
+        // Preload images for caching
+        function preloadImages(srcArray) {
+          srcArray.forEach(src => {
+            const img = new Image();
+            img.src = src;
+          });
+        }
+
         function activate(type) {
           if (currentType === type) return;
           currentType = type;
@@ -527,16 +515,11 @@
             availableHours = hours;
           }
           // MANUAL: Add new logic here for another image type
-          availableImgs = [];
+          availableImgs = imgSrcs.slice(); // Use all image URLs
           clearGrid();
-          loadAvailableImages(function(newImgs, newHours) {
-            availableImgs = newImgs;
-            availableHours = newHours;
-            renderGrid(availableImgs, availableHours);
-            setupModalNavigation();
-          });
-          // Immediately refresh images for the new type
-          refreshImageGrid();
+          preloadImages(imgSrcs);
+          renderGrid(availableImgs, availableHours);
+          setupModalNavigation();
         }
 
         prateBtn.onclick = function() { activate("prate"); };
@@ -576,5 +559,3 @@
       <!-- Right panel content -->
     </div>
   </div>
-<!-- ...existing code... -->
-<!-- ...existing code... -->
