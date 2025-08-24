@@ -138,12 +138,46 @@
   #gifs-navbar-btn:hover {
     background: #263159;
   }
+  #updates-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #updates-navbar-btn:hover {
+    background: #263159;
+  }
+  #community-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #community-navbar-btn:hover {
+    background: #263159;
+  }
 </style>
 </head>
 <body>
   <div id="top-navbar">
-    adkwx.com
+    adkwx.com.com
     <button id="gifs-navbar-btn" onclick="window.location.href='gifs.html'">GIFS</button>
+    <button id="updates-navbar-btn" onclick="window.location.href='updates.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Updates</button>
+    <button id="community-navbar-btn" onclick="window.location.href='community.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Community</button>
   </div>
   <div class="layout-container">
     <div class="left-panel">
@@ -501,8 +535,8 @@
             renderGrid(availableImgs, availableHours);
             setupModalNavigation();
           });
-          if (refreshInterval) clearInterval(refreshInterval);
-          refreshInterval = setInterval(refreshImageGrid, 10000);
+          // Immediately refresh images for the new type
+          refreshImageGrid();
         }
 
         prateBtn.onclick = function() { activate("prate"); };
@@ -516,6 +550,9 @@
         // Show all prate PNGs on page load
         window.addEventListener('DOMContentLoaded', function() {
           activate("prate");
+          // Start global interval to refresh images every 6 seconds
+          if (refreshInterval) clearInterval(refreshInterval);
+          refreshInterval = setInterval(refreshImageGrid, 6000);
         });
 
         // Do NOT load images on page load
@@ -540,4 +577,4 @@
     </div>
   </div>
 <!-- ...existing code... -->
-
+<!-- ...existing code... -->
