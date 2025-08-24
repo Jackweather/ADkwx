@@ -214,7 +214,7 @@ def generate_clean_png(file_path, step):
 
     # Add ADKWX.com to bottom right
     fig.text(
-        0.99, 0.01, "ADKWX.com",
+        0.99, 0.01, "adkwx.com",
         fontsize=10, color="black", ha="right", va="bottom",
         alpha=0.7, fontweight="bold"
     )
