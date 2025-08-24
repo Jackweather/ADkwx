@@ -163,7 +163,7 @@ def plot_total_precip(total_precip_in, lats, lons, step):
         label.set_ha('right')
 
     fig.text(
-        0.99, 0.01, "ADKWX.com",
+        0.99, 0.01, "adkwx.com",
         fontsize=10, color="black", ha="right", va="bottom",
         alpha=0.7, fontweight="bold"
     )
