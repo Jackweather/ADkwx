@@ -1,0 +1,290 @@
+<head>
+  <style>
+    /* Copy styles from gfs.html */
+    #top-navbar {
+      width: 100vw;
+      background: #263159;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 32px;
+      height: 54px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 2000;
+      font-size: 1.5em;
+      font-family: Arial, sans-serif;
+      letter-spacing: 1.5px;
+    }
+    #gifs-navbar-btn {
+      margin-left: 18px;
+      background: #41507a;
+      color: #fff;
+      border: none;
+      border-radius: 18px;
+      padding: 8px 22px;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0002;
+      transition: background 0.18s;
+      letter-spacing: 1px;
+    }
+    #gifs-navbar-btn:hover {
+      background: #263159;
+    }
+    body {
+      margin: 0;
+      padding-top: 54px;
+    }
+    .layout-container {
+      display: flex;
+      min-height: 100vh;
+      background: #f5f7fa;
+    }
+    .left-panel, .right-panel {
+      width: 140px;
+      background: #31416a;
+      color: #fff;
+      padding: 0;
+      box-sizing: border-box;
+      min-height: calc(100vh - 54px);
+    }
+    .main-content {
+      flex: 1;
+      padding: 32px 24px;
+      background: #fff;
+      min-height: calc(100vh - 54px);
+    }
+    @media (max-width: 900px) {
+      .left-panel, .right-panel {
+        display: none;
+      }
+      .main-content {
+        padding: 16px 4vw;
+      }
+    }
+    .side-btn {
+      width: 90%;
+      margin: 18px auto 0 auto;
+      display: block;
+      background: #41507a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 0;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .side-btn.active,
+    .side-btn:active {
+      background: #263159;
+    }
+    #gif-image-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    #fullscreen-modal {
+      display: none;
+      position: fixed;
+      z-index: 3000;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(20,30,50,0.92);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    #fullscreen-img {
+      max-width: 80vw;
+      max-height: 75vh;
+      width: auto;
+      height: auto;
+      box-shadow: 0 4px 32px #000;
+      border-radius: 10px;
+      transition: opacity 0.25s;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+      cursor: pointer;
+    }
+    #arrow-controls {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+    }
+    #left-arrow, #right-arrow {
+      font-size: 2.2em;
+      padding: 6px 18px;
+      border: none;
+      background: #263159;
+      color: #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0003;
+      transition: background 0.2s;
+    }
+  </style>
+</head>
+<body>
+  <div id="top-navbar">
+    ADKWX.com
+    <button id="gifs-navbar-btn" onclick="window.location.href='gfs.html'">GFS</button>
+  </div>
+  <div class="layout-container">
+    <div class="left-panel">
+      <div style="width:60%;margin:10px auto 0 auto;padding:4px 0;background:#263159;color:#fff;text-align:center;border-radius:5px;font-size:0.95em;letter-spacing:1px;">
+        GIFS
+      </div>
+      <!-- Left panel content (optional, can add buttons here) -->
+    </div>
+    <div class="main-content">
+      <h2 style="color:#263159;">GIF Gallery</h2>
+      <div id="gif-image-grid">
+        <!-- GIF images will be loaded here -->
+      </div>
+      <div id="fullscreen-modal">
+        <img id="fullscreen-img" src="" alt="">
+        <div id="arrow-controls">
+          <button id="left-arrow">&#8592;</button>
+          <button id="right-arrow">&#8594;</button>
+        </div>
+      </div>
+      <script>
+        // --- GIF grid and modal logic ---
+        const gifGrid = document.getElementById('gif-image-grid');
+        const modal = document.getElementById('fullscreen-modal');
+        const modalImg = document.getElementById('fullscreen-img');
+        const leftArrow = document.getElementById('left-arrow');
+        const rightArrow = document.getElementById('right-arrow');
+
+        // Show PRATEGFS.gif, tmp_surface.gif, and 6hour_precip_total.gif in the grid
+        const gifSrcs = [
+          "Gifs/PRATEGFS.gif",
+          "Gifs/tmp_surface.gif",
+          "Gifs/6hour_precip_total.gif",
+          "Gifs/24hour_precip_total.gif",
+          "Gifs/12hour_precip_total.gif",
+          "Gifs/total_precip.gif",
+        ];
+
+        let currentIdx = 0;
+
+        function clearGrid() {
+          while (gifGrid.firstChild) gifGrid.removeChild(gifGrid.firstChild);
+        }
+
+        function addGifToGrid(src, idx) {
+          const container = document.createElement('div');
+          container.style.display = "flex";
+          container.style.flexDirection = "column";
+          container.style.alignItems = "center";
+          container.style.justifyContent = "center";
+
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = `gif_${idx}`;
+          img.style.width = "100%";
+          img.style.maxWidth = "100%";
+          img.style.borderRadius = "6px";
+          img.style.cursor = "pointer";
+          img.onclick = function() {
+            showModal(idx);
+          };
+
+          container.appendChild(img);
+          gifGrid.appendChild(container);
+        }
+
+        function renderGrid() {
+          clearGrid();
+          gifSrcs.forEach((src, idx) => addGifToGrid(src, idx));
+        }
+
+        function showModal(idx) {
+          currentIdx = idx;
+          modalImg.style.opacity = 0;
+          modal.style.display = "flex";
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = gifSrcs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+          };
+          tempImg.src = gifSrcs[currentIdx];
+        }
+
+        modal.onclick = function(e) {
+          if (e.target === modal) {
+            modal.style.display = "none";
+          }
+        };
+
+        leftArrow.onclick = function(e) {
+          e.stopPropagation();
+          if (gifSrcs.length === 0) return;
+          currentIdx = (currentIdx - 1 + gifSrcs.length) % gifSrcs.length;
+          modalImg.style.opacity = 0;
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = gifSrcs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+          };
+          tempImg.src = gifSrcs[currentIdx];
+        };
+        rightArrow.onclick = function(e) {
+          e.stopPropagation();
+          if (gifSrcs.length === 0) return;
+          currentIdx = (currentIdx + 1) % gifSrcs.length;
+          modalImg.style.opacity = 0;
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = gifSrcs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+          };
+          tempImg.src = gifSrcs[currentIdx];
+        };
+
+        // Keyboard navigation for modal
+        document.addEventListener('keydown', function(e) {
+          if (modal.style.display === "flex") {
+            if (e.key === "ArrowLeft") {
+              leftArrow.click();
+              e.preventDefault();
+            } else if (e.key === "ArrowRight") {
+              rightArrow.click();
+              e.preventDefault();
+            } else if (e.key === "Escape") {
+              modal.style.display = "none";
+              e.preventDefault();
+            }
+          }
+        });
+
+        // Initial render
+        window.addEventListener('DOMContentLoaded', function() {
+          renderGrid();
+        });
+      </script>
+    </div>
+    <div class="right-panel">
+      <!-- Right panel content -->
+    </div>
+  </div>
+</body>
+          renderGrid();
+        });
+      </script>
+    </div>
+    <div class="right-panel">
+      <!-- Right panel content -->
+    </div>
+  </div>
+</body>
