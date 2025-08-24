@@ -8,15 +8,12 @@ import threading
 
 app = Flask(__name__)
 
-# Suppress 404 logging for /PRATEGFS/ image requests in werkzeug logger
-class WerkzeugFilter(logging.Filter):
-    def filter(self, record):
-        msg = record.getMessage()
-        if 'GET /PRATEGFS/' in msg and '404' in msg:
-            return False
-        return True
-
-logging.getLogger('werkzeug').addFilter(WerkzeugFilter())
+# Suppress 404 logging for /PRATEGFS/ and /tmp_surface/ image requests in werkzeug logger
+logging.getLogger('werkzeug').addFilter(
+    lambda record: not (
+        (('GET /PRATEGFS/' in record.getMessage() or 'GET /tmp_surface/' in record.getMessage()) and '404' in record.getMessage())
+    )
+)
 
 @app.route('/')
 def index():
@@ -37,6 +34,65 @@ def serve_prate_image(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
+@app.route('/tmp_surface/<path:filename>')
+def serve_tmp_image(filename):
+    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', 'tmp_surface')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/6hour_precip_total/<path:filename>')
+def serve_precip6_image(filename):
+    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', '6hour_precip_total')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/24hour_precip_total/<path:filename>')
+def serve_precip24_image(filename):
+    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', '24hour_precip_total')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/12hour_precip_total/<path:filename>')
+def serve_precip12_image(filename):
+    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', '12hour_precip_total')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+
+@app.route('/total_precip/<path:filename>')
+def serve_total_precip_image(filename):
+    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', 'total_precip')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/gifs.html')
+def gifs_html():
+    with open('gifs.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+@app.route('/gfs.html')
+def serve_gfs_html():
+    return send_from_directory(os.path.dirname(__file__), 'gfs.html')
+
+@app.route('/Gifs/<path:filename>')
+def serve_gif(filename):
+    directory = os.path.join(os.path.dirname(__file__), 'Gifs')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+    
+
 @app.route("/run-task1")
 def run_task1():
     def run_all_scripts():
@@ -56,8 +112,99 @@ def run_task1():
             print(f"Error running mslp_prate.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
+        # --- Run gfsmodel/tmp_surface_clean.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/tmp_surface_clean.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("tmp_surface_clean.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running tmp_surface_clean.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- Run gfsmodel/6hourmaxprecip.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/6hourmaxprecip.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("6hourmaxprecip.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running 6hourmaxprecip.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- Run gfsmodel/12hour_precip.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/12hour_precip.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("12hour_precip.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running 12hour_precip.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- Run gfsmodel/24hour_precip.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/24hour_precip.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("24hour_precip.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running 24hour_precip.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- Run gfsmodel/total_precip.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/total_precip.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("total_precip.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running total_precip.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- Run Gifs/gif.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/Gifs/gif.py"],
+                check=True, cwd="/opt/render/project/src/Gifs",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("gif.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running gif.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)
