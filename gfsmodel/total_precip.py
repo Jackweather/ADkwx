@@ -12,7 +12,7 @@ import cartopy.feature as cfeature
 import time
 import gc
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = '/var/data'
 
 # Directories
 output_dir = os.path.join(BASE_DIR, "GFS")
