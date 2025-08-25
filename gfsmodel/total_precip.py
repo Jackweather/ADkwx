@@ -170,7 +170,7 @@ def plot_total_precip(total_precip_in, lats, lons, step):
 
     ax.set_axis_off()
     png_path = os.path.join(png_dir, f"totalprecip_{step:03d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=600, facecolor='white')
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=300, facecolor='white')
     plt.close(fig)
     print(f"Generated total precip PNG: {png_path}")
     return png_path
@@ -205,3 +205,4 @@ for step in forecast_steps:
         time.sleep(3)
 
 print("All GRIB file download and total precipitation PNG creation tasks complete!")
+
