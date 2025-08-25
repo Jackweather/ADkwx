@@ -16,7 +16,7 @@ import gc
 import cartopy.io.shapereader as shpreader
 import cartopy.feature as cfeature
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = '/var/data'
 
 # --- Clean up old files in grib_files, pngs, and combined_mslp_prate directories ---
 for folder in [
