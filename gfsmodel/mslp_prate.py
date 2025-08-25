@@ -392,7 +392,7 @@ def plot_combined(mslp_path, prate_path, step):
 
     ax.set_axis_off()
     png_path = os.path.join(combined_dir, f"prate_{step:03d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=300, facecolor='white')
     plt.close(fig)
     print(f"Generated combined PNG: {png_path}")
     return png_path
@@ -408,3 +408,4 @@ for step in forecast_steps:
 
         print("All combined PNG creation tasks complete!")
         time.sleep(3)
+
