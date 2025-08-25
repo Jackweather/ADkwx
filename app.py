@@ -1,10 +1,13 @@
-from flask import Flask, send_from_directory, abort, request
+from flask import Flask, send_from_directory, abort, request, jsonify
 import os
 import subprocess
 import traceback
 import getpass
 import logging
 import threading
+import json
+from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 
@@ -15,11 +18,13 @@ logging.getLogger('werkzeug').addFilter(
     )
 )
 
+BASE_DATA_DIR = '/var/data'
+
 @app.route('/')
 def index():
     with open('gfs.html', 'r', encoding='utf-8') as f:
         html = f.read()
-    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', 'PRATEGFS')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
     images_html = ''.join(
         f'<img src="/PRATEGFS/{png}" alt="{png}"><br>\n'
         for png in sorted(f for f in os.listdir(directory) if f.endswith('.png'))
@@ -28,7 +33,7 @@ def index():
 
 @app.route('/PRATEGFS/<path:filename>')
 def serve_prate_image(filename):
-    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', 'PRATEGFS')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -36,7 +41,7 @@ def serve_prate_image(filename):
 
 @app.route('/tmp_surface/<path:filename>')
 def serve_tmp_image(filename):
-    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', 'tmp_surface')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'tmp_surface')
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -44,7 +49,7 @@ def serve_tmp_image(filename):
 
 @app.route('/6hour_precip_total/<path:filename>')
 def serve_precip6_image(filename):
-    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', '6hour_precip_total')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '6hour_precip_total')
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -52,7 +57,7 @@ def serve_precip6_image(filename):
 
 @app.route('/24hour_precip_total/<path:filename>')
 def serve_precip24_image(filename):
-    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', '24hour_precip_total')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '24hour_precip_total')
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -60,7 +65,7 @@ def serve_precip24_image(filename):
 
 @app.route('/12hour_precip_total/<path:filename>')
 def serve_precip12_image(filename):
-    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', '12hour_precip_total')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '12hour_precip_total')
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -69,7 +74,7 @@ def serve_precip12_image(filename):
 
 @app.route('/total_precip/<path:filename>')
 def serve_total_precip_image(filename):
-    directory = os.path.join(os.path.dirname(__file__), 'gfsmodel', 'GFS', 'static', 'total_precip')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'total_precip')
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -84,9 +89,17 @@ def gifs_html():
 def serve_gfs_html():
     return send_from_directory(os.path.dirname(__file__), 'gfs.html')
 
+@app.route('/updates.html')
+def serve_updates_html():
+    return send_from_directory(os.path.dirname(__file__), 'updates.html')
+
+@app.route('/community.html')
+def serve_community_html():
+    return send_from_directory(os.path.dirname(__file__), 'community.html')
+
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
-    directory = os.path.join(os.path.dirname(__file__), 'Gifs')
+    directory = os.path.join(BASE_DATA_DIR, 'Gifs')
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -204,6 +217,38 @@ def run_task1():
             print("STDERR:", e.stderr)
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
+
+@app.route('/save-chat', methods=['POST'])
+def save_chat():
+    data = request.get_json()
+    text = data.get('text', '').strip()
+    if text:
+        # Get current time in US Eastern Time and format as "h:mm AM/PM"
+        eastern = pytz.timezone('America/New_York')
+        now = datetime.now(eastern)
+        ts = now.strftime('%I:%M %p').lstrip('0')  # e.g., "3:45 PM"
+        msg_obj = {'text': text, 'timestamp': ts}
+        with open('chatlog.txt', 'a', encoding='utf-8') as f:
+            f.write(json.dumps(msg_obj) + '\n')
+        return jsonify({'status': 'ok'}), 200
+    return jsonify({'status': 'error', 'message': 'No text'}), 400
+
+@app.route('/get-chats', methods=['GET'])
+def get_chats():
+    messages = []
+    if os.path.exists('chatlog.txt'):
+        with open('chatlog.txt', 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    msg_obj = json.loads(line)
+                    messages.append(msg_obj)
+                except Exception:
+                    # fallback for old format
+                    messages.append({'text': line, 'timestamp': ''})
+    return jsonify({'messages': messages})
 
 
 if __name__ == '__main__':
