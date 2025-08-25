@@ -180,7 +180,7 @@ def generate_clean_png(file_path, step):
 
     ax.set_axis_off()
     png_path = os.path.join(png_dir, f"2mtemp_{step:03d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=300, facecolor='white')
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
     plt.close(fig)
     print(f"Generated clean PNG: {png_path}")
     return png_path
@@ -198,3 +198,9 @@ for step in forecast_steps:
 
 print("All GRIB file download and PNG creation tasks complete!")
 
+# --- Delete all GRIB files in grib_dir after PNGs are made ---
+for f in os.listdir(grib_dir):
+    file_path = os.path.join(grib_dir, f)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+print("All GRIB files deleted from grib_dir.")
