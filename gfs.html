@@ -270,6 +270,7 @@
         function addImgToGrid(src, idx) {
           const img = document.createElement('img');
           img.src = src;
+          img.loading = "lazy"; // <-- Add this line for lazy loading
           if (currentType === "prate") {
             img.alt = `prate_${hours[idx].toString().padStart(3, '0')}`;
           } else if (currentType === "tmp") {
@@ -536,6 +537,11 @@
           // Start global interval to refresh images every 6 seconds
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, 6000);
+        });
+
+        // Ensure images refresh when returning to the page (e.g., back/forward navigation)
+        window.addEventListener('pageshow', function() {
+          refreshImageGrid();
         });
 
         // Do NOT load images on page load
