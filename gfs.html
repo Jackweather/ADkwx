@@ -138,46 +138,12 @@
   #gifs-navbar-btn:hover {
     background: #263159;
   }
-  #updates-navbar-btn {
-    margin-left: 18px;
-    background: #41507a;
-    color: #fff;
-    border: none;
-    border-radius: 18px;
-    padding: 8px 22px;
-    font-size: 1em;
-    cursor: pointer;
-    box-shadow: 0 2px 8px #0002;
-    transition: background 0.18s;
-    letter-spacing: 1px;
-  }
-  #updates-navbar-btn:hover {
-    background: #263159;
-  }
-  #community-navbar-btn {
-    margin-left: 18px;
-    background: #41507a;
-    color: #fff;
-    border: none;
-    border-radius: 18px;
-    padding: 8px 22px;
-    font-size: 1em;
-    cursor: pointer;
-    box-shadow: 0 2px 8px #0002;
-    transition: background 0.18s;
-    letter-spacing: 1px;
-  }
-  #community-navbar-btn:hover {
-    background: #263159;
-  }
 </style>
 </head>
 <body>
   <div id="top-navbar">
     adkwx.com.com
     <button id="gifs-navbar-btn" onclick="window.location.href='gifs.html'">GIFS</button>
-    <button id="updates-navbar-btn" onclick="window.location.href='updates.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Updates</button>
-    <button id="community-navbar-btn" onclick="window.location.href='community.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Community</button>
   </div>
   <div class="layout-container">
     <div class="left-panel">
@@ -270,7 +236,6 @@
         function addImgToGrid(src, idx) {
           const img = document.createElement('img');
           img.src = src;
-          img.loading = "lazy"; // <-- Add this line for lazy loading
           if (currentType === "prate") {
             img.alt = `prate_${hours[idx].toString().padStart(3, '0')}`;
           } else if (currentType === "tmp") {
@@ -293,12 +258,32 @@
           img.onclick = function() {
             showModal(idx);
           };
-          img.onerror = function() {
-            if (img.parentNode) {
-              img.parentNode.removeChild(img);
-            }
-          };
           grid.appendChild(img);
+        }
+
+        function loadAvailableImages(callback) {
+          let newAvailableImgs = [];
+          let newAvailableHours = [];
+          let checked = 0;
+          let total = imgSrcs.length;
+          if (!total) {
+            if (callback) callback([], []);
+            return;
+          }
+          imgSrcs.forEach((src, idx) => {
+            const img = new Image();
+            img.onload = function() {
+              newAvailableImgs.push(src);
+              newAvailableHours.push(hours[idx]);
+              checked++;
+              if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
+            };
+            img.onerror = function() {
+              checked++;
+              if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
+            };
+            img.src = src;
+          });
         }
 
         function renderGrid(imgs, hrs) {
@@ -464,17 +449,13 @@
         }
 
         function refreshImageGrid() {
-          // Re-run activate for the current type to reload all PNGs
-          if (currentType) {
-            activate(currentType);
-          }
-        }
-
-        // Preload images for caching
-        function preloadImages(srcArray) {
-          srcArray.forEach(src => {
-            const img = new Image();
-            img.src = src;
+          loadAvailableImages(function(newImgs, newHours) {
+            if (!arraysEqual(newImgs, availableImgs)) {
+              availableImgs = newImgs;
+              availableHours = newHours;
+              renderGrid(availableImgs, availableHours);
+              setupModalNavigation();
+            }
           });
         }
 
@@ -512,11 +493,16 @@
             availableHours = hours;
           }
           // MANUAL: Add new logic here for another image type
-          availableImgs = imgSrcs.slice(); // Use all image URLs
+          availableImgs = [];
           clearGrid();
-          preloadImages(imgSrcs);
-          renderGrid(availableImgs, availableHours);
-          setupModalNavigation();
+          loadAvailableImages(function(newImgs, newHours) {
+            availableImgs = newImgs;
+            availableHours = newHours;
+            renderGrid(availableImgs, availableHours);
+            setupModalNavigation();
+          });
+          if (refreshInterval) clearInterval(refreshInterval);
+          refreshInterval = setInterval(refreshImageGrid, 10000);
         }
 
         prateBtn.onclick = function() { activate("prate"); };
@@ -530,14 +516,6 @@
         // Show all prate PNGs on page load
         window.addEventListener('DOMContentLoaded', function() {
           activate("prate");
-          // Start global interval to refresh images every 6 seconds
-          if (refreshInterval) clearInterval(refreshInterval);
-          refreshInterval = setInterval(refreshImageGrid, 6000);
-        });
-
-        // Ensure images refresh when returning to the page (e.g., back/forward navigation)
-        window.addEventListener('pageshow', function() {
-          refreshImageGrid();
         });
 
         // Do NOT load images on page load
@@ -561,34 +539,4 @@
       <!-- Right panel content -->
     </div>
   </div>
-  <script>
-    // ...existing code...
-
-    // Background PNG refresh every 10 seconds (not shown on page)
-    function backgroundPreloadPNGs() {
-      // Gather all PNG URLs for all types
-      let hours = [];
-      for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
-
-      let allSrcs = [];
-      allSrcs = allSrcs.concat(hours.map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`));
-      allSrcs = allSrcs.concat(hours.map(hour => `/tmp_surface/2mtemp_${hour.toString().padStart(3, '0')}.png`));
-      allSrcs = allSrcs.concat(hours.map(hour => `/6hour_precip_total/precip6_${hour.toString().padStart(3, '0')}.png`));
-      let hours12 = [];
-      for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
-      allSrcs = allSrcs.concat(hours12.map(hour => `/12hour_precip_total/precip12_${hour.toString().padStart(3, '0')}.png`));
-      let hours24 = [];
-      for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
-      allSrcs = allSrcs.concat(hours24.map(hour => `/24hour_precip_total/precip24_${hour.toString().padStart(3, '0')}.png`));
-      allSrcs = allSrcs.concat(hours.map(hour => `/total_precip/totalprecip_${hour.toString().padStart(3, '0')}.png`));
-
-      // Preload images invisibly
-      allSrcs.forEach(src => {
-        const img = new Image();
-        img.src = src;
-      });
-    }
-
-    setInterval(backgroundPreloadPNGs, 10000); // every 10 seconds
-  </script>
-</body>
+<!-- ...existing code... -->
