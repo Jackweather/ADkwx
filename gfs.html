@@ -464,14 +464,10 @@
         }
 
         function refreshImageGrid() {
-          loadAvailableImages(function(newImgs, newHours) {
-            if (!arraysEqual(newImgs, availableImgs)) {
-              availableImgs = newImgs;
-              availableHours = newHours;
-              renderGrid(availableImgs, availableHours);
-              setupModalNavigation();
-            }
-          });
+          // Re-run activate for the current type to reload all PNGs
+          if (currentType) {
+            activate(currentType);
+          }
         }
 
         // Preload images for caching
@@ -563,14 +559,36 @@
     </div>
     <div class="right-panel">
       <!-- Right panel content -->
-      <button id="refresh-images-btn" class="side-btn" style="margin-top:18px;">Refresh Images</button>
     </div>
   </div>
   <script>
     // ...existing code...
-    document.getElementById('refresh-images-btn').onclick = function() {
-      refreshImageGrid();
-    };
-    // ...existing code...
+
+    // Background PNG refresh every 10 seconds (not shown on page)
+    function backgroundPreloadPNGs() {
+      // Gather all PNG URLs for all types
+      let hours = [];
+      for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
+
+      let allSrcs = [];
+      allSrcs = allSrcs.concat(hours.map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`));
+      allSrcs = allSrcs.concat(hours.map(hour => `/tmp_surface/2mtemp_${hour.toString().padStart(3, '0')}.png`));
+      allSrcs = allSrcs.concat(hours.map(hour => `/6hour_precip_total/precip6_${hour.toString().padStart(3, '0')}.png`));
+      let hours12 = [];
+      for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
+      allSrcs = allSrcs.concat(hours12.map(hour => `/12hour_precip_total/precip12_${hour.toString().padStart(3, '0')}.png`));
+      let hours24 = [];
+      for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
+      allSrcs = allSrcs.concat(hours24.map(hour => `/24hour_precip_total/precip24_${hour.toString().padStart(3, '0')}.png`));
+      allSrcs = allSrcs.concat(hours.map(hour => `/total_precip/totalprecip_${hour.toString().padStart(3, '0')}.png`));
+
+      // Preload images invisibly
+      allSrcs.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
+    }
+
+    setInterval(backgroundPreloadPNGs, 10000); // every 10 seconds
   </script>
 </body>
