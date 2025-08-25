@@ -220,7 +220,7 @@ def generate_clean_png_sum(file_paths, step):
 
     ax.set_axis_off()
     png_path = os.path.join(png_dir, f"precip24_{step:03d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=300, facecolor='white')
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=600, facecolor='white')
     plt.close(fig)
     print(f"Generated clean PNG: {png_path}")
     return png_path
@@ -244,3 +244,9 @@ for step in range(24, 385, 24):
 
 print("All GRIB file download and PNG creation tasks complete!")
 
+# --- Delete all GRIB files in grib_dir after PNGs are made ---
+for f in os.listdir(grib_dir):
+    file_path = os.path.join(grib_dir, f)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+print("All GRIB files deleted from grib_dir.")
