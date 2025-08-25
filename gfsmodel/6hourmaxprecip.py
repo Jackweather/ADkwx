@@ -12,7 +12,7 @@ import cartopy.feature as cfeature
 import time
 import gc
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = '/var/data'
 
 # --- Clean up old files in grib_files, pngs, and 6hour_precip_total directories ---
 for folder in [
