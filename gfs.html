@@ -196,27 +196,29 @@
         let hours = [];
         for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
 
+        const GRID_IMG_LIMIT = 16; // Only show/check first 16 images
+
         function getPrateSrcs() {
-          return hours.map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`);
+          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`);
         }
         function getTmpSrcs() {
-          return hours.map(hour => `/tmp_surface/2mtemp_${hour.toString().padStart(3, '0')}.png`);
+          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/tmp_surface/2mtemp_${hour.toString().padStart(3, '0')}.png`);
         }
         function getPrecip6Srcs() {
-          return hours.map(hour => `/6hour_precip_total/precip6_${hour.toString().padStart(3, '0')}.png`);
+          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/6hour_precip_total/precip6_${hour.toString().padStart(3, '0')}.png`);
         }
         function getPrecip24Srcs() {
           let hours24 = [];
           for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
-          return hours24.map(hour => `/24hour_precip_total/precip24_${hour.toString().padStart(3, '0')}.png`);
+          return hours24.slice(0, GRID_IMG_LIMIT).map(hour => `/24hour_precip_total/precip24_${hour.toString().padStart(3, '0')}.png`);
         }
         function getPrecip12Srcs() {
           let hours12 = [];
           for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
-          return hours12.map(hour => `/12hour_precip_total/precip12_${hour.toString().padStart(3, '0')}.png`);
+          return hours12.slice(0, GRID_IMG_LIMIT).map(hour => `/12hour_precip_total/precip12_${hour.toString().padStart(3, '0')}.png`);
         }
         function getTotalPrecipSrcs() {
-          return hours.map(hour => `/total_precip/totalprecip_${hour.toString().padStart(3, '0')}.png`);
+          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/total_precip/totalprecip_${hour.toString().padStart(3, '0')}.png`);
         }
         // MANUAL: Add new get*Srcs function here for another image type
 
@@ -228,6 +230,10 @@
         let zoomed = false;
         let currentType = null; // "prate" or "tmp"
         let refreshInterval = null;
+        let refreshActive = true;
+
+        // Poll every 10 seconds
+        const REFRESH_MS = 10000; // 10 seconds
 
         function clearGrid() {
           while (grid.firstChild) grid.removeChild(grid.firstChild);
@@ -236,6 +242,7 @@
         function addImgToGrid(src, idx) {
           const img = document.createElement('img');
           img.src = src;
+          img.loading = "lazy"; // Only load when visible
           if (currentType === "prate") {
             img.alt = `prate_${hours[idx].toString().padStart(3, '0')}`;
           } else if (currentType === "tmp") {
@@ -451,6 +458,7 @@
         }
 
         function refreshImageGrid() {
+          if (!refreshActive) return;
           loadAvailableImages(function(newImgs, newHours) {
             if (!arraysEqual(newImgs, availableImgs)) {
               availableImgs = newImgs;
@@ -460,6 +468,11 @@
             }
           });
         }
+
+        // Pause polling when tab is hidden, resume when visible
+        document.addEventListener('visibilitychange', function() {
+          refreshActive = !document.hidden;
+        });
 
         function activate(type) {
           if (currentType === type) return;
@@ -504,7 +517,7 @@
             setupModalNavigation();
           });
           if (refreshInterval) clearInterval(refreshInterval);
-          refreshInterval = setInterval(refreshImageGrid, 10000);
+          refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
 
         prateBtn.onclick = function() { activate("prate"); };
