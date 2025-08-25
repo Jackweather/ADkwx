@@ -196,7 +196,7 @@
         let hours = [];
         for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
 
-        const GRID_IMG_LIMIT = 16; // Only show/check first 16 images
+        const GRID_IMG_LIMIT = 64; // Only show/check first 16 images
 
         function getPrateSrcs() {
           return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`);
