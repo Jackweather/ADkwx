@@ -176,6 +176,7 @@
       <button id="precip12-btn" class="side-btn">12hPrecip</button>
       <button id="precip24-btn" class="side-btn">24hPrecip</button>
       <button id="total_precip_btn" class="side-btn">Total Precip</button>
+      <button id="total_cloud_cover_btn" class="side-btn">Total Cloud Cover</button>
 
       <!-- MANUAL: Add new button here for another image type -->
     </div>
@@ -207,6 +208,7 @@
         const precip12Btn = document.getElementById('precip12-btn');
         const precip24Btn = document.getElementById('precip24-btn');
         const totalPrecipBtn = document.getElementById('total_precip_btn');
+        const totalCloudCoverBtn = document.getElementById('total_cloud_cover_btn');
         // MANUAL: Add new button variable here for another image type
 
         const imgSlider = document.getElementById('img-slider');
@@ -237,6 +239,9 @@
         }
         function getTotalPrecipSrcs() {
           return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/total_precip/totalprecip_${hour.toString().padStart(3, '0')}.png`);
+        }
+        function getTotalCloudCoverSrcs() {
+          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/total_cloud_cover/total_lcdc_${hour.toString().padStart(3, '0')}.png`);
         }
         // MANUAL: Add new get*Srcs function here for another image type
 
@@ -274,6 +279,8 @@
             img.alt = `precip12_${(12 * (idx + 1)).toString().padStart(3, '0')}`;
           } else if (currentType === "total_precip") {
             img.alt = `totalprecip_${hours[idx].toString().padStart(3, '0')}`;
+          } else if (currentType === "total_cloud_cover") {
+            img.alt = `total_lcdc_${hours[idx].toString().padStart(3, '0')}`;
           }
           
           // MANUAL: Add new alt logic here for another image type
@@ -505,6 +512,7 @@
           precip12Btn.classList.toggle('active', type === "precip12");
           precip24Btn.classList.toggle('active', type === "precip24");
           totalPrecipBtn.classList.toggle('active', type === "total_precip");
+          totalCloudCoverBtn.classList.toggle('active', type === "total_cloud_cover");
           // MANUAL: Add new .classList.toggle for another image type
           if (type === "prate") {
             imgSrcs = getPrateSrcs();
@@ -528,6 +536,9 @@
           } else if (type === "total_precip") {
             imgSrcs = getTotalPrecipSrcs();
             availableHours = hours;
+          } else if (type === "total_cloud_cover") {
+            imgSrcs = getTotalCloudCoverSrcs();
+            availableHours = hours;
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = [];
@@ -550,6 +561,7 @@
         precip12Btn.onclick = function() { activate("precip12"); };
         precip24Btn.onclick = function() { activate("precip24"); };
         totalPrecipBtn.onclick = function() { activate("total_precip"); };
+        totalCloudCoverBtn.onclick = function() { activate("total_cloud_cover"); };
         // MANUAL: Add new button onclick here for another image type
 
         // Show all prate PNGs on page load
