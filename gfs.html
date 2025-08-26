@@ -196,7 +196,7 @@
         let hours = [];
         for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
 
-        const GRID_IMG_LIMIT = 64; // Only show/check first 16 images
+        const GRID_IMG_LIMIT = 65; // Only show/check first 16 images
 
         function getPrateSrcs() {
           return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`);
@@ -228,12 +228,13 @@
         let currentIdx = 0;
         let zoomMode = false;
         let zoomed = false;
-        let currentType = null; // "prate" or "tmp"
+        let currentType = null;
         let refreshInterval = null;
         let refreshActive = true;
+        let loadToken = 0; // Add a token to cancel outdated loads
 
         // Poll every 10 seconds
-        const REFRESH_MS = 3000; // 10 seconds
+        const REFRESH_MS = 2000; // 10 seconds
 
         function clearGrid() {
           while (grid.firstChild) grid.removeChild(grid.firstChild);
@@ -268,8 +269,8 @@
           grid.appendChild(img);
         }
 
-        // This function already loads all images concurrently (browser will fetch all srcs at once).
         function loadAvailableImages(callback) {
+          const thisToken = ++loadToken; // Increment token for each load
           let newAvailableImgs = [];
           let newAvailableHours = [];
           let checked = 0;
@@ -282,12 +283,14 @@
           imgSrcs.forEach((src, idx) => {
             const img = new Image();
             img.onload = function() {
+              if (thisToken !== loadToken) return; // Ignore if token changed
               newAvailableImgs.push(src);
               newAvailableHours.push(hours[idx]);
               checked++;
               if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
             };
             img.onerror = function() {
+              if (thisToken !== loadToken) return; // Ignore if token changed
               checked++;
               if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
             };
@@ -477,6 +480,7 @@
         function activate(type) {
           if (currentType === type) return;
           currentType = type;
+          loadToken++; // Invalidate previous loads
           prateBtn.classList.toggle('active', type === "prate");
           tmpBtn.classList.toggle('active', type === "tmp");
           precip6Btn.classList.toggle('active', type === "precip6");
@@ -511,6 +515,8 @@
           availableImgs = [];
           clearGrid();
           loadAvailableImages(function(newImgs, newHours) {
+            // Only update if still the current type
+            if (currentType !== type) return;
             availableImgs = newImgs;
             availableHours = newHours;
             renderGrid(availableImgs, availableHours);
@@ -555,4 +561,3 @@
     </div>
   </div>
 <!-- ...existing code... -->
-
