@@ -30,6 +30,7 @@ folders = [
     '24hour_precip_total',
     '12hour_precip_total',
     'total_precip'
+    'total_lcdc'
 ]
 
 for folder in folders:
