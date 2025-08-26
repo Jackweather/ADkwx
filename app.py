@@ -88,6 +88,14 @@ def serve_total_lcdc_image(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
+@app.route('/total_cloud_cover/<path:filename>')
+def serve_total_cloud_cover_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'total_cloud_cover')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
 @app.route('/gifs.html')
 def gifs_html():
     with open('gifs.html', 'r', encoding='utf-8') as f:
