@@ -210,6 +210,21 @@ def run_task1():
             print(f"Error running total_precip.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
+        # --- Run gfsmodel/total_cloud_cover.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/total_cloud_cover.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("total_cloud_cover.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running total_cloud_cover.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
         # --- Run Gifs/gif.py ---
         try:
             result = subprocess.run(
