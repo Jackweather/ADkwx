@@ -79,6 +79,7 @@ def serve_total_precip_image(filename):
     if not os.path.isfile(abs_path):
         abort(404)
     return send_from_directory(directory, filename)
+    
 
 @app.route('/total_lcdc/<path:filename>')
 def serve_total_lcdc_image(filename):
@@ -87,14 +88,7 @@ def serve_total_lcdc_image(filename):
     if not os.path.isfile(abs_path):
         abort(404)
     return send_from_directory(directory, filename)
-
-@app.route('/total_cloud_cover/<path:filename>')
-def serve_total_cloud_cover_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'total_cloud_cover')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
+    
 
 @app.route('/gifs.html')
 def gifs_html():
@@ -217,15 +211,6 @@ def run_task1():
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
         # --- Run Gifs/gif.py ---
-        
-        @app.route('/total_lcdc/<path:filename>')
-        def serve_total_lcdc_image(filename):
-            directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'total_lcdc')
-            abs_path = os.path.join(directory, filename)
-            if not os.path.isfile(abs_path):
-                abort(404)
-            return send_from_directory(directory, filename)
-
         try:
             result = subprocess.run(
                 ["python", "/opt/render/project/src/Gifs/gif.py"],
