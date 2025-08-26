@@ -1,0 +1,262 @@
+<head>
+  <style>
+    /* Copy styles from gfs.html */
+    #top-navbar {
+      width: 100vw;
+      background: #263159;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 32px;
+      height: 54px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 2000;
+      font-size: 1.5em;
+      font-family: Arial, sans-serif;
+      letter-spacing: 1.5px;
+    }
+    #gfs-navbar-btn, #gifs-navbar-btn {
+      margin-left: 18px;
+      background: #41507a;
+      color: #fff;
+      border: none;
+      border-radius: 18px;
+      padding: 8px 22px;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0002;
+      transition: background 0.18s;
+      letter-spacing: 1px;
+    }
+    #gifs-navbar-btn:hover, #gfs-navbar-btn:hover {
+      background: #263159;
+    }
+    body {
+      margin: 0;
+      padding-top: 54px;
+    }
+    .layout-container {
+      display: flex;
+      min-height: 100vh;
+      background: #f5f7fa;
+    }
+    .left-panel, .right-panel {
+      width: 140px;
+      background: #31416a;
+      color: #fff;
+      padding: 0;
+      box-sizing: border-box;
+      min-height: calc(100vh - 54px);
+    }
+    .main-content {
+      flex: 1;
+      padding: 32px 24px;
+      background: #fff;
+      min-height: calc(100vh - 54px);
+    }
+    @media (max-width: 900px) {
+      .left-panel, .right-panel {
+        display: none;
+      }
+      .main-content {
+        padding: 16px 4vw;
+      }
+    }
+    .side-btn {
+      width: 90%;
+      margin: 18px auto 0 auto;
+      display: block;
+      background: #41507a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 0;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .side-btn.active,
+    .side-btn:active {
+      background: #263159;
+    }
+    .chat-area {
+      width: 100%;
+      height: calc(100vh - 54px - 70px);
+      background: #f8faff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px #0001;
+      padding: 18px 12px;
+      overflow-y: auto;
+      font-size: 1.08em;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-message {
+      background: #e3e8f7;
+      color: #263159;
+      padding: 8px 14px;
+      border-radius: 7px;
+      max-width: 70%;
+      word-break: break-word;
+      margin-bottom: 2px;
+      align-self: flex-start;
+    }
+    .chat-bar-container {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100vw;
+      background: #263159;
+      padding: 12px 0;
+      z-index: 2100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 -2px 8px #0002;
+    }
+    .chat-input {
+      width: 60vw;
+      max-width: 520px;
+      padding: 10px 16px;
+      border-radius: 18px;
+      border: none;
+      font-size: 1.1em;
+      margin-right: 12px;
+      outline: none;
+    }
+    .chat-send-btn {
+      background: #41507a;
+      color: #fff;
+      border: none;
+      border-radius: 18px;
+      padding: 10px 24px;
+      font-size: 1.1em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0002;
+      transition: background 0.18s;
+      letter-spacing: 1px;
+    }
+    .chat-send-btn:hover {
+      background: #31416a;
+    }
+    #gif-image-grid, #fullscreen-modal, #arrow-controls, #left-arrow, #right-arrow {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="top-navbar">
+    ADKWX.com
+    <button id="gfs-navbar-btn" onclick="window.location.href='gfs.html'">GFS</button>
+    <button id="gifs-navbar-btn" onclick="window.location.href='gifs.html'">GIFS</button>
+    <button id="updates-navbar-btn" onclick="window.location.href='updates.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Updates</button>
+   
+  </div>
+  <div class="layout-container">
+    <div class="left-panel">
+      <div style="width:90%;margin:10px auto 0 auto;padding:8px 0;background:#263159;color:#fff;text-align:center;border-radius:5px;font-size:1em;letter-spacing:1px;">
+        COMMUNITY
+      </div>
+      <!-- Left panel content (optional, can add buttons here) -->
+    </div>
+    <div class="main-content">
+      <h2 style="color:#263159;">Community Chat</h2>
+      <div id="chat-area" class="chat-area">
+        <!-- Chat messages will appear here -->
+      </div>
+    </div>
+    <div class="right-panel">
+      <!-- Right panel content -->
+    </div>
+  </div>
+  <div class="chat-bar-container">
+    <input id="chat-input" class="chat-input" type="text" placeholder="Type your message..." autocomplete="off" />
+    <button id="chat-send-btn" class="chat-send-btn">Send</button>
+  </div>
+  <script>
+    const chatArea = document.getElementById('chat-area');
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+
+    function addMessage(msg) {
+      // msg: {text, timestamp} or string (old format)
+      let text, timestamp;
+      if (typeof msg === 'string') {
+        text = msg;
+        timestamp = '';
+      } else {
+        text = msg.text;
+        timestamp = msg.timestamp || '';
+      }
+      if (!text.trim()) return;
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-message';
+      msgDiv.textContent = text;
+      if (timestamp) {
+        const tsDiv = document.createElement('div');
+        tsDiv.style.fontSize = '0.85em';
+        tsDiv.style.color = '#41507a';
+        tsDiv.style.marginTop = '2px';
+        tsDiv.textContent = timestamp;
+        msgDiv.appendChild(document.createElement('br'));
+        msgDiv.appendChild(tsDiv);
+      }
+      chatArea.appendChild(msgDiv);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function sendMessage() {
+      const text = chatInput.value;
+      // Format time as 12-hour EST/EDT with AM/PM
+      const now = new Date();
+      // EST/EDT offset: -5 or -4 hours depending on DST
+      const estDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const hours = estDate.getHours();
+      const minutes = estDate.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const hour12 = hours % 12 || 12;
+      const minStr = minutes < 10 ? '0' + minutes : minutes;
+      const timeStr = `${hour12}:${minStr} ${ampm}`;
+      // Save chat message to server
+      fetch('/save-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      // Show message instantly in chat area
+      addMessage({
+        text: text,
+        timestamp: timeStr
+      });
+      chatInput.value = '';
+      chatInput.focus();
+    }
+
+    // Load old messages on page load
+    window.addEventListener('DOMContentLoaded', function() {
+      fetch('/get-chats')
+        .then(res => res.json())
+        .then(data => {
+          (data.messages || []).forEach(addMessage);
+        });
+    });
+
+    chatSendBtn.onclick = sendMessage;
+    chatInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+  </div>
+</body>
+    <div class="right-panel">
+      <!-- Right panel content -->
+    </div>
+  </div>
+</body>
