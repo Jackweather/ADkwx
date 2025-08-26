@@ -167,11 +167,13 @@ def generate_clean_png(file_path, step):
                 ix = np.abs(lons_plot - lon).argmin() if lons_plot.ndim == 1 else np.abs(lons_plot[0,:] - lon).argmin()
                 precip_val = data2d[iy, ix]
                 if not np.isnan(precip_val):
-                    # Show "0" if exactly zero, otherwise show 2 decimal places without leading zero
+                    # Show "0" if exactly zero, ".xx" if < 1, otherwise show with leading digit
                     if precip_val == 0:
                         label = "0"
+                    elif precip_val < 1:
+                        label = f".{int(round(precip_val * 100)):02d}"
                     else:
-                        label = f"{precip_val:.2f}"[1:] if precip_val < 10 else f"{precip_val:.2f}"
+                        label = f"{precip_val:.2f}"
                     ax.text(
                         lon, lat, label,
                         color='black', fontsize=4, fontweight='bold',
