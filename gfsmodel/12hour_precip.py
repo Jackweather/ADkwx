@@ -172,8 +172,10 @@ def generate_clean_png_sum(file_paths, step):
                 if not np.isnan(precip_val):
                     if precip_val == 0:
                         label = "0"
+                    elif precip_val < 1:
+                        label = f".{int(round(precip_val * 100)):02d}"
                     else:
-                        label = f"{precip_val:.2f}"[1:] if precip_val < 10 else f"{precip_val:.2f}"
+                        label = f"{precip_val:.2f}"
                     ax.text(
                         lon, lat, label,
                         color='black', fontsize=4, fontweight='bold',
