@@ -172,7 +172,7 @@
       width: 100vw;
       height: 100vh;
       box-sizing: border-box;
-      padding: 7vh 4vw;
+      padding: 6vh 3vw;
       display: grid;
       grid-template-columns: 1fr 1fr;
       grid-template-rows: 1fr 1fr;
@@ -190,14 +190,10 @@
       max-height: 100%;
       display: block;
     }
-    @media (max-width: 700px) {
+    @media (max-width: 900px) {
       #four-gif-grid {
-        padding: 4vh 1vw;
+        padding: 2vh 1vw;
         gap: 1vw;
-      }
-      #four-gif-picker {
-        width: 96vw;
-        padding: 12px 4vw;
       }
     }
   </style>
@@ -238,19 +234,8 @@
           </div>
           <button id="four-gif-confirm" style="background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;letter-spacing:1px;">Show</button>
         </div>
-        <div id="four-gif-grid" style="display:none;position:absolute;top:0;left:0;width:100vw;height:100vh;box-sizing:border-box;padding:7vh 4vw;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2vw;background:none;">
+        <div id="four-gif-grid" style="display:none;position:absolute;top:0;left:0;width:100vw;height:100vh;box-sizing:border-box;padding:6vh 3vw;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2vw;background:none;">
           <!-- 4 GIFs will be injected here -->
-        </div>
-        <!-- Crop popup -->
-        <div id="gif-crop-popup" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:24px 32px;border-radius:12px;box-shadow:0 4px 32px #000;z-index:4300;min-width:340px;">
-          <div style="font-size:1.1em;color:#263159;margin-bottom:12px;">Crop GIFs</div>
-          <div id="gif-crop-controls" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
-            <!-- Crop controls will be injected here -->
-          </div>
-          <button id="gif-crop-popup-close" style="margin-top:18px;background:#41507a;color:#fff;border:none;border-radius:12px;padding:6px 18px;font-size:1em;cursor:pointer;">Done</button>
-        </div>
-        <div id="gif-crop-popup-trigger" style="display:none;position:absolute;bottom:32px;left:50%;transform:translateX(-50%);width:320px;text-align:center;z-index:4200;">
-          <button id="open-gif-crop-popup" style="background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;">Crop GIFs</button>
         </div>
       </div>
     </div>
@@ -334,11 +319,6 @@
     const fourGifSelectors = document.getElementById('four-gif-selectors');
     const fourGifConfirm = document.getElementById('four-gif-confirm');
     const fourGifGrid = document.getElementById('four-gif-grid');
-    const gifCropPopup = document.getElementById('gif-crop-popup');
-    const gifCropControls = document.getElementById('gif-crop-controls');
-    const gifCropPopupClose = document.getElementById('gif-crop-popup-close');
-    const gifCropPopupTrigger = document.getElementById('gif-crop-popup-trigger');
-    const openGifCropPopup = document.getElementById('open-gif-crop-popup');
 
     function createGifSelector(idx) {
       const select = document.createElement('select');
@@ -373,77 +353,21 @@
       fourGifPicker.style.display = "none";
       fourGifGrid.innerHTML = "";
       fourGifGrid.style.display = "grid";
-      gifCropPopupTrigger.style.display = "block";
       const selected = Array.from(fourGifSelectors.querySelectorAll('select')).map(sel => gifSrcs[sel.value]);
       for (let i = 0; i < 4; i++) {
         const img = document.createElement('img');
         img.src = selected[i];
         img.style.width = "100%";
         img.style.height = "100%";
-        img.style.objectFit = "cover";
-        img.style.clipPath = "inset(0% 0% 0% 0%)";
-        img.dataset.idx = i;
+        img.style.objectFit = "contain";
+        img.style.borderRadius = "10px";
+        img.style.background = "#fff";
         fourGifGrid.appendChild(img);
-      }
-      // Prepare crop controls
-      gifCropControls.innerHTML = "";
-      for (let i = 0; i < 4; i++) {
-        const wrap = document.createElement('div');
-        wrap.style.display = "flex";
-        wrap.style.flexDirection = "column";
-        wrap.style.alignItems = "center";
-        wrap.style.marginBottom = "8px";
-        const label = document.createElement('label');
-        label.textContent = `GIF ${i+1}`;
-        label.style.color = "#263159";
-        label.style.marginBottom = "4px";
-        wrap.appendChild(label);
-
-        // Top, Right, Bottom, Left numeric inputs
-        ["Top", "Right", "Bottom", "Left"].forEach((side, j) => {
-          const inputLabel = document.createElement('span');
-          inputLabel.textContent = side;
-          inputLabel.style.fontSize = "0.95em";
-          inputLabel.style.marginTop = "2px";
-          const input = document.createElement('input');
-          input.type = "number";
-          input.min = "0";
-          input.max = "100";
-          input.value = "0";
-          input.style.width = "60px";
-          input.style.marginBottom = "2px";
-          input.oninput = function() {
-            // Get all crop values for this GIF
-            const top = wrap.querySelector('input[data-side="top"]').value;
-            const right = wrap.querySelector('input[data-side="right"]').value;
-            const bottom = wrap.querySelector('input[data-side="bottom"]').value;
-            const left = wrap.querySelector('input[data-side="left"]').value;
-            const imgs = fourGifGrid.querySelectorAll('img');
-            imgs[i].style.clipPath = `inset(${top}% ${right}% ${bottom}% ${left}%)`;
-          };
-          input.setAttribute('data-side', side.toLowerCase());
-          wrap.appendChild(inputLabel);
-          wrap.appendChild(input);
-        });
-        gifCropControls.appendChild(wrap);
       }
     }
 
-    openGifCropPopup.onclick = function() {
-      gifCropPopup.style.display = "block";
-    };
-
-    gifCropPopupClose.onclick = function() {
-      gifCropPopup.style.display = "none";
-    };
-
     fourGifBtn.onclick = showFourGifPicker;
-    fourGifClose.onclick = () => {
-      fourGifModal.style.display = "none";
-      gifCropPopupTrigger.style.display = "none";
-      gifCropPopup.style.display = "none";
-      fourGifGrid.style.display = "none";
-    };
+    fourGifClose.onclick = () => { fourGifModal.style.display = "none"; };
     fourGifConfirm.onclick = showFourGifGrid;
 
     // Clicking outside picker/grid closes modal
@@ -468,6 +392,9 @@
     });
 
     window.addEventListener('DOMContentLoaded', renderGrid);
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>
