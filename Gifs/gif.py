@@ -28,10 +28,17 @@ def create_gif_from_folder(src_folder):
     print(f"Created GIF: {dst_gif}")
 
 
-# Base directory where all PNGs are located
-base_static = '/var/data'
+# List of folders that actually contain PNGs (from your find.py results)
+folders = [
+    '/var/data/GFS/static/24hour_precip_total',
+    '/var/data/GFS/static/total_precip',
+    '/var/data/GFS/static/6hour_precip_total',
+    '/var/data/GFS/static/PRATEGFS',
+    '/var/data/GFS/static/12hour_precip_total',
+    '/var/data/GFS/static/tmp_surface',
+    '/var/data/GFS/static/total_lcdc'
+]
 
-# Automatically find all subfolders under /var/data
-for root, dirs, files in os.walk(base_static):
-    if any(f.endswith('.png') for f in files):
-        create_gif_from_folder(root)
+# Create GIFs for each folder
+for folder in folders:
+    create_gif_from_folder(folder)
