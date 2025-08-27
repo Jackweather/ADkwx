@@ -138,6 +138,8 @@
   <div id="top-navbar">
     adkwx.com
     <button id="gifs-navbar-btn" onclick="window.location.href='gfs.html'">GFS</button>
+    <button id="updates-navbar-btn" onclick="window.location.href='updates.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Updates</button>
+    <button id="community-navbar-btn" onclick="window.location.href='community.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Community</button>
   </div>
   <div class="layout-container">
     <div class="left-panel">
@@ -166,14 +168,15 @@
         const leftArrow = document.getElementById('left-arrow');
         const rightArrow = document.getElementById('right-arrow');
 
-        // Show PRATEGFS.gif, tmp_surface.gif, and 6hour_precip_total.gif in the grid
+        // Update GIF paths to match /var/data output
         const gifSrcs = [
-          "Gifs/PRATEGFS.gif",
-          "Gifs/tmp_surface.gif",
-          "Gifs/6hour_precip_total.gif",
-          "Gifs/24hour_precip_total.gif",
-          "Gifs/12hour_precip_total.gif",
-          "Gifs/total_precip.gif",
+          "/var/data/PRATEGFS.gif",
+          "/var/data/tmp_surface.gif",
+          "/var/data/6hour_precip_total.gif",
+          "/var/data/24hour_precip_total.gif",
+          "/var/data/12hour_precip_total.gif",
+          "/var/data/total_precip.gif",
+          "/var/data/total_lcdc.gif"
         ];
 
         let currentIdx = 0;
@@ -279,9 +282,6 @@
     </div>
   </div>
 </body>
-          renderGrid();
-        });
-      </script>
     </div>
     <div class="right-panel">
       <!-- Right panel content -->
