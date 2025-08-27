@@ -170,12 +170,38 @@
       top: 80px;
       left: 50%;
       transform: translateX(-50%);
-      width: 80vw;
-      height: 75vh;
+      width: 90vw;
+      max-width: 900px;
+      height: 70vh;
+      max-height: 600px;
       display: grid;
       grid-template-columns: 1fr 1fr;
       grid-template-rows: 1fr 1fr;
-      gap: 18px;
+      gap: 12px;
+      background: none;
+    }
+    #four-gif-grid img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 2px 16px #0003;
+      background: #fff;
+    }
+    @media (max-width: 700px) {
+      #four-gif-grid {
+        width: 98vw;
+        max-width: 98vw;
+        height: 60vh;
+        max-height: 340px;
+        gap: 6px;
+      }
+      #four-gif-picker {
+        width: 96vw;
+        padding: 12px 4vw;
+      }
     }
   </style>
 </head>
@@ -215,7 +241,7 @@
           </div>
           <button id="four-gif-confirm" style="background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;letter-spacing:1px;">Show</button>
         </div>
-        <div id="four-gif-grid" style="display:none;position:absolute;top:80px;left:50%;transform:translateX(-50%);width:80vw;height:75vh;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:18px;">
+        <div id="four-gif-grid" style="display:none;position:absolute;top:80px;left:50%;transform:translateX(-50%);width:90vw;max-width:900px;height:70vh;max-height:600px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;background:none;">
           <!-- 4 GIFs will be injected here -->
         </div>
       </div>
@@ -338,11 +364,7 @@
       for (let i = 0; i < 4; i++) {
         const img = document.createElement('img');
         img.src = selected[i];
-        img.style.width = "100%";
-        img.style.height = "100%";
-        img.style.objectFit = "contain";
-        img.style.borderRadius = "10px";
-        img.style.boxShadow = "0 2px 16px #0003";
+        // No need for explicit width/height, CSS handles it
         fourGifGrid.appendChild(img);
       }
     }
