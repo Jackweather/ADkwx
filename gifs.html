@@ -85,8 +85,8 @@
       flex-direction: column;
     }
     #fullscreen-img {
-      max-width: 96vw;
-      max-height: 92vh;
+      max-width: 99vw;
+      max-height: 97vh;
       box-shadow: 0 4px 32px #000;
       border-radius: 10px;
       transition: opacity 0.25s;
@@ -199,11 +199,8 @@
 
       <div id="fullscreen-modal">
         <button id="fullscreen-close" style="position:absolute;top:24px;right:36px;font-size:2em;background:none;border:none;color:#fff;cursor:pointer;z-index:3100;">&#10006;</button>
-        <img id="fullscreen-img" src="" alt="">
-        <div id="fullscreen-arrows" style="position:absolute;bottom:32px;left:0;width:100%;display:flex;justify-content:space-between;align-items:center;pointer-events:auto;">
-          <button id="fullscreen-left" style="margin-left:32px;font-size:2.2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;">&#8592;</button>
-          <button id="fullscreen-right" style="margin-right:32px;font-size:2.2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;">&#8594;</button>
-        </div>
+        <img id="fullscreen-img" src="" alt="" style="max-width:99vw;max-height:97vh;">
+        <!-- Removed fullscreen-arrows div -->
       </div>
     </div>
 
@@ -218,8 +215,6 @@
     const modal = document.getElementById('fullscreen-modal');
     const modalImg = document.getElementById('fullscreen-img');
     const fullscreenClose = document.getElementById('fullscreen-close');
-    const fullscreenLeft = document.getElementById('fullscreen-left');
-    const fullscreenRight = document.getElementById('fullscreen-right');
 
     // These should match Flask route `/Gifs/<filename>`
     const gifSrcs = [
@@ -271,28 +266,13 @@
     modal.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
     fullscreenClose.onclick = () => { modal.style.display = "none"; };
 
-    fullscreenLeft.onclick = e => {
-      e.stopPropagation();
-      currentIdx = (currentIdx - 1 + gifSrcs.length) % gifSrcs.length;
-      showModal(currentIdx);
-    };
-    fullscreenRight.onclick = e => {
-      e.stopPropagation();
-      currentIdx = (currentIdx + 1) % gifSrcs.length;
-      showModal(currentIdx);
-    };
-
     document.addEventListener('keydown', e => {
       if (modal.style.display === "flex") {
-        if (e.key === "ArrowLeft") fullscreenLeft.click();
-        else if (e.key === "ArrowRight") fullscreenRight.click();
-        else if (e.key === "Escape") modal.style.display = "none";
+        if (e.key === "Escape") modal.style.display = "none";
       }
     });
 
     window.addEventListener('DOMContentLoaded', renderGrid);
   </script>
 </body>
-</html>
-
 
