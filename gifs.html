@@ -92,24 +92,7 @@
       transition: opacity 0.25s;
       cursor: pointer;
     }
-    #arrow-controls {
-      margin-top: 18px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 40px;
-    }
-    #left-arrow, #right-arrow {
-      font-size: 2.2em;
-      padding: 6px 18px;
-      border: none;
-      background: #263159;
-      color: #fff;
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 2px 8px #0003;
-      transition: background 0.2s;
-    }
+    /* Removed arrow controls styles */
     /* 4 GIF modal styles */
     #four-gif-modal {
       display: none;
@@ -215,30 +198,13 @@
       <div id="gif-image-grid"></div>
 
       <div id="fullscreen-modal">
+        <button id="fullscreen-close" style="position:absolute;top:24px;right:36px;font-size:2em;background:none;border:none;color:#fff;cursor:pointer;z-index:3100;">&#10006;</button>
         <img id="fullscreen-img" src="" alt="">
-        <div id="arrow-controls">
-          <button id="left-arrow">&#8592;</button>
-          <button id="right-arrow">&#8594;</button>
-        </div>
-      </div>
-      <!-- 4 GIF fullscreen modal -->
-      <div id="four-gif-modal" style="display:none;position:fixed;z-index:4000;top:0;left:0;width:100vw;height:100vh;background:rgba(20,30,50,0.96);align-items:center;justify-content:center;">
-        <button id="four-gif-close" style="position:absolute;top:24px;right:36px;font-size:2em;background:none;border:none;color:#fff;cursor:pointer;z-index:4100;">&#10006;</button>
-        <div id="four-gif-picker" style="position:absolute;top:80px;left:50%;transform:translateX(-50%);background:#fff;padding:24px 32px;border-radius:12px;box-shadow:0 4px 32px #000;display:flex;flex-direction:column;align-items:center;">
-          <div style="font-size:1.2em;color:#263159;margin-bottom:18px;">Pick 4 GIFs</div>
-          <div id="four-gif-selectors" style="display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:18px;">
-            <!-- Select dropdowns will be injected here -->
-          </div>
-          <button id="four-gif-confirm" style="background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;letter-spacing:1px;">Show</button>
-        </div>
-        <div id="four-gif-grid" style="display:none;position:absolute;top:0;left:0;width:100vw;height:100vh;box-sizing:border-box;padding:3vh 16vw 6vh 16vw;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:5vw;background:none;">
-          <!-- 4 GIFs will be injected here -->
-        </div>
       </div>
     </div>
 
     <div class="right-panel">
-      <button id="four-gif-btn" style="margin:20px auto;display:block;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1.2em;cursor:pointer;box-shadow:0 2px 8px #0002;letter-spacing:1px;">4</button>
+      <!-- Removed the "4" button -->
     </div>
   </div>
 
@@ -247,8 +213,7 @@
     const gifGrid = document.getElementById('gif-image-grid');
     const modal = document.getElementById('fullscreen-modal');
     const modalImg = document.getElementById('fullscreen-img');
-    const leftArrow = document.getElementById('left-arrow');
-    const rightArrow = document.getElementById('right-arrow');
+    const fullscreenClose = document.getElementById('fullscreen-close');
 
     // These should match Flask route `/Gifs/<filename>`
     const gifSrcs = [
@@ -260,8 +225,6 @@
       "/Gifs/total_precip.gif",
       "/Gifs/total_lcdc.gif"
     ];
-
-    let currentIdx = 0;
 
     function clearGrid() {
       gifGrid.innerHTML = "";
@@ -284,118 +247,27 @@
     }
 
     function showModal(idx) {
-      currentIdx = idx;
       modalImg.style.opacity = 0;
       modal.style.display = "flex";
       const tempImg = new Image();
       tempImg.onload = () => {
-        modalImg.src = gifSrcs[currentIdx];
+        modalImg.src = gifSrcs[idx];
         setTimeout(() => { modalImg.style.opacity = 1; }, 10);
       };
-      tempImg.src = gifSrcs[currentIdx];
+      tempImg.src = gifSrcs[idx];
     }
 
     modal.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
+    fullscreenClose.onclick = () => { modal.style.display = "none"; };
 
-    leftArrow.onclick = e => {
-      e.stopPropagation();
-      currentIdx = (currentIdx - 1 + gifSrcs.length) % gifSrcs.length;
-      showModal(currentIdx);
-    };
-    rightArrow.onclick = e => {
-      e.stopPropagation();
-      currentIdx = (currentIdx + 1) % gifSrcs.length;
-      showModal(currentIdx);
-    };
-
-    // 4 GIF modal logic
-    const fourGifBtn = document.getElementById('four-gif-btn');
-    const fourGifModal = document.getElementById('four-gif-modal');
-    const fourGifClose = document.getElementById('four-gif-close');
-    const fourGifPicker = document.getElementById('four-gif-picker');
-    const fourGifSelectors = document.getElementById('four-gif-selectors');
-    const fourGifConfirm = document.getElementById('four-gif-confirm');
-    const fourGifGrid = document.getElementById('four-gif-grid');
-
-    function createGifSelector(idx) {
-      const select = document.createElement('select');
-      select.style.width = "180px";
-      select.style.fontSize = "1em";
-      select.style.padding = "6px";
-      select.style.borderRadius = "6px";
-      select.style.border = "1px solid #263159";
-      select.style.background = "#f5f7fa";
-      select.style.color = "#263159";
-      gifSrcs.forEach((src, i) => {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = src.split('/').pop();
-        select.appendChild(opt);
-      });
-      select.selectedIndex = idx;
-      return select;
-    }
-
-    function showFourGifPicker() {
-      fourGifGrid.style.display = "none";
-      fourGifPicker.style.display = "flex";
-      fourGifSelectors.innerHTML = "";
-      for (let i = 0; i < 4; i++) {
-        fourGifSelectors.appendChild(createGifSelector(i));
-      }
-      fourGifModal.style.display = "flex";
-    }
-
-    function showFourGifGrid() {
-      fourGifPicker.style.display = "none";
-      fourGifGrid.innerHTML = "";
-      fourGifGrid.style.display = "grid";
-      const selected = Array.from(fourGifSelectors.querySelectorAll('select')).map(sel => gifSrcs[sel.value]);
-      for (let i = 0; i < 4; i++) {
-        const img = document.createElement('img');
-        img.src = selected[i];
-        img.style.width = "100%";
-        img.style.height = "100%";
-        img.style.objectFit = "contain";
-        img.style.borderRadius = "10px";
-        img.style.background = "#fff";
-        fourGifGrid.appendChild(img);
-      }
-    }
-
-    fourGifBtn.onclick = showFourGifPicker;
-    fourGifClose.onclick = () => { fourGifModal.style.display = "none"; };
-    fourGifConfirm.onclick = showFourGifGrid;
-
-    // Clicking outside picker/grid closes modal
-    fourGifModal.onclick = e => {
-      if (e.target === fourGifModal) fourGifModal.style.display = "none";
-    };
-
-    // Keyboard: Escape closes modal
     document.addEventListener('keydown', e => {
-      if (fourGifModal.style.display === "flex" && e.key === "Escape") {
-        fourGifModal.style.display = "none";
-      }
-    });
-
-    // Keyboard navigation
-    document.addEventListener('keydown', e => {
-      if (modal.style.display === "flex") {
-        if (e.key === "ArrowLeft") leftArrow.click();
-        else if (e.key === "ArrowRight") rightArrow.click();
-        else if (e.key === "Escape") modal.style.display = "none";
+      if (modal.style.display === "flex" && e.key === "Escape") {
+        modal.style.display = "none";
       }
     });
 
     window.addEventListener('DOMContentLoaded', renderGrid);
   </script>
 </body>
-</html>
-  </script>
-</body>
-</html>
-  </script>
-</body>
-</html>
+
 
