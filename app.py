@@ -109,11 +109,12 @@ def serve_community_html():
 
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'Gifs')
+    directory = '/var/data'  # GIFs are saved here
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
     return send_from_directory(directory, filename)
+
     
 
 @app.route("/run-task1")
@@ -278,3 +279,4 @@ def get_chats():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
