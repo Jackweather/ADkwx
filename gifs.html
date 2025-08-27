@@ -23,7 +23,8 @@
       font-family: Arial, sans-serif;
       letter-spacing: 1.5px;
     }
-    #gifs-navbar-btn {
+    #gifs-navbar-btn,
+    .gifs-navbar-btn {
       margin-left: 18px;
       background: #41507a;
       color: #fff;
@@ -36,7 +37,8 @@
       transition: background 0.18s;
       letter-spacing: 1px;
     }
-    #gifs-navbar-btn:hover {
+    #gifs-navbar-btn:hover,
+    .gifs-navbar-btn:hover {
       background: #263159;
     }
     body {
@@ -114,8 +116,8 @@
   <div id="top-navbar">
     adkwx.com
     <button id="gifs-navbar-btn" onclick="window.location.href='gfs.html'">GFS</button>
-    <button id="updates-navbar-btn" onclick="window.location.href='updates.html'">Updates</button>
-    <button id="community-navbar-btn" onclick="window.location.href='community.html'">Community</button>
+    <button class="gifs-navbar-btn" id="updates-navbar-btn" onclick="window.location.href='updates.html'">Updates</button>
+    <button class="gifs-navbar-btn" id="community-navbar-btn" onclick="window.location.href='community.html'">Community</button>
   </div>
 
   <div class="layout-container">
@@ -220,3 +222,4 @@
   </script>
 </body>
 </html>
+
