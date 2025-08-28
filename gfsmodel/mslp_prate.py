@@ -46,6 +46,7 @@ os.makedirs(png_dir, exist_ok=True)
 base_url_0p25 = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
 variable_mslp = "MSLET"
 variable_prate = "PRATE"
+variable_csnow = "CSNOW"
 
 # Current UTC time minus 6 hours (nearest available GFS cycle)
 current_utc_time = datetime.utcnow() - timedelta(hours=6)
@@ -79,9 +80,23 @@ prate_colors = [
 ]
 prate_cmap = LinearSegmentedColormap.from_list("prate_custom", prate_colors, N=len(prate_colors))
 prate_norm = BoundaryNorm(prate_levels, prate_cmap.N)
+snow_levels = [0.10, 0.25, 0.5, 1, 2, 4, 8, 16]
+snow_colors = [
+    "#e3f2fd",  # 0.10 very light blue
+    "#bbdefb",  # 0.25 light blue
+    "#90caf9",  # 0.5 blue
+    "#42a5f5",  # 1 medium blue
+    "#1e88e5",  # 2 deeper blue
+    "#1565c0",  # 4 dark blue
+    "#0d47a1",  # 8 very dark blue
+    "#002171",  # 16 almost navy
+]
+snow_cmap = LinearSegmentedColormap.from_list("snow_cbar", snow_colors, N=len(snow_colors))
+snow_norm = BoundaryNorm(snow_levels, snow_cmap.N)
 
 # Forecast steps
 forecast_steps = [0] + list(range(6, 385, 6))
+
 
 # Download functions
 def download_grib(url, file_path):
@@ -125,11 +140,32 @@ def get_prate_grib(step):
     )
     return download_grib(url, file_path)
 
+def get_csnow_grib(step):
+    if step == 0:
+        file_name = f"gfs.t{hour_str}z.pgrb2.0p25.f000"
+    else:
+        file_name = f"gfs.t{hour_str}z.pgrb2.0p25.f{step:03d}"
+    file_path = os.path.join(grib_dir, f"csnow_{file_name}")
+    url = (
+        f"{base_url_0p25}?file={file_name}"
+        f"&lev_surface=on&var_{variable_csnow}=on"
+        f"&subregion=&leftlon=220&rightlon=300&toplat=55&bottomlat=20"
+        f"&dir=%2Fgfs.{date_str}%2F{hour_str}%2Fatmos"
+    )
+    return download_grib(url, file_path)
+
 # Plotting function
-def plot_combined(mslp_path, prate_path, step):
+def plot_combined(mslp_path, prate_path, step, csnow_path=None):
     try:
         ds_mslp = xr.open_dataset(mslp_path, engine="cfgrib")
         ds_prate = xr.open_dataset(prate_path, engine="cfgrib", filter_by_keys={"stepType": "instant"})
+        ds_csnow = None
+        if csnow_path and os.path.exists(csnow_path):
+            try:
+                ds_csnow = xr.open_dataset(csnow_path, engine="cfgrib", filter_by_keys={"stepType": "instant"})
+            except Exception as e:
+                print(f"Error opening CSNOW dataset: {e}")
+                ds_csnow = None
     except Exception as e:
         print(f"Error opening dataset: {e}")
         return None
@@ -149,7 +185,27 @@ def plot_combined(mslp_path, prate_path, step):
         mslp2d = mslp.squeeze()
         prate2d = prate.squeeze()
 
-    data2d = mslp2d
+    data2d = mslp2d  # <-- Move this line here, before snow mask logic
+
+    # --- Snow mask and snow rate ---
+    snow_mask = None
+    snow_rate2d = None
+    if ds_csnow is not None and "csnow" in ds_csnow:
+        csnow = ds_csnow['csnow'].values * 3600  # mm/s to mm/hr
+        if csnow.shape == prate2d.shape:
+            snow_mask = (csnow > 0)
+            snow_rate2d = np.where(snow_mask, prate2d, np.nan)
+        else:
+            try:
+                csnow2d = csnow.squeeze()
+                snow_mask = (csnow2d > 0)
+                snow_rate2d = np.where(snow_mask, prate2d, np.nan)
+            except Exception:
+                snow_mask = None
+                snow_rate2d = None
+
+    # Remove PRATE masking so it fills all areas
+    prate2d_base = prate2d
 
     # --- Begin custom basemap integration ---
     fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
@@ -194,32 +250,54 @@ def plot_combined(mslp_path, prate_path, step):
     ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
     # --- End custom basemap integration ---
 
-    # Plot PRATE as filled contours
+    # Plot PRATE everywhere as the base layer
     mesh = ax.contourf(
-        Lon2d, Lat2d, prate2d,
+        Lon2d, Lat2d, prate2d_base,
         levels=prate_levels,
         cmap=prate_cmap,
         norm=prate_norm,
         extend='max',
         transform=ccrs.PlateCarree(),
-        alpha=0.7
+        alpha=0.7,
+        zorder=2,
+        edgecolors='white'
     )
 
-    # Add ADKWX.com to bottom right
-    fig.text(
-        0.99, 0.01, "adkwx.com",
-        fontsize=10, color="black", ha="right", va="bottom",
-        alpha=0.7, fontweight="bold"
-    )
+    # Overlay snow rate only where snow is present
+    if snow_rate2d is not None:
+        snow_mesh = ax.contourf(
+            Lon2d, Lat2d, snow_rate2d,
+            levels=snow_levels,
+            cmap=snow_cmap,
+            norm=snow_norm,
+            extend='max',
+            transform=ccrs.PlateCarree(),
+            alpha=0.85,
+            zorder=3
+        )
 
-    # Add colorbar for PRATE, tightly below the plot
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
+    # --- Place both colorbars higher below the map ---
+    # Increase the bottom value to move colorbars up
+    cax_snow = fig.add_axes([0.15, 0.12, 0.32, 0.02])  # left half, higher below axes
+    cax_prate = fig.add_axes([0.53, 0.12, 0.32, 0.02]) # right half, higher below axes
+
+    if snow_rate2d is not None:
+        cbar_snow = plt.colorbar(
+            snow_mesh, cax=cax_snow, orientation='horizontal',
+            ticks=snow_levels, boundaries=snow_levels
+        )
+        cbar_snow.set_label("Snow Rate (mm/hr, using PRATE)", fontsize=8)
+        cbar_snow.ax.tick_params(labelsize=7)
+        cbar_snow.ax.set_facecolor('white')
+        cbar_snow.outline.set_edgecolor('black')
+
     cbar = plt.colorbar(
-        mesh, ax=ax, orientation='horizontal',
-        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,
-        anchor=(0.5, 0.0), location='bottom',
+        mesh, cax=cax_prate, orientation='horizontal',
         ticks=prate_levels, boundaries=prate_levels
     )
+    # Format tick labels: show as integer if >= 1, else keep decimal
+    prate_tick_labels = [f"{int(v)}" if v >= 1 else f"{v:g}" for v in prate_levels]
+    cbar.ax.set_xticklabels(prate_tick_labels)
     cbar.set_label("Precipitation Rate (mm/hr)", fontsize=8)
     cbar.ax.tick_params(labelsize=7)
     cbar.ax.set_facecolor('white')
@@ -401,8 +479,9 @@ def plot_combined(mslp_path, prate_path, step):
 for step in forecast_steps:
     mslp_grib = get_mslp_grib(step)
     prate_grib = get_prate_grib(step)
+    csnow_grib = get_csnow_grib(step)
     if mslp_grib and prate_grib:
-        plot_combined(mslp_grib, prate_grib, step)
+        plot_combined(mslp_grib, prate_grib, step, csnow_grib)
         gc.collect()
         time.sleep(3)
 
@@ -414,4 +493,7 @@ for f in os.listdir(grib_dir):
     file_path = os.path.join(grib_dir, f)
     if os.path.isfile(file_path):
         os.remove(file_path)
-print("All GRIB files deleted from grib_dir.")
+        print("All GRIB files deleted from grib_dir.")
+        gc.collect()
+        time.sleep(3)
+        print("All combined PNG creation tasks complete!")
