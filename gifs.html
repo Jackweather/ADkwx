@@ -238,6 +238,7 @@
     ];
 
     let currentIdx = 0;
+    let fullscreenRefreshTimer = null;
 
     function clearGrid() {
       gifGrid.innerHTML = "";
@@ -263,7 +264,13 @@
       currentIdx = idx;
       modalImg.style.opacity = 0;
       modal.style.display = "flex";
-      // Force reload by adding a timestamp query
+      loadFullscreenGif();
+      // Start periodic refresh
+      if (fullscreenRefreshTimer) clearInterval(fullscreenRefreshTimer);
+      fullscreenRefreshTimer = setInterval(loadFullscreenGif, 5000); // refresh every 5 seconds
+    }
+
+    function loadFullscreenGif() {
       const srcWithTimestamp = gifSrcs[currentIdx] + "?t=" + Date.now();
       const tempImg = new Image();
       tempImg.onload = () => {
@@ -273,12 +280,23 @@
       tempImg.src = srcWithTimestamp;
     }
 
-    modal.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
-    fullscreenClose.onclick = () => { modal.style.display = "none"; };
+    modal.onclick = e => {
+      if (e.target === modal) {
+        modal.style.display = "none";
+        if (fullscreenRefreshTimer) clearInterval(fullscreenRefreshTimer);
+      }
+    };
+    fullscreenClose.onclick = () => {
+      modal.style.display = "none";
+      if (fullscreenRefreshTimer) clearInterval(fullscreenRefreshTimer);
+    };
 
     document.addEventListener('keydown', e => {
       if (modal.style.display === "flex") {
-        if (e.key === "Escape") modal.style.display = "none";
+        if (e.key === "Escape") {
+          modal.style.display = "none";
+          if (fullscreenRefreshTimer) clearInterval(fullscreenRefreshTimer);
+        }
       }
     });
 
