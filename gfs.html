@@ -222,8 +222,9 @@
 
         const imgSlider = document.getElementById('img-slider');
         const sliderLabel = document.getElementById('slider-label');
+        // Remove hour 0 from all hour arrays
         let hours = [];
-        for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
+        for (let hour = 6; hour <= 384; hour += 6) hours.push(hour);
 
         const GRID_IMG_LIMIT = 65; // Only show/check first 16 images
 
@@ -412,39 +413,43 @@
           if (type === "prate") {
             imgSrcs = getPrateSrcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in PRATEGFS
           } else if (type === "tmp") {
             imgSrcs = getTmpSrcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in tmp_surface
           } else if (type === "precip6") {
             imgSrcs = getPrecip6Srcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in 6hour_precip_total
           } else if (type === "precip12") {
             let hours12 = [];
             for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
             imgSrcs = getPrecip12Srcs();
             availableHours = hours12;
+            currentIdx = 0; // First PNG in 12hour_precip_total
           } else if (type === "precip24") {
             let hours24 = [];
             for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
             imgSrcs = getPrecip24Srcs();
             availableHours = hours24;
+            currentIdx = 0; // First PNG in 24hour_precip_total
           } else if (type === "total_precip") {
             imgSrcs = getTotalPrecipSrcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in total_precip
           } else if (type === "total_cloud") {
             imgSrcs = getTotalCloudSrcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in total_lcdc
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          // Start at hour 6 (index 1)
-          currentIdx = 1;
           updateMainImage(currentIdx);
           setupModalNavigation();
           preloadImages(availableImgs);
-          // Reset slider to hour 6 visually
           if (mainImgSlider) {
-            mainImgSlider.value = 1;
+            mainImgSlider.value = currentIdx;
           }
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
@@ -616,28 +621,35 @@
           if (type === "prate") {
             imgSrcs = getPrateSrcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in PRATEGFS
           } else if (type === "tmp") {
             imgSrcs = getTmpSrcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in tmp_surface
           } else if (type === "precip6") {
             imgSrcs = getPrecip6Srcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in 6hour_precip_total
           } else if (type === "precip12") {
             let hours12 = [];
             for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
             imgSrcs = getPrecip12Srcs();
             availableHours = hours12;
+            currentIdx = 0; // First PNG in 12hour_precip_total
           } else if (type === "precip24") {
             let hours24 = [];
             for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
             imgSrcs = getPrecip24Srcs();
             availableHours = hours24;
+            currentIdx = 0; // First PNG in 24hour_precip_total
           } else if (type === "total_precip") {
             imgSrcs = getTotalPrecipSrcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in total_precip
           } else if (type === "total_cloud") {
             imgSrcs = getTotalCloudSrcs();
             availableHours = hours;
+            currentIdx = 0; // First PNG in total_lcdc
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
@@ -710,4 +722,5 @@
       <!-- Right panel content -->
     </div>
   </div>
+<!-- ...existing code... -->
 <!-- ...existing code... -->
