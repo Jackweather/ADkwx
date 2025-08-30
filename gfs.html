@@ -437,19 +437,12 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-
-          // Find the first PNG that actually exists (not 404)
-          findFirstAvailableIndex(availableImgs, function(firstIdx) {
-            currentIdx = firstIdx;
-            updateMainImage(currentIdx);
-            setupModalNavigation();
-            preloadImages(availableImgs);
-            if (mainImgSlider) {
-              mainImgSlider.value = currentIdx;
-            }
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
-          });
+          currentIdx = 0; // Always start at index 0 (PNG 000)
+          updateMainImage(currentIdx);
+          setupModalNavigation();
+          preloadImages(availableImgs);
+          if (refreshInterval) clearInterval(refreshInterval);
+          refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
 
         // On refresh, just update availableImgs and slider, don't load images
@@ -603,22 +596,6 @@
           refreshActive = !document.hidden;
         });
 
-        // Helper: Find first available PNG (not 404) in the folder
-        function findFirstAvailableIndex(imgArray, callback) {
-          let idx = 0;
-          function checkNext() {
-            if (idx >= imgArray.length) {
-              callback(0); // fallback to 0 if none found
-              return;
-            }
-            const testImg = new Image();
-            testImg.onload = function() { callback(idx); };
-            testImg.onerror = function() { idx++; checkNext(); };
-            testImg.src = imgArray[idx];
-          }
-          checkNext();
-        }
-
         function activate(type) {
           if (currentType === type) return;
           currentType = type;
@@ -659,8 +636,7 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          // Start at hour 6 (index 1)
-          currentIdx = 1;
+          currentIdx = 0; // Always start at index 0 (PNG 000)
           updateMainImage(currentIdx);
           setupModalNavigation();
           preloadImages(availableImgs); // Preload all images for fast navigation
@@ -721,11 +697,4 @@
     </div>
   </div>
 
-      </script>
-      <!-- ...existing code... -->
-    </div>
-    <div class="right-panel">
-      <!-- Right panel content -->
-    </div>
-  </div>
-<!-- ...existing code... -->
+  
