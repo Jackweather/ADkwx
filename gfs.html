@@ -154,52 +154,6 @@
   #updates-navbar-btn:hover, #community-navbar-btn:hover {
     background: #263159;
   }
-  /* --- New styles for main image fullscreen modal --- */
-  #main-fullscreen-modal {
-    display: none;
-    position: fixed;
-    z-index: 4000;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(20,30,50,0.92);
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-  }
-  #main-fullscreen-img {
-    max-width: 90vw;
-    max-height: 90vh;
-    width: auto;
-    height: 90%;
-    box-shadow: 0 4px 32px #000;
-    border-radius: 10px;
-    object-fit: contain;
-    display: block;
-    margin: 0 auto;
-    cursor: pointer;
-    background: #fff;
-  }
-  #main-fullscreen-slider-controls {
-    width: 100vw;
-    height: 10vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-  }
-  #main-fullscreen-img-slider {
-    width: 80vw;
-    height: 32px;
-    margin-top: 12px;
-  }
-  #main-fullscreen-slider-label {
-    color: #fff;
-    margin-top: 4px;
-    font-size: 1.1em;
-  }
 </style>
 </head>
 <body>
@@ -232,14 +186,6 @@
         <div id="main-slider-controls" style="margin-top:4px;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
           <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
-        </div>
-      </div>
-      <!-- Fullscreen modal for main image -->
-      <div id="main-fullscreen-modal">
-        <img id="main-fullscreen-img" src="" alt="">
-        <div id="main-fullscreen-slider-controls">
-          <input type="range" id="main-fullscreen-img-slider" min="0" max="0" value="0" style="display:none;">
-          <div id="main-fullscreen-slider-label" style="display:none;"></div>
         </div>
       </div>
       <div id="fullscreen-modal">
@@ -542,111 +488,11 @@
           tempImg.src = availableImgs[currentIdx];
         }
 
-        // Show fullscreen modal when main image is clicked
-        mainImg.onclick = function() {
-          if (availableImgs.length === 0) return;
-          mainFullscreenModal.style.display = "flex";
-          mainFullscreenImg.src = availableImgs[currentIdx];
-          mainFullscreenImg.alt = mainImg.alt;
-          // Setup slider
-          if (availableImgs.length > 1) {
-            mainFullscreenImgSlider.style.display = "";
-            mainFullscreenSliderLabel.style.display = "";
-            mainFullscreenImgSlider.min = mainImgSlider.min;
-            mainFullscreenImgSlider.max = availableImgs.length - 1;
-            mainFullscreenImgSlider.value = currentIdx;
-            mainFullscreenSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-          } else {
-            mainFullscreenImgSlider.style.display = "none";
-            mainFullscreenSliderLabel.style.display = "none";
-          }
-        };
-
-        // Close modal when clicking outside image
-        mainFullscreenModal.onclick = function(e) {
-          if (e.target === mainFullscreenModal) {
-            mainFullscreenModal.style.display = "none";
-          }
-        };
-
-        // Slider logic for fullscreen modal
-        mainFullscreenImgSlider.oninput = function() {
-          if (availableImgs.length === 0) return;
-          let minIdx = parseInt(mainFullscreenImgSlider.min, 10) || 0;
-          let val = parseInt(mainFullscreenImgSlider.value, 10);
-          if (val < minIdx) val = minIdx;
-          currentIdx = val;
-          mainFullscreenImg.src = availableImgs[currentIdx];
-          mainFullscreenImg.alt = mainImg.alt;
-          mainFullscreenSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-          // Also update main image and slider to stay in sync
-          updateMainImage(currentIdx);
-        };
-
-        // Keyboard navigation for fullscreen modal
-        document.addEventListener('keydown', function(e) {
-          if (mainFullscreenModal.style.display === "flex") {
-            if (e.key === "ArrowLeft") {
-              let minIdx = parseInt(mainFullscreenImgSlider.min, 10) || 0;
-              let nextIdx = currentIdx - 1;
-              if (nextIdx < minIdx) nextIdx = minIdx;
-              currentIdx = nextIdx;
-              mainFullscreenImgSlider.value = currentIdx;
-              mainFullscreenImg.src = availableImgs[currentIdx];
-              mainFullscreenSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-              updateMainImage(currentIdx);
-              e.preventDefault();
-            } else if (e.key === "ArrowRight") {
-              let maxIdx = availableImgs.length - 1;
-              let nextIdx = currentIdx + 1;
-              if (nextIdx > maxIdx) nextIdx = maxIdx;
-              currentIdx = nextIdx;
-              mainFullscreenImgSlider.value = currentIdx;
-              mainFullscreenImg.src = availableImgs[currentIdx];
-              mainFullscreenSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-              updateMainImage(currentIdx);
-              e.preventDefault();
-            } else if (e.key === "Escape") {
-              mainFullscreenModal.style.display = "none";
-              e.preventDefault();
-            }
-          }
-        });
-
-        // --- MODIFIED: Hide arrow controls and zoom button in fullscreen modal ---
-        function showModal(idx) {
-          currentIdx = idx;
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          modal.style.display = "flex";
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-
-          // Hide arrow controls and zoom button
-          arrowControls.style.display = "none";
-          zoomBtn.style.display = "none";
-        }
-
-        // --- MODIFIED: Restore arrow controls and zoom button on modal close ---
+        // Update slider when modal is shown/hidden or images change
         modal.onclick = function(e) {
           if (e.target === modal) {
             modal.style.display = "none";
             updateSlider();
-
-            // Restore arrow controls and zoom button
-            arrowControls.style.display = "flex";
-            zoomBtn.style.display = "inline-block";
           }
         };
 
