@@ -349,6 +349,9 @@
             mainSliderLabel.style.display = "none";
             return;
           }
+          // --- MODIFIED: Clamp idx to minIdx ---
+          let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+          if (idx < minIdx) idx = minIdx;
           currentIdx = idx;
           let alt = "";
           if (currentType === "prate") {
@@ -369,15 +372,8 @@
           mainImg.src = availableImgs[currentIdx];
           mainImg.alt = alt;
           if (availableImgs.length > 1) {
-            // --- MODIFIED: Set slider min to first available index ---
-            let minIdx = 0;
-            // Find the index of the first available hour (e.g., 6 if 000 missing)
-            if (availableHours.length > 0 && availableHours[0] !== 0) {
-              minIdx = 0; // availableImgs[0] is first available, so minIdx is 0
-            }
             mainImgSlider.style.display = "";
             mainSliderLabel.style.display = "";
-            mainImgSlider.min = minIdx;
             mainImgSlider.max = availableImgs.length - 1;
             mainImgSlider.value = currentIdx;
             mainSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
@@ -390,7 +386,10 @@
         // Load PNG only when slider is moved
         mainImgSlider.oninput = function() {
           if (availableImgs.length === 0) return;
-          currentIdx = parseInt(mainImgSlider.value, 10);
+          let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+          let val = parseInt(mainImgSlider.value, 10);
+          if (val < minIdx) val = minIdx;
+          currentIdx = val;
           updateMainImage(currentIdx);
         };
 
@@ -717,13 +716,19 @@
         document.addEventListener('keydown', function(e) {
           if (e.key === "ArrowLeft") {
             if (availableImgs.length > 1) {
-              currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
+              let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+              let nextIdx = currentIdx - 1;
+              if (nextIdx < minIdx) nextIdx = minIdx;
+              currentIdx = nextIdx;
               updateMainImage(currentIdx);
             }
             e.preventDefault();
           } else if (e.key === "ArrowRight") {
             if (availableImgs.length > 1) {
-              currentIdx = (currentIdx + 1) % availableImgs.length;
+              let maxIdx = availableImgs.length - 1;
+              let nextIdx = currentIdx + 1;
+              if (nextIdx > maxIdx) nextIdx = maxIdx;
+              currentIdx = nextIdx;
               updateMainImage(currentIdx);
             }
             e.preventDefault();
