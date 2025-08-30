@@ -350,7 +350,6 @@
             return;
           }
           currentIdx = idx;
-          // Set alt text similar to grid/modal
           let alt = "";
           if (currentType === "prate") {
             alt = `prate_${availableHours[currentIdx].toString().padStart(3, '0')}`;
@@ -367,10 +366,8 @@
           } else if (currentType === "total_cloud") {
             alt = `total_lcdc_${availableHours[currentIdx].toString().padStart(3, '0')}`;
           }
-          // Only set src when slider is moved
-          mainImg.src = "";
+          mainImg.src = availableImgs[currentIdx];
           mainImg.alt = alt;
-          // Show slider if >1 image
           if (availableImgs.length > 1) {
             mainImgSlider.style.display = "";
             mainSliderLabel.style.display = "";
@@ -388,30 +385,17 @@
         mainImgSlider.oninput = function() {
           if (availableImgs.length === 0) return;
           currentIdx = parseInt(mainImgSlider.value, 10);
-          // Load image only now
-          mainImg.src = availableImgs[currentIdx];
-          // Update label and alt
-          let alt = "";
-          if (currentType === "prate") {
-            alt = `prate_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "tmp") {
-            alt = `2mtemp_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip6") {
-            alt = `precip6_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip24") {
-            alt = `precip24_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip12") {
-            alt = `precip12_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_precip") {
-            alt = `totalprecip_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_cloud") {
-            alt = `total_lcdc_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          }
-          mainImg.alt = alt;
-          mainSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
+          updateMainImage(currentIdx);
         };
 
-        // On activate, do not preload images, just set up slider and label
+        // Preload all images for current type as soon as you activate it
+        function preloadImages(imgArray) {
+          imgArray.forEach(src => {
+            const img = new Image();
+            img.src = src;
+          });
+        }
+
         function activate(type) {
           if (currentType === type) return;
           currentType = type;
@@ -451,10 +435,10 @@
             availableHours = hours;
           }
           // MANUAL: Add new logic here for another image type
-          availableImgs = imgSrcs.slice(); // Just use srcs, don't check if loaded
-          // Setup slider and label, but don't load image yet
+          availableImgs = imgSrcs.slice();
           updateMainImage(currentIdx = 0);
           setupModalNavigation();
+          preloadImages(availableImgs); // Preload all images for fast navigation
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
@@ -462,10 +446,10 @@
         // On refresh, just update availableImgs and slider, don't load images
         function refreshImageGrid() {
           if (!refreshActive) return;
-          // No need to check if images are loaded, just update availableImgs
           availableImgs = imgSrcs.slice();
           updateMainImage(currentIdx);
           setupModalNavigation();
+          preloadImages(availableImgs); // Preload again in case images changed
         }
 
         function showModal(idx) {
@@ -649,10 +633,10 @@
             availableHours = hours;
           }
           // MANUAL: Add new logic here for another image type
-          availableImgs = imgSrcs.slice(); // Just use srcs, don't check if loaded
-          // Setup slider and label, but don't load image yet
+          availableImgs = imgSrcs.slice();
           updateMainImage(currentIdx = 0);
           setupModalNavigation();
+          preloadImages(availableImgs); // Preload all images for fast navigation
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
@@ -694,6 +678,22 @@
               updateMainImage(currentIdx);
             }
             e.preventDefault();
+          } else if (e.key === "ArrowRight") {
+            if (availableImgs.length > 1) {
+              currentIdx = (currentIdx + 1) % availableImgs.length;
+              updateMainImage(currentIdx);
+            }
+            e.preventDefault();
+          }
+        });
+      </script>
+      <!-- ...existing code... -->
+    </div>
+    <div class="right-panel">
+      <!-- Right panel content -->
+    </div>
+  </div>
+<!-- ...existing code... -->
           } else if (e.key === "ArrowRight") {
             if (availableImgs.length > 1) {
               currentIdx = (currentIdx + 1) % availableImgs.length;
