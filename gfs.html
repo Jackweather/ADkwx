@@ -437,14 +437,19 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          // Start at hour 6 (index 1)
-          currentIdx = 1;
+
+          // Find the first PNG that exists (first available image in the folder)
+          let firstIdx = 0;
+          // Optionally, you can check if the file exists by trying to load it and waiting for onload/onerror,
+          // but for performance, just use the first in the list.
+          // If you want to skip missing PNGs, you could implement a check here.
+
+          currentIdx = firstIdx;
           updateMainImage(currentIdx);
           setupModalNavigation();
           preloadImages(availableImgs);
-          // Reset slider to hour 6 visually
           if (mainImgSlider) {
-            mainImgSlider.value = 1;
+            mainImgSlider.value = currentIdx;
           }
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
