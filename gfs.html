@@ -50,6 +50,91 @@
       padding: 16px 4vw;
     }
   }
+  /* --- MOBILE OPTIMIZATION FOR iPHONE --- */
+  @media (max-width: 600px) {
+    .main-content {
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      background: #fff;
+    }
+    #main-img-container {
+      width: 100vw;
+      height: 80vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+    }
+    #main-img {
+      max-width: 98vw;
+      max-height: 78vh;
+      width: auto;
+      height: 80%;
+      object-fit: contain;
+      margin-bottom: 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px #0002;
+    }
+    #main-slider-controls {
+      width: 100vw;
+      height: 20vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      margin-top: 0;
+    }
+    #main-img-slider {
+      width: 90vw;
+      height: 38px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      display: block;
+    }
+    #main-slider-label {
+      font-size: 1.1em;
+      margin-top: 2px;
+      color: #263159;
+    }
+    #fullscreen-modal {
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 0;
+    }
+    #fullscreen-img {
+      max-width: 98vw;
+      max-height: 78vh;
+      width: auto;
+      height: 80%;
+      object-fit: contain;
+      margin: 0 auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 32px #000;
+    }
+    #arrow-controls {
+      margin-top: 8px;
+      gap: 24px;
+    }
+    #img-slider {
+      width: 90vw;
+      height: 38px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      display: block;
+    }
+    #slider-label {
+      font-size: 1.1em;
+      margin-top: 2px;
+      color: #fff;
+    }
+  }
   #fullscreen-modal {
     display: none;
     position: fixed;
