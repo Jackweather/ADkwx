@@ -396,6 +396,7 @@
           });
         }
 
+        // Always start with PNG 000 (index 0) when activating a type
         function activate(type) {
           if (currentType === type) return;
           currentType = type;
@@ -436,9 +437,10 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          updateMainImage(currentIdx = 0);
+          currentIdx = 0; // Always start at index 0 (PNG 000)
+          updateMainImage(currentIdx);
           setupModalNavigation();
-          preloadImages(availableImgs); // Preload all images for fast navigation
+          preloadImages(availableImgs);
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
@@ -634,7 +636,8 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          updateMainImage(currentIdx = 0);
+          currentIdx = 0; // Always start at index 0 (PNG 000)
+          updateMainImage(currentIdx);
           setupModalNavigation();
           preloadImages(availableImgs); // Preload all images for fast navigation
           if (refreshInterval) clearInterval(refreshInterval);
@@ -694,9 +697,6 @@
     </div>
   </div>
 <!-- ...existing code... -->
-          } else if (e.key === "ArrowRight") {
-            if (availableImgs.length > 1) {
-              currentIdx = (currentIdx + 1) % availableImgs.length;
               updateMainImage(currentIdx);
             }
             e.preventDefault();
