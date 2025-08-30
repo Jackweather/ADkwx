@@ -182,7 +182,7 @@
     <div class="main-content">
       <!-- Main single image display -->
       <div id="main-img-container" style="text-align:center;">
-        <img id="main-img" src="" alt="" style="max-width:80%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
+        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
         <div id="main-slider-controls" style="margin-top:4px;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
           <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
@@ -441,31 +441,37 @@
             availableHours = hours;
           }
           // MANUAL: Add new logic here for another image type
-          availableImgs = imgSrcs.slice();
 
-          // Find the first PNG that actually exists (not 404)
-          findFirstAvailableIndex(availableImgs, function(firstIdx) {
-            currentIdx = firstIdx;
-            // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
-            if (mainImgSlider) {
-              mainImgSlider.min = firstIdx;
-              mainImgSlider.value = currentIdx;
-            }
-            updateMainImage(currentIdx);
-            setupModalNavigation();
-            preloadImages(availableImgs);
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
+          preloadImages(imgSrcs); // Preload all images immediately
+
+          // Use loadAvailableImages to check which PNGs exist (loads concurrently)
+          loadAvailableImages(function(imgs, hoursArr) {
+            availableImgs = imgs;
+            availableHours = hoursArr;
+            findFirstAvailableIndex(availableImgs, function(firstIdx) {
+              currentIdx = firstIdx;
+              if (mainImgSlider) {
+                mainImgSlider.min = firstIdx;
+                mainImgSlider.value = currentIdx;
+              }
+              updateMainImage(currentIdx);
+              setupModalNavigation();
+              if (refreshInterval) clearInterval(refreshInterval);
+              refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
+            });
           });
         }
 
-        // On refresh, just update availableImgs and slider, don't load images
+        // On refresh, update availableImgs and slider using loadAvailableImages (loads concurrently)
         function refreshImageGrid() {
           if (!refreshActive) return;
-          availableImgs = imgSrcs.slice();
-          updateMainImage(currentIdx);
-          setupModalNavigation();
-          preloadImages(availableImgs); // Preload again in case images changed
+          loadAvailableImages(function(imgs, hoursArr) {
+            availableImgs = imgs;
+            availableHours = hoursArr;
+            updateMainImage(currentIdx);
+            setupModalNavigation();
+            preloadImages(availableImgs); // Preload again in case images changed
+          });
         }
 
         function showModal(idx) {
@@ -665,21 +671,24 @@
             availableHours = hours;
           }
           // MANUAL: Add new logic here for another image type
-          availableImgs = imgSrcs.slice();
 
-          // Find the first PNG that actually exists (not 404)
-          findFirstAvailableIndex(availableImgs, function(firstIdx) {
-            currentIdx = firstIdx;
-            // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
-            if (mainImgSlider) {
-              mainImgSlider.min = firstIdx;
-              mainImgSlider.value = currentIdx;
-            }
-            updateMainImage(currentIdx);
-            setupModalNavigation();
-            preloadImages(availableImgs);
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
+          preloadImages(imgSrcs); // Preload all images immediately
+
+          // Use loadAvailableImages to check which PNGs exist (loads concurrently)
+          loadAvailableImages(function(imgs, hoursArr) {
+            availableImgs = imgs;
+            availableHours = hoursArr;
+            findFirstAvailableIndex(availableImgs, function(firstIdx) {
+              currentIdx = firstIdx;
+              if (mainImgSlider) {
+                mainImgSlider.min = firstIdx;
+                mainImgSlider.value = currentIdx;
+              }
+              updateMainImage(currentIdx);
+              setupModalNavigation();
+              if (refreshInterval) clearInterval(refreshInterval);
+              refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
+            });
           });
         }
 
