@@ -381,24 +381,38 @@
           }
         }
 
-        // Load PNG only when slider is moved
+        // Only load the PNG that matches the slider position
         mainImgSlider.oninput = function() {
           if (availableImgs.length === 0) return;
           currentIdx = parseInt(mainImgSlider.value, 10);
-          updateMainImage(currentIdx);
+          // Load only the PNG at the slider position
+          let alt = "";
+          if (currentType === "prate") {
+            alt = `prate_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "tmp") {
+            alt = `2mtemp_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "precip6") {
+            alt = `precip6_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "precip24") {
+            alt = `precip24_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "precip12") {
+            alt = `precip12_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "total_precip") {
+            alt = `totalprecip_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "total_cloud") {
+            alt = `total_lcdc_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          }
+          mainImg.src = availableImgs[currentIdx];
+          mainImg.alt = alt;
+          mainSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
         };
 
-        // Preload images in order, starting with PNG 000, then 006, 012, etc.
-        function preloadImagesOrdered(imgArray) {
-          if (imgArray.length === 0) return;
-          // Preload PNG 000 first
-          const firstImg = new Image();
-          firstImg.src = imgArray[0];
-          // Then preload the rest in order
-          for (let i = 1; i < imgArray.length; i++) {
+        // Preload all images for current type as soon as you activate it
+        function preloadImages(imgArray) {
+          imgArray.forEach(src => {
             const img = new Image();
-            img.src = imgArray[i];
-          }
+            img.src = src;
+          });
         }
 
         // Always start with PNG 000 (index 0) when activating a type
@@ -445,18 +459,18 @@
           currentIdx = 0; // Always start at index 0 (PNG 000)
           updateMainImage(currentIdx);
           setupModalNavigation();
-          preloadImagesOrdered(availableImgs); // Preload in order
+          preloadImages(availableImgs);
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
 
-        // On refresh, preload in order as well
+        // On refresh, just update availableImgs and slider, don't load images
         function refreshImageGrid() {
           if (!refreshActive) return;
           availableImgs = imgSrcs.slice();
           updateMainImage(currentIdx);
           setupModalNavigation();
-          preloadImagesOrdered(availableImgs);
+          preloadImages(availableImgs); // Preload again in case images changed
         }
 
         function showModal(idx) {
@@ -644,7 +658,7 @@
           currentIdx = 0; // Always start at index 0 (PNG 000)
           updateMainImage(currentIdx);
           setupModalNavigation();
-          preloadImagesOrdered(availableImgs); // Preload in order
+          preloadImages(availableImgs); // Preload all images for fast navigation
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
@@ -694,15 +708,14 @@
             e.preventDefault();
           }
         });
+      </script>
+      <!-- ...existing code... -->
+    </div>
+    <div class="right-panel">
+      <!-- Right panel content -->
+    </div>
+  </div>
 
-  // Add missing setupModalNavigation function to prevent ReferenceError
-  function setupModalNavigation() {
-    // This function is used to set global variables for modal navigation.
-    // If you don't need any special logic, just leave it empty.
-    // If you want to expose availableImgs and availableHours globally for modal, do:
-    window.availableImgs = availableImgs;
-    window.availableHours = availableHours;
-  }
       </script>
       <!-- ...existing code... -->
     </div>
