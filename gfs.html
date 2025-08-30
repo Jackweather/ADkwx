@@ -303,7 +303,7 @@
         }
 
         function loadAvailableImages(callback) {
-          const thisToken = ++loadToken; // Increment token for each load
+          const thisToken = ++loadToken;
           let newAvailableImgs = [];
           let newAvailableHours = [];
           let checked = 0;
@@ -318,14 +318,23 @@
             img.onload = function() {
               if (thisToken !== loadToken) return; // Ignore if token changed
               newAvailableImgs.push(src);
-              newAvailableHours.push(hours[idx]);
+              newAvailableHours.push(availableHours[idx]);
               checked++;
-              if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
+              if (checked === total && callback) {
+                // Sort by hour to ensure order
+                let zipped = newAvailableImgs.map((img, i) => ({img, hour: newAvailableHours[i]}));
+                zipped.sort((a, b) => a.hour - b.hour);
+                callback(zipped.map(z => z.img), zipped.map(z => z.hour));
+              }
             };
             img.onerror = function() {
               if (thisToken !== loadToken) return; // Ignore if token changed
               checked++;
-              if (checked === total && callback) callback(newAvailableImgs, newAvailableHours);
+              if (checked === total && callback) {
+                let zipped = newAvailableImgs.map((img, i) => ({img, hour: newAvailableHours[i]}));
+                zipped.sort((a, b) => a.hour - b.hour);
+                callback(zipped.map(z => z.img), zipped.map(z => z.hour));
+              }
             };
             img.src = src;
           });
@@ -549,11 +558,19 @@
 
         function refreshImageGrid() {
           if (!refreshActive) return;
+          const prevHour = availableHours[currentIdx];
           loadAvailableImages(function(newImgs, newHours) {
+            // Only update if images changed
             if (!arraysEqual(newImgs, availableImgs)) {
               availableImgs = newImgs;
               availableHours = newHours;
-              updateMainImage(currentIdx = 0);
+              // Try to keep the same hour selected if possible
+              let idx = 0;
+              if (prevHour !== undefined) {
+                idx = newHours.indexOf(prevHour);
+                if (idx === -1) idx = 0;
+              }
+              updateMainImage(currentIdx = idx);
               setupModalNavigation();
             }
           });
