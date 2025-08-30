@@ -180,8 +180,13 @@
       <button id="total_cloud_btn" class="side-btn">Total Cloud Cover</button>
     </div>
     <div class="main-content">
-      <div id="gfs-image-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;">
-        <!--IMAGES-->
+      <!-- Main single image display -->
+      <div id="main-img-container" style="text-align:center;">
+        <img id="main-img" src="" alt="" style="max-width:90%;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;">
+        <div id="main-slider-controls" style="margin-top:18px;">
+          <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:70%;display:none;">
+          <div id="main-slider-label" style="color:#263159;margin-top:6px;font-size:1.1em;display:none;"></div>
+        </div>
       </div>
       <div id="fullscreen-modal">
         <img id="fullscreen-img" src="" alt="">
@@ -195,7 +200,7 @@
       </div>
       <script>
         // --- Image grid and modal logic ---
-        const grid = document.getElementById('gfs-image-grid');
+        // const grid = document.getElementById('gfs-image-grid');
         const modal = document.getElementById('fullscreen-modal');
         const modalImg = document.getElementById('fullscreen-img');
         const leftArrow = document.getElementById('left-arrow');
@@ -209,6 +214,11 @@
         const totalPrecipBtn = document.getElementById('total_precip_btn');
         const totalCloudBtn = document.getElementById('total_cloud_btn');
         // MANUAL: Add new button variable here for another image type
+
+        // Main image and slider elements
+        const mainImg = document.getElementById('main-img');
+        const mainImgSlider = document.getElementById('main-img-slider');
+        const mainSliderLabel = document.getElementById('main-slider-label');
 
         const imgSlider = document.getElementById('img-slider');
         const sliderLabel = document.getElementById('slider-label');
@@ -321,6 +331,47 @@
           });
         }
 
+        function updateMainImage(idx) {
+          if (availableImgs.length === 0) {
+            mainImg.src = "";
+            mainImg.alt = "";
+            mainImgSlider.style.display = "none";
+            mainSliderLabel.style.display = "none";
+            return;
+          }
+          currentIdx = idx;
+          mainImg.src = availableImgs[currentIdx];
+          // Set alt text similar to grid/modal
+          if (currentType === "prate") {
+            mainImg.alt = `prate_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "tmp") {
+            mainImg.alt = `2mtemp_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "precip6") {
+            mainImg.alt = `precip6_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "precip24") {
+            mainImg.alt = `precip24_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "precip12") {
+            mainImg.alt = `precip12_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "total_precip") {
+            mainImg.alt = `totalprecip_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          } else if (currentType === "total_cloud") {
+            mainImg.alt = `total_lcdc_${availableHours[currentIdx].toString().padStart(3, '0')}`;
+          }
+          // ...add new alt logic if needed...
+          // Show slider if >1 image
+          if (availableImgs.length > 1) {
+            mainImgSlider.style.display = "";
+            mainSliderLabel.style.display = "";
+            mainImgSlider.min = 0;
+            mainImgSlider.max = availableImgs.length - 1;
+            mainImgSlider.value = currentIdx;
+            mainSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
+          } else {
+            mainImgSlider.style.display = "none";
+            mainSliderLabel.style.display = "none";
+          }
+        }
+
         function renderGrid(imgs, hrs) {
           clearGrid();
           imgs.forEach((src, idx) => addImgToGrid(src, idx));
@@ -416,6 +467,19 @@
           tempImg.src = availableImgs[currentIdx];
         };
 
+        // Main slider logic
+        mainImgSlider.oninput = function() {
+          if (availableImgs.length === 0) return;
+          currentIdx = parseInt(mainImgSlider.value, 10);
+          updateMainImage(currentIdx);
+        };
+
+        // Clicking main image opens modal at currentIdx
+        mainImg.onclick = function() {
+          if (availableImgs.length === 0) return;
+          showModal(currentIdx);
+        };
+
         // Slider logic
         imgSlider.oninput = function() {
           if (availableImgs.length === 0) return;
@@ -489,7 +553,7 @@
             if (!arraysEqual(newImgs, availableImgs)) {
               availableImgs = newImgs;
               availableHours = newHours;
-              renderGrid(availableImgs, availableHours);
+              updateMainImage(currentIdx = 0);
               setupModalNavigation();
             }
           });
@@ -540,13 +604,13 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = [];
-          clearGrid();
+          // Remove clearGrid();
+          // clearGrid();
           loadAvailableImages(function(newImgs, newHours) {
-            // Only update if still the current type
             if (currentType !== type) return;
             availableImgs = newImgs;
             availableHours = newHours;
-            renderGrid(availableImgs, availableHours);
+            updateMainImage(currentIdx = 0);
             setupModalNavigation();
           });
           if (refreshInterval) clearInterval(refreshInterval);
