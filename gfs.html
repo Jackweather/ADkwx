@@ -154,36 +154,6 @@
   #updates-navbar-btn:hover, #community-navbar-btn:hover {
     background: #263159;
   }
-
-  /* --- Add for iPhone/mobile screens --- */
-  @media (max-width: 600px) {
-    #fullscreen-modal {
-      width: 100vw;
-      height: 100vh;
-      padding: 0;
-      align-items: center;
-      justify-content: center;
-      display: flex;
-    }
-    #fullscreen-img {
-      width: 100vw;
-      height: 100vh;
-      max-width: 100vw;
-      max-height: 100vh;
-      margin: 0;
-      border-radius: 0;
-      object-fit: contain;
-      box-shadow: none;
-      display: block;
-    }
-    #arrow-controls {
-      gap: 10px;
-      margin-top: 4px;
-    }
-    #img-slider {
-      width: 98vw;
-    }
-  }
 </style>
 </head>
 <body>
@@ -498,12 +468,6 @@
           preloadImages(availableImgs); // Preload again in case images changed
         }
 
-        // Show modal when main image is clicked
-        mainImg.onclick = function() {
-          showModal(currentIdx);
-        };
-
-        // Show modal with slider and label
         function showModal(idx) {
           currentIdx = idx;
           // Only reset zoom if not in zoomMode
@@ -524,43 +488,7 @@
           tempImg.src = availableImgs[currentIdx];
         }
 
-        // Update slider for modal
-        function updateSlider() {
-          if (availableImgs.length > 1) {
-            imgSlider.style.display = "";
-            sliderLabel.style.display = "";
-            imgSlider.max = availableImgs.length - 1;
-            imgSlider.min = parseInt(mainImgSlider.min, 10) || 0;
-            imgSlider.value = currentIdx;
-            sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-          } else {
-            imgSlider.style.display = "none";
-            sliderLabel.style.display = "none";
-          }
-        }
-
-        // Sync modal slider with main image slider
-        imgSlider.oninput = function() {
-          if (availableImgs.length === 0) return;
-          currentIdx = parseInt(imgSlider.value, 10);
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        };
-
-        // Hide modal when clicking outside image
+        // Update slider when modal is shown/hidden or images change
         modal.onclick = function(e) {
           if (e.target === modal) {
             modal.style.display = "none";
