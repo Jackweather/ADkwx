@@ -619,31 +619,6 @@
           checkNext();
         }
 
-        // Helper: Filter out PNGs that do not exist (404) and set slider to first available
-        function filterAvailableImages(imgArray, callback) {
-          let available = [];
-          let availableHourList = [];
-          let checked = 0;
-          if (imgArray.length === 0) {
-            callback([], []);
-            return;
-          }
-          imgArray.forEach((src, idx) => {
-            const testImg = new Image();
-            testImg.onload = function() {
-              available.push(src);
-              availableHourList.push(availableHours[idx]);
-              checked++;
-              if (checked === imgArray.length) callback(available, availableHourList);
-            };
-            testImg.onerror = function() {
-              checked++;
-              if (checked === imgArray.length) callback(available, availableHourList);
-            };
-            testImg.src = src;
-          });
-        }
-
         function activate(type) {
           if (currentType === type) return;
           currentType = type;
@@ -685,17 +660,13 @@
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
 
-          // Filter out missing PNGs and set slider to first available
-          filterAvailableImages(imgSrcs, function(filteredImgs, filteredHours) {
-            availableImgs = filteredImgs;
-            availableHours = filteredHours;
-            currentIdx = 0;
+          // Find the first PNG that actually exists (not 404)
+          findFirstAvailableIndex(availableImgs, function(firstIdx) {
+            currentIdx = firstIdx;
             updateMainImage(currentIdx);
             setupModalNavigation();
             preloadImages(availableImgs);
             if (mainImgSlider) {
-              mainImgSlider.min = 0;
-              mainImgSlider.max = availableImgs.length > 0 ? availableImgs.length - 1 : 0;
               mainImgSlider.value = currentIdx;
             }
             if (refreshInterval) clearInterval(refreshInterval);
