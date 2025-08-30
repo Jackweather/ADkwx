@@ -369,9 +369,15 @@
           mainImg.src = availableImgs[currentIdx];
           mainImg.alt = alt;
           if (availableImgs.length > 1) {
+            // --- MODIFIED: Set slider min to first available index ---
+            let minIdx = 0;
+            // Find the index of the first available hour (e.g., 6 if 000 missing)
+            if (availableHours.length > 0 && availableHours[0] !== 0) {
+              minIdx = 0; // availableImgs[0] is first available, so minIdx is 0
+            }
             mainImgSlider.style.display = "";
             mainSliderLabel.style.display = "";
-            mainImgSlider.min = 0;
+            mainImgSlider.min = minIdx;
             mainImgSlider.max = availableImgs.length - 1;
             mainImgSlider.value = currentIdx;
             mainSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
@@ -441,12 +447,14 @@
           // Find the first PNG that actually exists (not 404)
           findFirstAvailableIndex(availableImgs, function(firstIdx) {
             currentIdx = firstIdx;
+            // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
+            if (mainImgSlider) {
+              mainImgSlider.min = firstIdx;
+              mainImgSlider.value = currentIdx;
+            }
             updateMainImage(currentIdx);
             setupModalNavigation();
             preloadImages(availableImgs);
-            if (mainImgSlider) {
-              mainImgSlider.value = currentIdx;
-            }
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
           });
@@ -663,12 +671,14 @@
           // Find the first PNG that actually exists (not 404)
           findFirstAvailableIndex(availableImgs, function(firstIdx) {
             currentIdx = firstIdx;
+            // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
+            if (mainImgSlider) {
+              mainImgSlider.min = firstIdx;
+              mainImgSlider.value = currentIdx;
+            }
             updateMainImage(currentIdx);
             setupModalNavigation();
             preloadImages(availableImgs);
-            if (mainImgSlider) {
-              mainImgSlider.value = currentIdx;
-            }
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
           });
