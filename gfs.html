@@ -1,201 +1,179 @@
 <head>
-  <!-- Add viewport meta for mobile scaling -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <!-- ...existing code... -->
-  <style>
-    #top-navbar {
-      width: 100vw;
-      background: #263159;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 0 32px;
-      height: 54px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 2000;
-      font-size: 1.5em;
-      font-family: Arial, sans-serif;
-      letter-spacing: 1.5px;
-    }
-    body {
-      margin: 0;
-      padding-top: 54px; /* prevent content underlap */
-    }
-    .layout-container {
-      display: flex;
-      min-height: 100vh;
-      background: #f5f7fa;
-    }
+<!-- ...existing code... -->
+<style>
+  #top-navbar {
+    width: 100vw;
+    background: #263159;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 32px;
+    height: 54px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2000;
+    font-size: 1.5em;
+    font-family: Arial, sans-serif;
+    letter-spacing: 1.5px;
+  }
+  body {
+    margin: 0;
+    padding-top: 54px; /* prevent content underlap */
+  }
+  .layout-container {
+    display: flex;
+    min-height: 100vh;
+    background: #f5f7fa;
+  }
+  .left-panel, .right-panel {
+    width: 140px;
+    background: #31416a;
+    color: #fff;
+    padding: 0;
+    box-sizing: border-box;
+    min-height: calc(100vh - 54px);
+  }
+  .main-content {
+    flex: 1;
+    padding: 32px 24px;
+    background: #fff;
+    min-height: calc(100vh - 54px);
+  }
+  @media (max-width: 900px) {
     .left-panel, .right-panel {
-      width: 140px;
-      background: #31416a;
-      color: #fff;
-      padding: 0;
-      box-sizing: border-box;
-      min-height: calc(100vh - 54px);
+      display: none;
     }
     .main-content {
-      flex: 1;
-      padding: 32px 24px;
-      background: #fff;
-      min-height: calc(100vh - 54px);
+      padding: 16px 4vw;
     }
-    @media (max-width: 900px) {
-      .left-panel, .right-panel {
-        display: none;
-      }
-      .main-content {
-        padding: 16px 4vw;
-      }
-    }
-    /* Add mobile-specific styles for modal and images */
-    @media (max-width: 600px) {
-      #fullscreen-modal {
-        padding: 0;
-        align-items: flex-start;
-        justify-content: flex-start;
-      }
-      #fullscreen-img {
-        max-width: 98vw;
-        max-height: 55vh;
-        border-radius: 6px;
-        margin-top: 8vw;
-      }
-      #arrow-controls {
-        gap: 18px;
-        margin-top: 10px;
-      }
-      #img-slider {
-        width: 95vw !important;
-        margin-top: 12px !important;
-      }
-      #slider-label {
-        font-size: 1em;
-        margin-top: 2px;
-      }
-    }
-    /* Make slider thumb bigger for touch devices */
-    input[type="range"]::-webkit-slider-thumb {
-      width: 32px;
-      height: 32px;
-    }
-    input[type="range"]::-moz-range-thumb {
-      width: 32px;
-      height: 32px;
-    }
-    input[type="range"]::-ms-thumb {
-      width: 32px;
-      height: 32px;
-    }
+  }
+  #fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(20,30,50,0.92);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #fullscreen-img {
+    max-width: 80vw;
+    max-height: 75vh;
+    width: auto;
+    height: auto;
+    box-shadow: 0 4px 32px #000;
+    border-radius: 10px;
+    transition: opacity 0.25s;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  #arrow-controls {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+  }
+  #left-arrow, #right-arrow {
+    font-size: 2.2em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  #zoom-btn {
+    font-size: 1.3em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  .side-btn {
+    width: 90%;
+    margin: 18px auto 0 auto;
+    display: block;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 0;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  .side-btn.active,
+  .side-btn:active {
+    background: #263159;
+  }
+  #gifs-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #gifs-navbar-btn:hover {
+    background: #263159;
+  }
+  #updates-navbar-btn, #community-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #updates-navbar-btn:hover, #community-navbar-btn:hover {
+    background: #263159;
+  }
+
+  /* --- Add for iPhone/mobile screens --- */
+  @media (max-width: 600px) {
     #fullscreen-modal {
-      display: none;
-      position: fixed;
-      z-index: 3000;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(20,30,50,0.92);
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
+      padding: 0;
     }
     #fullscreen-img {
-      max-width: 80vw;
-      max-height: 75vh;
-      width: auto;
-      height: auto;
-      box-shadow: 0 4px 32px #000;
-      border-radius: 10px;
-      transition: opacity 0.25s;
-      object-fit: contain;
-      display: block;
-      margin: 0 auto;
-      cursor: pointer;
+      max-width: 98vw;
+      max-height: 85vh;
+      border-radius: 4px;
     }
     #arrow-controls {
-      margin-top: 18px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 40px;
+      gap: 18px;
+      margin-top: 10px;
     }
-    #left-arrow, #right-arrow {
-      font-size: 2.2em;
-      padding: 6px 18px;
-      border: none;
-      background: #263159;
-      color: #fff;
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 2px 8px #0003;
-      transition: background 0.2s;
+    #img-slider {
+      width: 95vw;
     }
-    #zoom-btn {
-      font-size: 1.3em;
-      padding: 6px 18px;
-      border: none;
-      background: #263159;
-      color: #fff;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 2px 8px #0003;
-      transition: background 0.2s;
-    }
-    .side-btn {
-      width: 90%;
-      margin: 18px auto 0 auto;
-      display: block;
-      background: #41507a;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 12px 0;
-      font-size: 1.1em;
-      cursor: pointer;
-      transition: background 0.18s;
-    }
-    .side-btn.active,
-    .side-btn:active {
-      background: #263159;
-    }
-    #gifs-navbar-btn {
-      margin-left: 18px;
-      background: #41507a;
-      color: #fff;
-      border: none;
-      border-radius: 18px;
-      padding: 8px 22px;
-      font-size: 1em;
-      cursor: pointer;
-      box-shadow: 0 2px 8px #0002;
-      transition: background 0.18s;
-      letter-spacing: 1px;
-    }
-    #gifs-navbar-btn:hover {
-      background: #263159;
-    }
-    #updates-navbar-btn, #community-navbar-btn {
-      margin-left: 18px;
-      background: #41507a;
-      color: #fff;
-      border: none;
-      border-radius: 18px;
-      padding: 8px 22px;
-      font-size: 1em;
-      cursor: pointer;
-      box-shadow: 0 2px 8px #0002;
-      transition: background 0.18s;
-      letter-spacing: 1px;
-    }
-    #updates-navbar-btn:hover, #community-navbar-btn:hover {
-      background: #263159;
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
   <div id="top-navbar">
