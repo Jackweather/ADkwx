@@ -58,52 +58,40 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(20,30,50,0.92);
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
+    background: #263159; /* solid background like GIF modal */
+    align-items: stretch;
+    justify-content: stretch;
+    flex-direction: unset;
   }
   #fullscreen-img {
-    max-width: 80vw;
-    max-height: 75vh;
-    width: auto;
-    height: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    max-width: 90vw;
+    max-height: 85vh;
+    width: 90vw;
+    height: 85vh;
     box-shadow: 0 4px 32px #000;
-    border-radius: 10px;
+    border-radius: 0;
     transition: opacity 0.25s;
-    object-fit: contain;
+    cursor: pointer;
     display: block;
-    margin: 0 auto;
-    cursor: pointer;
-  }
-  #arrow-controls {
-    margin-top: 18px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 40px;
-  }
-  #left-arrow, #right-arrow {
-    font-size: 2.2em;
-    padding: 6px 18px;
-    border: none;
+    object-fit: contain;
     background: #263159;
-    color: #fff;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 2px 8px #0003;
-    transition: background 0.2s;
   }
-  #zoom-btn {
-    font-size: 1.3em;
-    padding: 6px 18px;
+  #fullscreen-close {
+    position: absolute;
+    top: 24px;
+    right: 36px;
+    font-size: 2em;
+    background: none;
     border: none;
-    background: #263159;
     color: #fff;
-    border-radius: 8px;
     cursor: pointer;
-    box-shadow: 0 2px 8px #0003;
-    transition: background 0.2s;
+    z-index: 3100;
   }
   .side-btn {
     width: 90%;
@@ -189,23 +177,16 @@
         </div>
       </div>
       <div id="fullscreen-modal">
+        <button id="fullscreen-close">&#10006;</button>
         <img id="fullscreen-img" src="" alt="">
-        <div id="arrow-controls">
-          <button id="left-arrow">&#8592;</button>
-          <button id="right-arrow">&#8594;</button>
-          <button id="zoom-btn">🔍 Zoom</button>
-        </div>
-        <input type="range" id="img-slider" min="0" max="0" value="0" style="width: 70%; margin-top: 18px; display: none;">
-        <div id="slider-label" style="color: #fff; margin-top: 6px; font-size: 1.1em; display: none;"></div>
+        <!-- Removed arrow controls, zoom button, slider, and label -->
       </div>
       <script>
         // --- Image grid and modal logic ---
         // const grid = document.getElementById('gfs-image-grid');
         const modal = document.getElementById('fullscreen-modal');
         const modalImg = document.getElementById('fullscreen-img');
-        const leftArrow = document.getElementById('left-arrow');
-        const rightArrow = document.getElementById('right-arrow');
-        const zoomBtn = document.getElementById('zoom-btn');
+        const fullscreenClose = document.getElementById('fullscreen-close');
         const prateBtn = document.getElementById('prate-btn');
         const tmpBtn = document.getElementById('tmp-btn');
         const precip6Btn = document.getElementById('precip6-btn');
@@ -468,272 +449,59 @@
           preloadImages(availableImgs); // Preload again in case images changed
         }
 
+        // Replace showModal logic to match GIF modal
         function showModal(idx) {
           currentIdx = idx;
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
           modalImg.style.opacity = 0;
           modal.style.display = "flex";
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
+          loadFullscreenPng();
+          // Start periodic refresh
+          if (fullscreenRefreshTimer) clearInterval(fullscreenRefreshTimer);
+          fullscreenRefreshTimer = setInterval(loadFullscreenPng, 5000); // refresh every 5 seconds
         }
 
-        // Update slider when modal is shown/hidden or images change
+        function loadFullscreenPng() {
+          // Add timestamp to force reload
+          const srcWithTimestamp = availableImgs[currentIdx] + "?t=" + Date.now();
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = srcWithTimestamp;
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+          };
+          tempImg.src = srcWithTimestamp;
+        }
+
+        // Clicking outside image closes modal
         modal.onclick = function(e) {
           if (e.target === modal) {
             modal.style.display = "none";
-            updateSlider();
+            if (fullscreenRefreshTimer) clearInterval(fullscreenRefreshTimer);
           }
         };
-
-        // Update slider on navigation
-        leftArrow.onclick = function(e) {
-          e.stopPropagation();
-          if (availableImgs.length === 0) return;
-          currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        };
-        rightArrow.onclick = function(e) {
-          e.stopPropagation();
-          if (availableImgs.length === 0) return;
-          currentIdx = (currentIdx + 1) % availableImgs.length;
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
+        fullscreenClose.onclick = function() {
+          modal.style.display = "none";
+          if (fullscreenRefreshTimer) clearInterval(fullscreenRefreshTimer);
         };
 
-        // Slider logic
-        imgSlider.oninput = function() {
-          if (availableImgs.length === 0) return;
-          currentIdx = parseInt(imgSlider.value, 10);
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        };
-
-        zoomBtn.onclick = function(e) {
-          e.stopPropagation();
-          zoomMode = !zoomMode;
-          zoomBtn.style.background = zoomMode ? "#41507a" : "#263159";
-          zoomBtn.textContent = zoomMode ? "🔎 Click Image" : "🔍 Zoom";
-          if (!zoomMode && zoomed) {
-            modalImg.style.transform = "";
-            modalImg.style.cursor = "pointer";
-            zoomed = false;
-          }
-        };
-
-        modalImg.onclick = function(e) {
-          if (!zoomMode) return;
-          if (!zoomed) {
-            const rect = modalImg.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const xPct = (x / rect.width) * 100;
-            const yPct = (y / rect.height) * 100;
-            modalImg.style.transformOrigin = `${xPct}% ${yPct}%`;
-            modalImg.style.transform = "scale(2.2)";
-            modalImg.style.cursor = "zoom-out";
-            zoomed = true;
-          } else {
-            modalImg.style.transform = "";
-            modalImg.style.cursor = "pointer";
-            zoomed = false;
-          }
-        };
-
-        function resetZoomState() {
-          zoomMode = false;
-          zoomed = false;
-          zoomBtn.style.background = "#263159";
-          zoomBtn.textContent = "🔍 Zoom";
-          modalImg.style.transform = "";
-          modalImg.style.cursor = "pointer";
-        }
-
-        function arraysEqual(a, b) {
-          if (a.length !== b.length) return false;
-          for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-          return true;
-        }
-
-        // Pause polling when tab is hidden, resume when visible
-        document.addEventListener('visibilitychange', function() {
-          refreshActive = !document.hidden;
-        });
-
-        // Helper: Find first available PNG (not 404) in the folder and set slider to it
-        function findFirstAvailableIndex(imgArray, callback) {
-          let idx = 0;
-          function checkNext() {
-            if (idx >= imgArray.length) {
-              callback(0); // fallback to 0 if none found
-              return;
-            }
-            const testImg = new Image();
-            testImg.onload = function() { callback(idx); };
-            testImg.onerror = function() { idx++; checkNext(); };
-            testImg.src = imgArray[idx];
-          }
-          checkNext();
-        }
-
-        function activate(type) {
-          if (currentType === type) return;
-          currentType = type;
-          loadToken++;
-          prateBtn.classList.toggle('active', type === "prate");
-          tmpBtn.classList.toggle('active', type === "tmp");
-          precip6Btn.classList.toggle('active', type === "precip6");
-          precip12Btn.classList.toggle('active', type === "precip12");
-          precip24Btn.classList.toggle('active', type === "precip24");
-          totalPrecipBtn.classList.toggle('active', type === "total_precip");
-          totalCloudBtn.classList.toggle('active', type === "total_cloud");
-          // MANUAL: Add new .classList.toggle for another image type
-          if (type === "prate") {
-            imgSrcs = getPrateSrcs();
-            availableHours = hours;
-          } else if (type === "tmp") {
-            imgSrcs = getTmpSrcs();
-            availableHours = hours;
-          } else if (type === "precip6") {
-            imgSrcs = getPrecip6Srcs();
-            availableHours = hours;
-          } else if (type === "precip12") {
-            let hours12 = [];
-            for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
-            imgSrcs = getPrecip12Srcs();
-            availableHours = hours12;
-          } else if (type === "precip24") {
-            let hours24 = [];
-            for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
-            imgSrcs = getPrecip24Srcs();
-            availableHours = hours24;
-          } else if (type === "total_precip") {
-            imgSrcs = getTotalPrecipSrcs();
-            availableHours = hours;
-          } else if (type === "total_cloud") {
-            imgSrcs = getTotalCloudSrcs();
-            availableHours = hours;
-          }
-          // MANUAL: Add new logic here for another image type
-          availableImgs = imgSrcs.slice();
-
-          // Find the first PNG that actually exists (not 404)
-          findFirstAvailableIndex(availableImgs, function(firstIdx) {
-            currentIdx = firstIdx;
-            // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
-            if (mainImgSlider) {
-              mainImgSlider.min = firstIdx;
-              mainImgSlider.value = currentIdx;
-            }
-            updateMainImage(currentIdx);
-            setupModalNavigation();
-            preloadImages(availableImgs);
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
-          });
-        }
-
-        prateBtn.onclick = function() { activate("prate"); };
-        tmpBtn.onclick = function() { activate("tmp"); };
-        precip6Btn.onclick = function() { activate("precip6"); };
-        precip12Btn.onclick = function() { activate("precip12"); };
-        precip24Btn.onclick = function() { activate("precip24"); };
-        totalPrecipBtn.onclick = function() { activate("total_precip"); };
-        totalCloudBtn.onclick = function() { activate("total_cloud"); };
-        // MANUAL: Add new button onclick here for another image type
-
-        // Show all prate PNGs on page load
-        window.addEventListener('DOMContentLoaded', function() {
-          activate("prate");
-        });
-
-        // Do NOT load images on page load
-
-        // Keyboard navigation for modal
+        // Escape key closes modal
         document.addEventListener('keydown', function(e) {
           if (modal.style.display === "flex") {
-            if (e.key === "ArrowLeft") {
-              leftArrow.click();
-              e.preventDefault();
-            } else if (e.key === "ArrowRight") {
-              rightArrow.click();
-              e.preventDefault();
+            if (e.key === "Escape") {
+              modal.style.display = "none";
+              if (fullscreenRefreshTimer) clearInterval(fullscreenRefreshTimer);
             }
           }
         });
 
-        // Keyboard navigation for main image (always active)
-        document.addEventListener('keydown', function(e) {
-          if (e.key === "ArrowLeft") {
-            if (availableImgs.length > 1) {
-              let minIdx = parseInt(mainImgSlider.min, 10) || 0;
-              let nextIdx = currentIdx - 1;
-              if (nextIdx < minIdx) nextIdx = minIdx;
-              currentIdx = nextIdx;
-              updateMainImage(currentIdx);
-            }
-            e.preventDefault();
-          } else if (e.key === "ArrowRight") {
-            if (availableImgs.length > 1) {
-              let maxIdx = availableImgs.length - 1;
-              let nextIdx = currentIdx + 1;
-              if (nextIdx > maxIdx) nextIdx = maxIdx;
-              currentIdx = nextIdx;
-              updateMainImage(currentIdx);
-            }
-            e.preventDefault();
-          }
-        });
+        // Remove arrow/slider/zoom logic for modal
+        // ...existing code...
+        // Remove leftArrow.onclick, rightArrow.onclick, imgSlider.oninput, zoomBtn.onclick, modalImg.onclick, resetZoomState, etc.
+        // ...existing code...
+
+        // Remove modal keyboard navigation for arrows
+        // ...existing code...
+
+        // ...existing code...
       </script>
       <!-- ...existing code... -->
     </div>
@@ -741,4 +509,4 @@
       <!-- Right panel content -->
     </div>
   </div>
-
+       
