@@ -437,10 +437,15 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          currentIdx = 0; // Always start at index 0 (PNG 000)
+          // Start at hour 6 (index 1)
+          currentIdx = 1;
           updateMainImage(currentIdx);
           setupModalNavigation();
           preloadImages(availableImgs);
+          // Reset slider to hour 6 visually
+          if (mainImgSlider) {
+            mainImgSlider.value = 1;
+          }
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
@@ -636,7 +641,8 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          currentIdx = 0; // Always start at index 0 (PNG 000)
+          // Start at hour 6 (index 1)
+          currentIdx = 1;
           updateMainImage(currentIdx);
           setupModalNavigation();
           preloadImages(availableImgs); // Preload all images for fast navigation
