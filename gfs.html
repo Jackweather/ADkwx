@@ -381,30 +381,11 @@
           }
         }
 
-        // Only load the PNG that matches the slider position
+        // Load PNG only when slider is moved
         mainImgSlider.oninput = function() {
           if (availableImgs.length === 0) return;
           currentIdx = parseInt(mainImgSlider.value, 10);
-          // Load only the PNG at the slider position
-          let alt = "";
-          if (currentType === "prate") {
-            alt = `prate_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "tmp") {
-            alt = `2mtemp_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip6") {
-            alt = `precip6_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip24") {
-            alt = `precip24_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip12") {
-            alt = `precip12_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_precip") {
-            alt = `totalprecip_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_cloud") {
-            alt = `total_lcdc_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          }
-          mainImg.src = availableImgs[currentIdx];
-          mainImg.alt = alt;
-          mainSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
+          updateMainImage(currentIdx);
         };
 
         // Preload all images for current type as soon as you activate it
@@ -456,14 +437,10 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          currentIdx = 0; // Always start at index 0 (hour 0)
+          currentIdx = 0; // Always start at index 0 (PNG 000)
           updateMainImage(currentIdx);
           setupModalNavigation();
           preloadImages(availableImgs);
-          // Reset slider to hour 0 visually
-          if (mainImgSlider) {
-            mainImgSlider.value = 0;
-          }
           if (refreshInterval) clearInterval(refreshInterval);
           refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
         }
@@ -659,7 +636,7 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          currentIdx = 0; // Always start at index 0 (hour 0)
+          currentIdx = 0; // Always start at index 0 (PNG 000)
           updateMainImage(currentIdx);
           setupModalNavigation();
           preloadImages(availableImgs); // Preload all images for fast navigation
