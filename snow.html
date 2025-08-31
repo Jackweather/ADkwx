@@ -60,7 +60,7 @@
     }
     .main-content {
       flex: 1;
-      padding: 32px 24px;
+      padding: 12px 24px; /* reduced top padding */
       background: #fff;
       min-height: calc(100vh - 54px);
     }
@@ -157,9 +157,8 @@
       <!-- Left panel content (optional, can add buttons here) -->
     </div>
     <div class="main-content">
-      <h2 style="color:#263159;">Snow Plots</h2>
       <div id="main-img-container" style="text-align:center;">
-        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
+        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;">
         <div id="main-slider-controls" style="margin-top:4px;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
           <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
@@ -275,6 +274,7 @@
       <!-- Right panel content -->
     </div>
   </div>
+</body>
 </body>
       <!-- Right panel content -->
     </div>
