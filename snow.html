@@ -154,6 +154,7 @@
         Snow Plots
       </div>
       <button id="positive-snow-btn" class="side-btn">Positive Snow Depth Change</button>
+      <button id="ten-to-one-btn" class="side-btn">10:1 Snowfall</button>
       <!-- Left panel content (optional, can add buttons here) -->
     </div>
     <div class="main-content">
@@ -168,13 +169,17 @@
       <script>
         // --- Main image and slider logic for snow plots ---
         const positiveSnowBtn = document.getElementById('positive-snow-btn');
+        const tenToOneBtn = document.getElementById('ten-to-one-btn');
         const mainImg = document.getElementById('main-img');
         const mainImgSlider = document.getElementById('main-img-slider');
         const mainSliderLabel = document.getElementById('main-slider-label');
 
         let snowHours = [];
         for (let hour = 0; hour <= 384; hour += 6) snowHours.push(hour);
+
         let snowImgSrcs = snowHours.map(hour => `/GFS/static/snow_depth/snowdepth_${hour.toString().padStart(3, '0')}.png`);
+        let tenToOneImgSrcs = snowHours.map(hour => `/GFS/static/totalsnowfall_10to1/totalsnowfall_10to1_${hour.toString().padStart(3, '0')}.png`);
+
         let availableSnowImgs = [];
         let currentSnowIdx = 0;
 
@@ -206,7 +211,7 @@
           if (idx < minIdx) idx = minIdx;
           currentSnowIdx = idx;
           mainImg.src = availableSnowImgs[currentSnowIdx];
-          mainImg.alt = `snowdepth_${snowHours[currentSnowIdx].toString().padStart(3, '0')}`;
+          mainImg.alt = availableSnowImgs[currentSnowIdx].split('/').pop();
           if (availableSnowImgs.length > 1) {
             mainImgSlider.style.display = "";
             mainSliderLabel.style.display = "";
@@ -230,9 +235,20 @@
 
         positiveSnowBtn.onclick = function() {
           positiveSnowBtn.classList.add('active');
-          // If you add more buttons, deactivate others here
+          tenToOneBtn.classList.remove('active');
           availableSnowImgs = snowImgSrcs.slice();
-          // Find the first PNG that actually exists (not 404)
+          findFirstAvailableIndex(availableSnowImgs, function(firstIdx) {
+            currentSnowIdx = firstIdx;
+            mainImgSlider.min = firstIdx;
+            mainImgSlider.value = currentSnowIdx;
+            updateSnowMainImage(currentSnowIdx);
+          });
+        };
+
+        tenToOneBtn.onclick = function() {
+          tenToOneBtn.classList.add('active');
+          positiveSnowBtn.classList.remove('active');
+          availableSnowImgs = tenToOneImgSrcs.slice();
           findFirstAvailableIndex(availableSnowImgs, function(firstIdx) {
             currentSnowIdx = firstIdx;
             mainImgSlider.min = firstIdx;
