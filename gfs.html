@@ -50,6 +50,43 @@
       padding: 16px 4vw;
     }
   }
+  /* --- Add mobile styles for iPhone and similar devices --- */
+  @media (max-width: 600px) {
+    #main-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      height: 65vh !important;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 12px #0002;
+    }
+    #main-img-container {
+      padding: 0;
+      margin: 0;
+    }
+    .main-content {
+      padding: 4px 0 !important;
+    }
+    #fullscreen-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      max-height: 85vh !important;
+      height: 85vh !important;
+      object-fit: contain;
+      border-radius: 10px;
+      margin: 0 auto;
+    }
+    #fullscreen-modal {
+      align-items: stretch;
+      justify-content: flex-start;
+      padding-top: 12px;
+    }
+    #arrow-controls {
+      gap: 18px;
+      margin-top: 8px;
+    }
+  }
   #fullscreen-modal {
     display: none;
     position: fixed;
