@@ -1,5 +1,13 @@
 <head>
 <!-- ...existing code... -->
+<!-- Preload first PNGs for each type for faster initial load -->
+<link rel="preload" as="image" href="/PRATEGFS/prate_000.png">
+<link rel="preload" as="image" href="/tmp_surface/2mtemp_000.png">
+<link rel="preload" as="image" href="/6hour_precip_total/precip6_000.png">
+<link rel="preload" as="image" href="/12hour_precip_total/precip12_012.png">
+<link rel="preload" as="image" href="/24hour_precip_total/precip24_024.png">
+<link rel="preload" as="image" href="/total_precip/totalprecip_000.png">
+<link rel="preload" as="image" href="/total_lcdc/total_lcdc_000.png">
 <style>
   #top-navbar {
     width: 100vw;
@@ -377,6 +385,19 @@
           });
         }
 
+        // Set eager loading for main image
+        mainImg.loading = "eager";
+
+        // Preload adjacent images for faster navigation
+        function preloadAdjacentImages(idx) {
+          [idx - 1, idx + 1].forEach(i => {
+            if (i >= 0 && i < availableImgs.length) {
+              const img = new Image();
+              img.src = availableImgs[i];
+            }
+          });
+        }
+
         // Only load PNG when slider is moved (not preloading all)
         function updateMainImage(idx) {
           if (availableImgs.length === 0) {
@@ -408,6 +429,7 @@
           }
           mainImg.src = availableImgs[currentIdx];
           mainImg.alt = alt;
+          preloadAdjacentImages(currentIdx); // Preload next/prev images
           if (availableImgs.length > 1) {
             mainImgSlider.style.display = "";
             mainSliderLabel.style.display = "";
@@ -516,6 +538,7 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
+            preloadAdjacentImages(currentIdx); // Preload next/prev images in modal
             // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
@@ -546,6 +569,7 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
+            preloadAdjacentImages(currentIdx); // Preload next/prev images in modal
             // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
@@ -566,6 +590,7 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
+            preloadAdjacentImages(currentIdx); // Preload next/prev images in modal
             // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
@@ -587,6 +612,7 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
+            preloadAdjacentImages(currentIdx); // Preload next/prev images in modal
             // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
