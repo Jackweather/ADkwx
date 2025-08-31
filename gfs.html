@@ -465,6 +465,26 @@
           if (currentType === type) return;
           currentType = type;
           loadToken++;
+          // --- Preload all images for this type immediately ---
+          let preloadSrcs;
+          if (type === "prate") {
+            preloadSrcs = getPrateSrcs();
+          } else if (type === "tmp") {
+            preloadSrcs = getTmpSrcs();
+          } else if (type === "precip6") {
+            preloadSrcs = getPrecip6Srcs();
+          } else if (type === "precip12") {
+            preloadSrcs = getPrecip12Srcs();
+          } else if (type === "precip24") {
+            preloadSrcs = getPrecip24Srcs();
+          } else if (type === "total_precip") {
+            preloadSrcs = getTotalPrecipSrcs();
+          } else if (type === "total_cloud") {
+            preloadSrcs = getTotalCloudSrcs();
+          }
+          // MANUAL: Add new logic here for another image type
+          if (preloadSrcs) preloadImages(preloadSrcs);
+
           prateBtn.classList.toggle('active', type === "prate");
           tmpBtn.classList.toggle('active', type === "tmp");
           precip6Btn.classList.toggle('active', type === "precip6");
@@ -512,7 +532,7 @@
             }
             updateMainImage(currentIdx);
             setupModalNavigation();
-            preloadImages(availableImgs);
+            // preloadImages(availableImgs); // Already done above
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
           });
@@ -693,6 +713,26 @@
           if (currentType === type) return;
           currentType = type;
           loadToken++;
+          // --- Preload all images for this type immediately ---
+          let preloadSrcs;
+          if (type === "prate") {
+            preloadSrcs = getPrateSrcs();
+          } else if (type === "tmp") {
+            preloadSrcs = getTmpSrcs();
+          } else if (type === "precip6") {
+            preloadSrcs = getPrecip6Srcs();
+          } else if (type === "precip12") {
+            preloadSrcs = getPrecip12Srcs();
+          } else if (type === "precip24") {
+            preloadSrcs = getPrecip24Srcs();
+          } else if (type === "total_precip") {
+            preloadSrcs = getTotalPrecipSrcs();
+          } else if (type === "total_cloud") {
+            preloadSrcs = getTotalCloudSrcs();
+          }
+          // MANUAL: Add new logic here for another image type
+          if (preloadSrcs) preloadImages(preloadSrcs);
+
           prateBtn.classList.toggle('active', type === "prate");
           tmpBtn.classList.toggle('active', type === "tmp");
           precip6Btn.classList.toggle('active', type === "precip6");
@@ -740,7 +780,7 @@
             }
             updateMainImage(currentIdx);
             setupModalNavigation();
-            preloadImages(availableImgs);
+            // preloadImages(availableImgs); // Already done above
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
           });
