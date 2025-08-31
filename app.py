@@ -97,7 +97,7 @@ def serve_snow_depth_png(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
-@app.route('/totalsnowfall_10to1/<path:filename>')
+@app.route('/GFS/static/totalsnowfall_10to1/<path:filename>')
 def serve_totalsnowfall_10to1_image(filename):
     directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_10to1')
     abs_path = os.path.join(directory, filename)
