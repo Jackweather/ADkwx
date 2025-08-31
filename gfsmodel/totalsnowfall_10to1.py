@@ -111,11 +111,13 @@ def generate_clean_png(file_path, step, snowfall_in):
     hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
     day_of_week = valid_time.strftime('%A')
     run_str = f"{hour_str}z"
-    title_str = (
+    # Add extra title line above main title
+    plt.title(
+        "Temp 27°F: Light powder\n"
         f"Total Snowfall (inches, 10:1 ratio)\n"
-        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}"
+        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}",
+        fontsize=12, fontweight='bold', y=1.07
     )
-    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
 
     # --- Plot total snowfall ---
     if 'latitude' in ds and 'longitude' in ds:
