@@ -1,13 +1,5 @@
 <head>
 <!-- ...existing code... -->
-<!-- Preload first PNGs for each type for faster initial load -->
-<link rel="preload" as="image" href="/PRATEGFS/prate_000.png">
-<link rel="preload" as="image" href="/tmp_surface/2mtemp_000.png">
-<link rel="preload" as="image" href="/6hour_precip_total/precip6_000.png">
-<link rel="preload" as="image" href="/12hour_precip_total/precip12_012.png">
-<link rel="preload" as="image" href="/24hour_precip_total/precip24_024.png">
-<link rel="preload" as="image" href="/total_precip/totalprecip_000.png">
-<link rel="preload" as="image" href="/total_lcdc/total_lcdc_000.png">
 <style>
   #top-navbar {
     width: 100vw;
@@ -385,19 +377,6 @@
           });
         }
 
-        // Set eager loading for main image
-        mainImg.loading = "eager";
-
-        // Preload adjacent images for faster navigation
-        function preloadAdjacentImages(idx) {
-          [idx - 1, idx + 1].forEach(i => {
-            if (i >= 0 && i < availableImgs.length) {
-              const img = new Image();
-              img.src = availableImgs[i];
-            }
-          });
-        }
-
         // Only load PNG when slider is moved (not preloading all)
         function updateMainImage(idx) {
           if (availableImgs.length === 0) {
@@ -429,7 +408,6 @@
           }
           mainImg.src = availableImgs[currentIdx];
           mainImg.alt = alt;
-          preloadAdjacentImages(currentIdx); // Preload next/prev images
           if (availableImgs.length > 1) {
             mainImgSlider.style.display = "";
             mainSliderLabel.style.display = "";
@@ -465,26 +443,6 @@
           if (currentType === type) return;
           currentType = type;
           loadToken++;
-          // --- Preload all images for this type immediately ---
-          let preloadSrcs;
-          if (type === "prate") {
-            preloadSrcs = getPrateSrcs();
-          } else if (type === "tmp") {
-            preloadSrcs = getTmpSrcs();
-          } else if (type === "precip6") {
-            preloadSrcs = getPrecip6Srcs();
-          } else if (type === "precip12") {
-            preloadSrcs = getPrecip12Srcs();
-          } else if (type === "precip24") {
-            preloadSrcs = getPrecip24Srcs();
-          } else if (type === "total_precip") {
-            preloadSrcs = getTotalPrecipSrcs();
-          } else if (type === "total_cloud") {
-            preloadSrcs = getTotalCloudSrcs();
-          }
-          // MANUAL: Add new logic here for another image type
-          if (preloadSrcs) preloadImages(preloadSrcs);
-
           prateBtn.classList.toggle('active', type === "prate");
           tmpBtn.classList.toggle('active', type === "tmp");
           precip6Btn.classList.toggle('active', type === "precip6");
@@ -532,7 +490,7 @@
             }
             updateMainImage(currentIdx);
             setupModalNavigation();
-            // preloadImages(availableImgs); // Already done above
+            preloadImages(availableImgs);
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
           });
@@ -558,7 +516,6 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
-            preloadAdjacentImages(currentIdx); // Preload next/prev images in modal
             // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
@@ -589,7 +546,6 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
-            preloadAdjacentImages(currentIdx); // Preload next/prev images in modal
             // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
@@ -610,7 +566,6 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
-            preloadAdjacentImages(currentIdx); // Preload next/prev images in modal
             // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
@@ -632,7 +587,6 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
-            preloadAdjacentImages(currentIdx); // Preload next/prev images in modal
             // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
@@ -713,26 +667,6 @@
           if (currentType === type) return;
           currentType = type;
           loadToken++;
-          // --- Preload all images for this type immediately ---
-          let preloadSrcs;
-          if (type === "prate") {
-            preloadSrcs = getPrateSrcs();
-          } else if (type === "tmp") {
-            preloadSrcs = getTmpSrcs();
-          } else if (type === "precip6") {
-            preloadSrcs = getPrecip6Srcs();
-          } else if (type === "precip12") {
-            preloadSrcs = getPrecip12Srcs();
-          } else if (type === "precip24") {
-            preloadSrcs = getPrecip24Srcs();
-          } else if (type === "total_precip") {
-            preloadSrcs = getTotalPrecipSrcs();
-          } else if (type === "total_cloud") {
-            preloadSrcs = getTotalCloudSrcs();
-          }
-          // MANUAL: Add new logic here for another image type
-          if (preloadSrcs) preloadImages(preloadSrcs);
-
           prateBtn.classList.toggle('active', type === "prate");
           tmpBtn.classList.toggle('active', type === "tmp");
           precip6Btn.classList.toggle('active', type === "precip6");
@@ -780,7 +714,7 @@
             }
             updateMainImage(currentIdx);
             setupModalNavigation();
-            // preloadImages(availableImgs); // Already done above
+            preloadImages(availableImgs);
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
           });
