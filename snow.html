@@ -176,8 +176,24 @@
         let snowHours = [];
         for (let hour = 0; hour <= 384; hour += 6) snowHours.push(hour);
         let snowImgSrcs = snowHours.map(hour => `/snow_depth_change/snowdepth_${hour.toString().padStart(3, '0')}.png`);
-        let availableSnowImgs = snowImgSrcs.slice();
+        let availableSnowImgs = [];
         let currentSnowIdx = 0;
+
+        // Helper: Find first available PNG (not 404) in the folder and set slider to it
+        function findFirstAvailableIndex(imgArray, callback) {
+          let idx = 0;
+          function checkNext() {
+            if (idx >= imgArray.length) {
+              callback(0); // fallback to 0 if none found
+              return;
+            }
+            const testImg = new Image();
+            testImg.onload = function() { callback(idx); };
+            testImg.onerror = function() { idx++; checkNext(); };
+            testImg.src = imgArray[idx];
+          }
+          checkNext();
+        }
 
         function updateSnowMainImage(idx) {
           if (availableSnowImgs.length === 0) {
@@ -217,10 +233,13 @@
           positiveSnowBtn.classList.add('active');
           // If you add more buttons, deactivate others here
           availableSnowImgs = snowImgSrcs.slice();
-          currentSnowIdx = 0;
-          mainImgSlider.min = 0;
-          mainImgSlider.value = 0;
-          updateSnowMainImage(currentSnowIdx);
+          // Find the first PNG that actually exists (not 404)
+          findFirstAvailableIndex(availableSnowImgs, function(firstIdx) {
+            currentSnowIdx = firstIdx;
+            mainImgSlider.min = firstIdx;
+            mainImgSlider.value = currentSnowIdx;
+            updateSnowMainImage(currentSnowIdx);
+          });
         };
 
         // Show positive snow depth change PNGs on page load
@@ -257,25 +276,6 @@
     </div>
   </div>
 </body>
-              e.preventDefault();
-            }
-          }
-        });
-
-        // Initial render
-        window.addEventListener('DOMContentLoaded', function() {
-          renderGrid();
-        });
-      </script>
-    </div>
-    <div class="right-panel">
-      <!-- Right panel content -->
-    </div>
-  </div>
-</body>
-      </script>
-    </div>
-    <div class="right-panel">
       <!-- Right panel content -->
     </div>
   </div>
