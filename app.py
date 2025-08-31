@@ -129,6 +129,14 @@ def serve_totalsnowfall_20to1_image(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
+@app.route('/GFS/static/totalsnowfall_8to1/<path:filename>')
+def serve_totalsnowfall_8to1_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_8to1')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
 @app.route('/gifs.html')
 def gifs_html():
     with open('gifs.html', 'r', encoding='utf-8') as f:
@@ -331,6 +339,21 @@ def run_task1():
                     print(f"Error running totalsnowfall_20to1.py:\n{error_trace}")
                     print("STDOUT:", e.stdout)
                     print("STDERR:", e.stderr)
+
+                    try:
+                        result = subprocess.run(
+                            ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py"],
+                            check=True, cwd="/opt/render/project/src/gfsmodel",
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                        )
+                        print("totalsnowfall_8to1.py ran successfully!")
+                        print("STDOUT:", result.stdout)
+                        print("STDERR:", result.stderr)
+                    except subprocess.CalledProcessError as e:
+                        error_trace = traceback.format_exc()
+                        print(f"Error running totalsnowfall_8to1.py:\n{error_trace}")
+                        print("STDOUT:", e.stdout)
+                        print("STDERR:", e.stderr)
 
         # --- Run Gifs/gif.py ---
         try:
