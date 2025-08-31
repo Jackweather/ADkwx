@@ -107,6 +107,10 @@ def serve_updates_html():
 def serve_community_html():
     return send_from_directory(os.path.dirname(__file__), 'community.html')
 
+@app.route('/snow.html')
+def serve_snow_html():
+    return send_from_directory(os.path.dirname(__file__), 'snow.html')
+
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
     directory = '/var/data'  # GIFs are saved here
@@ -115,7 +119,6 @@ def serve_gif(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
-    
 
 @app.route("/run-task1")
 def run_task1():
@@ -279,4 +282,3 @@ def get_chats():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
