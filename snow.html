@@ -153,110 +153,110 @@
       <div style="width:60%;margin:10px auto 0 auto;padding:4px 0;background:#263159;color:#fff;text-align:center;border-radius:5px;font-size:0.95em;letter-spacing:1px;">
         Snow Plots
       </div>
+      <button id="positive-snow-btn" class="side-btn">Positive Snow Depth Change</button>
       <!-- Left panel content (optional, can add buttons here) -->
     </div>
     <div class="main-content">
       <h2 style="color:#263159;">Snow Plots</h2>
+      <div id="main-img-container" style="text-align:center;">
+        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
+        <div id="main-slider-controls" style="margin-top:4px;">
+          <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
+          <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
+        </div>
+      </div>
       <!-- Add your snow plot content here -->
+      <script>
+        // --- Main image and slider logic for snow plots ---
+        const positiveSnowBtn = document.getElementById('positive-snow-btn');
+        const mainImg = document.getElementById('main-img');
+        const mainImgSlider = document.getElementById('main-img-slider');
+        const mainSliderLabel = document.getElementById('main-slider-label');
+
+        let snowHours = [];
+        for (let hour = 0; hour <= 384; hour += 6) snowHours.push(hour);
+        let snowImgSrcs = snowHours.map(hour => `/snow_depth_change/snowdepth_${hour.toString().padStart(3, '0')}.png`);
+        let availableSnowImgs = snowImgSrcs.slice();
+        let currentSnowIdx = 0;
+
+        function updateSnowMainImage(idx) {
+          if (availableSnowImgs.length === 0) {
+            mainImg.src = "";
+            mainImg.alt = "";
+            mainImgSlider.style.display = "none";
+            mainSliderLabel.style.display = "none";
+            return;
+          }
+          let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+          if (idx < minIdx) idx = minIdx;
+          currentSnowIdx = idx;
+          mainImg.src = availableSnowImgs[currentSnowIdx];
+          mainImg.alt = `snowdepth_${snowHours[currentSnowIdx].toString().padStart(3, '0')}`;
+          if (availableSnowImgs.length > 1) {
+            mainImgSlider.style.display = "";
+            mainSliderLabel.style.display = "";
+            mainImgSlider.max = availableSnowImgs.length - 1;
+            mainImgSlider.value = currentSnowIdx;
+            mainSliderLabel.textContent = "Hour: " + (snowHours[currentSnowIdx] !== undefined ? snowHours[currentSnowIdx] : "");
+          } else {
+            mainImgSlider.style.display = "none";
+            mainSliderLabel.style.display = "none";
+          }
+        }
+
+        mainImgSlider.oninput = function() {
+          if (availableSnowImgs.length === 0) return;
+          let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+          let val = parseInt(mainImgSlider.value, 10);
+          if (val < minIdx) val = minIdx;
+          currentSnowIdx = val;
+          updateSnowMainImage(currentSnowIdx);
+        };
+
+        positiveSnowBtn.onclick = function() {
+          positiveSnowBtn.classList.add('active');
+          // If you add more buttons, deactivate others here
+          availableSnowImgs = snowImgSrcs.slice();
+          currentSnowIdx = 0;
+          mainImgSlider.min = 0;
+          mainImgSlider.value = 0;
+          updateSnowMainImage(currentSnowIdx);
+        };
+
+        // Show positive snow depth change PNGs on page load
+        window.addEventListener('DOMContentLoaded', function() {
+          positiveSnowBtn.click();
+        });
+
+        // Keyboard navigation for main image (always active)
+        document.addEventListener('keydown', function(e) {
+          if (e.key === "ArrowLeft") {
+            if (availableSnowImgs.length > 1) {
+              let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+              let nextIdx = currentSnowIdx - 1;
+              if (nextIdx < minIdx) nextIdx = minIdx;
+              currentSnowIdx = nextIdx;
+              updateSnowMainImage(currentSnowIdx);
+            }
+            e.preventDefault();
+          } else if (e.key === "ArrowRight") {
+            if (availableSnowImgs.length > 1) {
+              let maxIdx = availableSnowImgs.length - 1;
+              let nextIdx = currentSnowIdx + 1;
+              if (nextIdx > maxIdx) nextIdx = maxIdx;
+              currentSnowIdx = nextIdx;
+              updateSnowMainImage(currentSnowIdx);
+            }
+            e.preventDefault();
+          }
+        });
+      </script>
     </div>
     <div class="right-panel">
       <!-- Right panel content -->
     </div>
   </div>
 </body>
-          <button id="right-arrow">&#8594;</button>
-        </div>
-      </div>
-      <script>
-        // --- GIF grid and modal logic ---
-        const gifGrid = document.getElementById('gif-image-grid');
-        const modal = document.getElementById('fullscreen-modal');
-        const modalImg = document.getElementById('fullscreen-img');
-        const leftArrow = document.getElementById('left-arrow');
-        const rightArrow = document.getElementById('right-arrow');
-
-        // Example GIFs (replace with your own URLs)
-        const gifSrcs = [];
-
-        let currentIdx = 0;
-
-        function clearGrid() {
-          while (gifGrid.firstChild) gifGrid.removeChild(gifGrid.firstChild);
-        }
-
-        function addGifToGrid(src, idx) {
-          const img = document.createElement('img');
-          img.src = src;
-          img.alt = `gif_${idx}`;
-          img.style.width = "100%";
-          img.style.maxWidth = "100%";
-          img.style.borderRadius = "6px";
-          img.style.cursor = "pointer";
-          img.onclick = function() {
-            showModal(idx);
-          };
-          gifGrid.appendChild(img);
-        }
-
-        function renderGrid() {
-          clearGrid();
-          gifSrcs.forEach((src, idx) => addGifToGrid(src, idx));
-        }
-
-        function showModal(idx) {
-          currentIdx = idx;
-          modalImg.style.opacity = 0;
-          modal.style.display = "flex";
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = gifSrcs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-          };
-          tempImg.src = gifSrcs[currentIdx];
-        }
-
-        modal.onclick = function(e) {
-          if (e.target === modal) {
-            modal.style.display = "none";
-          }
-        };
-
-        leftArrow.onclick = function(e) {
-          e.stopPropagation();
-          if (gifSrcs.length === 0) return;
-          currentIdx = (currentIdx - 1 + gifSrcs.length) % gifSrcs.length;
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = gifSrcs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-          };
-          tempImg.src = gifSrcs[currentIdx];
-        };
-        rightArrow.onclick = function(e) {
-          e.stopPropagation();
-          if (gifSrcs.length === 0) return;
-          currentIdx = (currentIdx + 1) % gifSrcs.length;
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = gifSrcs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-          };
-          tempImg.src = gifSrcs[currentIdx];
-        };
-
-        // Keyboard navigation for modal
-        document.addEventListener('keydown', function(e) {
-          if (modal.style.display === "flex") {
-            if (e.key === "ArrowLeft") {
-              leftArrow.click();
-              e.preventDefault();
-            } else if (e.key === "ArrowRight") {
-              rightArrow.click();
-              e.preventDefault();
-            } else if (e.key === "Escape") {
-              modal.style.display = "none";
               e.preventDefault();
             }
           }
