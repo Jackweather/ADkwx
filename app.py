@@ -88,7 +88,14 @@ def serve_total_lcdc_image(filename):
     if not os.path.isfile(abs_path):
         abort(404)
     return send_from_directory(directory, filename)
-    
+
+@app.route('/snowdepth/<path:filename>')
+def serve_snowdepth_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'snowdepth')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
 
 @app.route('/gifs.html')
 def gifs_html():
