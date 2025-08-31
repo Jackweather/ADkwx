@@ -175,7 +175,7 @@
 
         let snowHours = [];
         for (let hour = 0; hour <= 384; hour += 6) snowHours.push(hour);
-        let snowImgSrcs = snowHours.map(hour => `/snow_depth_change/snowdepth_${hour.toString().padStart(3, '0')}.png`);
+        let snowImgSrcs = snowHours.map(hour => `/GFS/static/snow_depth/snowdepth_${hour.toString().padStart(3, '0')}.png`);
         let availableSnowImgs = [];
         let currentSnowIdx = 0;
 
