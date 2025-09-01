@@ -287,16 +287,16 @@ def run_task1():
         # --- Run gfsmodel/snow_depth.py ---
         try:
             result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/snow_depth.py"],
+                ["python", "/opt/render/project/src/gfsmodel/snowdepth.py"],
                 check=True, cwd="/opt/render/project/src/gfsmodel",
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
-            print("snow_depth.py ran successfully!")
+            print("snowdepth.py ran successfully!")
             print("STDOUT:", result.stdout)
             print("STDERR:", result.stderr)
         except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
-            print(f"Error running snow_depth.py:\n{error_trace}")
+            print(f"Error running snowdepth.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
             
