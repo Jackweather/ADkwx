@@ -380,6 +380,22 @@ def run_task1():
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
 
+         # --- Run gfsmodel/totalsnowfall_10to1.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("totalsnowfall_10to1.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running totalsnowfall_10to1.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+
         # --- Run Gifs/gif.py ---
         try:
             result = subprocess.run(
@@ -433,3 +449,4 @@ def get_chats():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
