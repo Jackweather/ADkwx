@@ -168,6 +168,11 @@
         <div id="main-slider-controls" style="margin-top:4px;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
           <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
+          <!-- Add arrow buttons below slider -->
+          <div id="main-slider-arrows" style="margin-top:10px;display:flex;justify-content:center;gap:40px;">
+            <button id="main-left-arrow" style="font-size:2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;">&#8592;</button>
+            <button id="main-right-arrow" style="font-size:2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;">&#8594;</button>
+          </div>
         </div>
       </div>
       <!-- Add your snow plot content here -->
@@ -183,6 +188,8 @@
         const mainImg = document.getElementById('main-img');
         const mainImgSlider = document.getElementById('main-img-slider');
         const mainSliderLabel = document.getElementById('main-slider-label');
+        const mainLeftArrow = document.getElementById('main-left-arrow');
+        const mainRightArrow = document.getElementById('main-right-arrow');
 
         let snowHours = [];
         for (let hour = 0; hour <= 384; hour += 6) snowHours.push(hour);
@@ -246,6 +253,26 @@
           if (val < minIdx) val = minIdx;
           currentSnowIdx = val;
           updateSnowMainImage(currentSnowIdx);
+        };
+
+        // Arrow button logic for main image slider
+        mainLeftArrow.onclick = function() {
+          if (availableSnowImgs.length > 1) {
+            let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+            let nextIdx = currentSnowIdx - 1;
+            if (nextIdx < minIdx) nextIdx = minIdx;
+            currentSnowIdx = nextIdx;
+            updateSnowMainImage(currentSnowIdx);
+          }
+        };
+        mainRightArrow.onclick = function() {
+          if (availableSnowImgs.length > 1) {
+            let maxIdx = availableSnowImgs.length - 1;
+            let nextIdx = currentSnowIdx + 1;
+            if (nextIdx > maxIdx) nextIdx = maxIdx;
+            currentSnowIdx = nextIdx;
+            updateSnowMainImage(currentSnowIdx);
+          }
         };
 
         threeToOneBtn.onclick = function() {
