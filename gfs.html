@@ -453,7 +453,9 @@
           updateMainImage(currentIdx);
         };
 
-        // Preload all images for current type as soon as you activate it
+        // Cache for loaded PNGs (URL: true)
+        const loadedPngCache = {};
+
         function preloadImages(imgArray) {
           let loaded = 0;
           let total = imgArray.length;
@@ -467,8 +469,24 @@
           globalPreloadStatus.style.display = "";
           globalPreloadPercent.textContent = "0%";
           imgArray.forEach(src => {
+            // If already loaded, skip actual loading and just count as loaded
+            if (loadedPngCache[src]) {
+              loaded++;
+              let pct = Math.round((loaded / total) * 100);
+              preloadProgress.textContent = pct + "%";
+              globalPreloadPercent.textContent = pct + "%";
+              if (loaded === total) {
+                setTimeout(() => {
+                  preloadProgress.textContent = "100%";
+                  globalPreloadPercent.textContent = "100%";
+                  setTimeout(() => { preloadProgress.style.display = "none"; globalPreloadStatus.style.display = "none"; }, 1200);
+                }, 200);
+              }
+              return;
+            }
             const img = new Image();
             img.onload = img.onerror = function() {
+              loadedPngCache[src] = true;
               loaded++;
               let pct = Math.round((loaded / total) * 100);
               preloadProgress.textContent = pct + "%";
