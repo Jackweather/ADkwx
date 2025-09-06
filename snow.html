@@ -158,6 +158,7 @@
       <button id="eight-to-one-btn" class="side-btn">8:1 Snowfall</button>
       <button id="ten-to-one-btn" class="side-btn">10:1 Snowfall</button>
       <button id="twelve-to-one-btn" class="side-btn">12:1 Snowfall</button>
+      <button id="fifteen-to-one-btn" class="side-btn">15:1 Snowfall</button>
       <button id="twenty-to-one-btn" class="side-btn">20:1 Snowfall</button>
       <button id="positive-snow-btn" class="side-btn">Positive Snow Depth Change</button>
       <!-- Left panel content (optional, can add buttons here) -->
@@ -183,6 +184,7 @@
         const eightToOneBtn = document.getElementById('eight-to-one-btn');
         const tenToOneBtn = document.getElementById('ten-to-one-btn');
         const twelveToOneBtn = document.getElementById('twelve-to-one-btn');
+        const fifteenToOneBtn = document.getElementById('fifteen-to-one-btn');
         const twentyToOneBtn = document.getElementById('twenty-to-one-btn');
         const positiveSnowBtn = document.getElementById('positive-snow-btn');
         const mainImg = document.getElementById('main-img');
@@ -199,6 +201,7 @@
         let eightToOneImgSrcs = snowHours.map(hour => `/GFS/static/totalsnowfall_8to1/totalsnowfall_8to1_${hour.toString().padStart(3, '0')}.png`);
         let tenToOneImgSrcs = snowHours.map(hour => `/GFS/static/totalsnowfall_10to1/totalsnowfall_10to1_${hour.toString().padStart(3, '0')}.png`);
         let twelveToOneImgSrcs = snowHours.map(hour => `/GFS/static/totalsnowfall_12to1/totalsnowfall_12to1_${hour.toString().padStart(3, '0')}.png`);
+        let fifteenToOneImgSrcs = snowHours.map(hour => `/GFS/static/totalsnowfall_15to1/totalsnowfall_15to1_${hour.toString().padStart(3, '0')}.png`);
         let twentyToOneImgSrcs = snowHours.map(hour => `/GFS/static/totalsnowfall_20to1/totalsnowfall_20to1_${hour.toString().padStart(3, '0')}.png`);
         let snowImgSrcs = snowHours.map(hour => `/GFS/static/snow_depth/snowdepth_${hour.toString().padStart(3, '0')}.png`);
 
@@ -281,6 +284,7 @@
           eightToOneBtn.classList.remove('active');
           tenToOneBtn.classList.remove('active');
           twelveToOneBtn.classList.remove('active');
+          fifteenToOneBtn.classList.remove('active');
           twentyToOneBtn.classList.remove('active');
           positiveSnowBtn.classList.remove('active');
           availableSnowImgs = threeToOneImgSrcs.slice();
@@ -298,6 +302,7 @@
           eightToOneBtn.classList.remove('active');
           tenToOneBtn.classList.remove('active');
           twelveToOneBtn.classList.remove('active');
+          fifteenToOneBtn.classList.remove('active');
           twentyToOneBtn.classList.remove('active');
           positiveSnowBtn.classList.remove('active');
           availableSnowImgs = fiveToOneImgSrcs.slice();
@@ -315,6 +320,7 @@
           fiveToOneBtn.classList.remove('active');
           tenToOneBtn.classList.remove('active');
           twelveToOneBtn.classList.remove('active');
+          fifteenToOneBtn.classList.remove('active');
           twentyToOneBtn.classList.remove('active');
           positiveSnowBtn.classList.remove('active');
           availableSnowImgs = eightToOneImgSrcs.slice();
@@ -332,6 +338,7 @@
           fiveToOneBtn.classList.remove('active');
           eightToOneBtn.classList.remove('active');
           twelveToOneBtn.classList.remove('active');
+          fifteenToOneBtn.classList.remove('active');
           twentyToOneBtn.classList.remove('active');
           positiveSnowBtn.classList.remove('active');
           availableSnowImgs = tenToOneImgSrcs.slice();
@@ -349,9 +356,28 @@
           fiveToOneBtn.classList.remove('active');
           eightToOneBtn.classList.remove('active');
           tenToOneBtn.classList.remove('active');
+          fifteenToOneBtn.classList.remove('active');
           twentyToOneBtn.classList.remove('active');
           positiveSnowBtn.classList.remove('active');
           availableSnowImgs = twelveToOneImgSrcs.slice();
+          findFirstAvailableIndex(availableSnowImgs, function(firstIdx) {
+            currentSnowIdx = firstIdx;
+            mainImgSlider.min = firstIdx;
+            mainImgSlider.value = currentSnowIdx;
+            updateSnowMainImage(currentSnowIdx);
+          });
+        };
+
+        fifteenToOneBtn.onclick = function() {
+          this.classList.add('active');
+          threeToOneBtn.classList.remove('active');
+          fiveToOneBtn.classList.remove('active');
+          eightToOneBtn.classList.remove('active');
+          tenToOneBtn.classList.remove('active');
+          twelveToOneBtn.classList.remove('active');
+          twentyToOneBtn.classList.remove('active');
+          positiveSnowBtn.classList.remove('active');
+          availableSnowImgs = fifteenToOneImgSrcs.slice();
           findFirstAvailableIndex(availableSnowImgs, function(firstIdx) {
             currentSnowIdx = firstIdx;
             mainImgSlider.min = firstIdx;
@@ -367,6 +393,7 @@
           eightToOneBtn.classList.remove('active');
           tenToOneBtn.classList.remove('active');
           twelveToOneBtn.classList.remove('active');
+          fifteenToOneBtn.classList.remove('active');
           positiveSnowBtn.classList.remove('active');
           availableSnowImgs = twentyToOneImgSrcs.slice();
           findFirstAvailableIndex(availableSnowImgs, function(firstIdx) {
