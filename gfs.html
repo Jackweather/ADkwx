@@ -24,29 +24,37 @@
     padding-top: 54px; /* prevent content underlap */
   }
   .layout-container {
-    display: flex;
+    /* Remove flex, just block layout */
+    width: 100vw;
     min-height: 100vh;
     background: #f5f7fa;
+    display: block;
   }
-  .left-panel, .right-panel {
+  .left-panel {
     width: 140px;
     background: #31416a;
     color: #fff;
     padding: 0;
     box-sizing: border-box;
     min-height: calc(100vh - 54px);
+    float: left;
   }
   .main-content {
-    flex: 1;
+    /* Take all remaining space */
+    margin-left: 140px;
+    width: calc(100vw - 140px);
     padding: 32px 24px;
     background: #fff;
     min-height: calc(100vh - 54px);
+    box-sizing: border-box;
   }
   @media (max-width: 900px) {
-    .left-panel, .right-panel {
+    .left-panel {
       display: none;
     }
     .main-content {
+      margin-left: 0;
+      width: 100vw;
       padding: 16px 4vw;
     }
   }
@@ -67,6 +75,8 @@
     }
     .main-content {
       padding: 4px 0 !important;
+      margin-left: 0 !important;
+      width: 100vw !important;
     }
     #fullscreen-img {
       max-width: 98vw !important;
@@ -240,7 +250,7 @@
     <div class="main-content">
       <!-- Main single image display -->
       <div id="main-img-container" style="text-align:center;">
-        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
+        <img id="main-img" src="" alt="" style="max-width:100%;width:100%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
         <div id="main-slider-controls" style="margin-top:4px;display:flex;align-items:center;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
           <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;margin-left:8px;"></div>
@@ -839,8 +849,9 @@
       </script>
       <!-- ...existing code... -->
     </div>
-    <div class="right-panel">
-      <!-- Right panel content -->
-    </div>
+    <!-- REMOVE RIGHT PANEL -->
+    <!-- <div class="right-panel">
+      Right panel content
+    </div> -->
   </div>
 
