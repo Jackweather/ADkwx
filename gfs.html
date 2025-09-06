@@ -24,37 +24,29 @@
     padding-top: 54px; /* prevent content underlap */
   }
   .layout-container {
-    /* Remove flex, just block layout */
-    width: 100vw;
+    display: flex;
     min-height: 100vh;
     background: #f5f7fa;
-    display: block;
   }
-  .left-panel {
+  .left-panel, .right-panel {
     width: 140px;
     background: #31416a;
     color: #fff;
     padding: 0;
     box-sizing: border-box;
     min-height: calc(100vh - 54px);
-    float: left;
   }
   .main-content {
-    /* Take all remaining space */
-    margin-left: 140px;
-    width: calc(100vw - 140px);
+    flex: 1;
     padding: 32px 24px;
     background: #fff;
     min-height: calc(100vh - 54px);
-    box-sizing: border-box;
   }
   @media (max-width: 900px) {
-    .left-panel {
+    .left-panel, .right-panel {
       display: none;
     }
     .main-content {
-      margin-left: 0;
-      width: 100vw;
       padding: 16px 4vw;
     }
   }
@@ -68,6 +60,9 @@
       border-radius: 8px;
       margin-bottom: 8px;
       box-shadow: 0 2px 12px #0002;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
     }
     #main-img-container {
       padding: 0;
@@ -75,8 +70,6 @@
     }
     .main-content {
       padding: 4px 0 !important;
-      margin-left: 0 !important;
-      width: 100vw !important;
     }
     #fullscreen-img {
       max-width: 98vw !important;
@@ -97,16 +90,693 @@
       margin-top: 8px;
     }
   }
-  /* --- Add desktop style for main image --- */
+  #fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(20,30,50,0.92);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #fullscreen-img {
+    max-width: 80vw;
+    max-height: 75vh;
+    width: auto;
+    height: auto;
+    box-shadow: 0 4px 32px #000;
+    border-radius: 10px;
+    transition: opacity 0.25s;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  #arrow-controls {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+  }
+  #left-arrow, #right-arrow {
+    font-size: 2.2em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  #zoom-btn {
+    font-size: 1.3em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  .side-btn {
+    width: 90%;
+    margin: 18px auto 0 auto;
+    display: block;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 0;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  .side-btn.active,
+  .side-btn:active {
+    background: #263159;
+  }
+  #gifs-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #gifs-navbar-btn:hover {
+    background: #263159;
+  }
+  #updates-navbar-btn, #community-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #updates-navbar-btn:hover, #community-navbar-btn:hover {
+    background: #263159;
+  }
+  #snow-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #snow-navbar-btn:hover {
+    background: #263159;
+  }
+  /* ...existing code... */
   #main-img {
     max-width: 70%;
-    width: 70%;
     height: auto;
     border-radius: 8px;
     box-shadow: 0 2px 12px #0002;
     cursor: pointer;
     margin-bottom: 12px;
-    display: inline-block;
+    /* Desktop default styles */
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @media (max-width: 600px) {
+    #main-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      height: 65vh !important;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 12px #0002;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #main-img-container {
+      padding: 0;
+      margin: 0;
+    }
+    .main-content {
+      padding: 4px 0 !important;
+    }
+    #fullscreen-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      max-height: 85vh !important;
+      height: 85vh !important;
+      object-fit: contain;
+      border-radius: 10px;
+      margin: 0 auto;
+    }
+    #fullscreen-modal {
+      align-items: stretch;
+      justify-content: flex-start;
+      padding-top: 12px;
+    }
+    #arrow-controls {
+      gap: 18px;
+      margin-top: 8px;
+    }
+  }
+  #fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(20,30,50,0.92);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #fullscreen-img {
+    max-width: 80vw;
+    max-height: 75vh;
+    width: auto;
+    height: auto;
+    box-shadow: 0 4px 32px #000;
+    border-radius: 10px;
+    transition: opacity 0.25s;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  #arrow-controls {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+  }
+  #left-arrow, #right-arrow {
+    font-size: 2.2em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  #zoom-btn {
+    font-size: 1.3em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  .side-btn {
+    width: 90%;
+    margin: 18px auto 0 auto;
+    display: block;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 0;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  .side-btn.active,
+  .side-btn:active {
+    background: #263159;
+  }
+  #gifs-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #gifs-navbar-btn:hover {
+    background: #263159;
+  }
+  #updates-navbar-btn, #community-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #updates-navbar-btn:hover, #community-navbar-btn:hover {
+    background: #263159;
+  }
+  #snow-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #snow-navbar-btn:hover {
+    background: #263159;
+  }
+  /* ...existing code... */
+  #main-img {
+    max-width: 70%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px #0002;
+    cursor: pointer;
+    margin-bottom: 12px;
+    /* Desktop default styles */
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @media (max-width: 600px) {
+    #main-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      height: 65vh !important;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 12px #0002;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #main-img-container {
+      padding: 0;
+      margin: 0;
+    }
+    .main-content {
+      padding: 4px 0 !important;
+    }
+    #fullscreen-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      max-height: 85vh !important;
+      height: 85vh !important;
+      object-fit: contain;
+      border-radius: 10px;
+      margin: 0 auto;
+    }
+    #fullscreen-modal {
+      align-items: stretch;
+      justify-content: flex-start;
+      padding-top: 12px;
+    }
+    #arrow-controls {
+      gap: 18px;
+      margin-top: 8px;
+    }
+  }
+  #fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(20,30,50,0.92);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #fullscreen-img {
+    max-width: 80vw;
+    max-height: 75vh;
+    width: auto;
+    height: auto;
+    box-shadow: 0 4px 32px #000;
+    border-radius: 10px;
+    transition: opacity 0.25s;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  #arrow-controls {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+  }
+  #left-arrow, #right-arrow {
+    font-size: 2.2em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  #zoom-btn {
+    font-size: 1.3em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  .side-btn {
+    width: 90%;
+    margin: 18px auto 0 auto;
+    display: block;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 0;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  .side-btn.active,
+  .side-btn:active {
+    background: #263159;
+  }
+  #gifs-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #gifs-navbar-btn:hover {
+    background: #263159;
+  }
+  #updates-navbar-btn, #community-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #updates-navbar-btn:hover, #community-navbar-btn:hover {
+    background: #263159;
+  }
+  #snow-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #snow-navbar-btn:hover {
+    background: #263159;
+  }
+  /* ...existing code... */
+  #main-img {
+    max-width: 70%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px #0002;
+    cursor: pointer;
+    margin-bottom: 12px;
+    /* Desktop default styles */
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @media (max-width: 600px) {
+    #main-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      height: 65vh !important;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 12px #0002;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #main-img-container {
+      padding: 0;
+      margin: 0;
+    }
+    .main-content {
+      padding: 4px 0 !important;
+    }
+    #fullscreen-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      max-height: 85vh !important;
+      height: 85vh !important;
+      object-fit: contain;
+      border-radius: 10px;
+      margin: 0 auto;
+    }
+    #fullscreen-modal {
+      align-items: stretch;
+      justify-content: flex-start;
+      padding-top: 12px;
+    }
+    #arrow-controls {
+      gap: 18px;
+      margin-top: 8px;
+    }
+  }
+  #fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(20,30,50,0.92);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #fullscreen-img {
+    max-width: 80vw;
+    max-height: 75vh;
+    width: auto;
+    height: auto;
+    box-shadow: 0 4px 32px #000;
+    border-radius: 10px;
+    transition: opacity 0.25s;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  #arrow-controls {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+  }
+  #left-arrow, #right-arrow {
+    font-size: 2.2em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  #zoom-btn {
+    font-size: 1.3em;
+    padding: 6px 18px;
+    border: none;
+    background: #263159;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0003;
+    transition: background 0.2s;
+  }
+  .side-btn {
+    width: 90%;
+    margin: 18px auto 0 auto;
+    display: block;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 0;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  .side-btn.active,
+  .side-btn:active {
+    background: #263159;
+  }
+  #gifs-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #gifs-navbar-btn:hover {
+    background: #263159;
+  }
+  #updates-navbar-btn, #community-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #updates-navbar-btn:hover, #community-navbar-btn:hover {
+    background: #263159;
+  }
+  #snow-navbar-btn {
+    margin-left: 18px;
+    background: #41507a;
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0002;
+    transition: background 0.18s;
+    letter-spacing: 1px;
+  }
+  #snow-navbar-btn:hover {
+    background: #263159;
+  }
+  /* ...existing code... */
+  #main-img {
+    max-width: 70%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px #0002;
+    cursor: pointer;
+    margin-bottom: 12px;
+    /* Desktop default styles */
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @media (max-width: 600px) {
+    #main-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      height: 65vh !important;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 12px #0002;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #main-img-container {
+      padding: 0;
+      margin: 0;
+    }
+    .main-content {
+      padding: 4px 0 !important;
+    }
+    #fullscreen-img {
+      max-width: 98vw !important;
+      width: 98vw !important;
+      max-height: 85vh !important;
+      height: 85vh !important;
+      object-fit: contain;
+      border-radius: 10px;
+      margin: 0 auto;
+    }
+    #fullscreen-modal {
+      align-items: stretch;
+      justify-content: flex-start;
+      padding-top: 12px;
+    }
+    #arrow-controls {
+      gap: 18px;
+      margin-top: 8px;
+    }
   }
   #fullscreen-modal {
     display: none;
@@ -231,10 +901,6 @@
 </style>
 </head>
 <body>
-  <!-- PNG preload percentage display -->
-  <div id="global-preload-status" style="position:fixed;top:8px;right:18px;z-index:3001;background:#fff2;padding:6px 18px;border-radius:12px;color:#263159;font-size:1.1em;box-shadow:0 2px 8px #0002;display:none;">
-    PNG Loaded: <span id="global-preload-percent">0%</span>
-  </div>
   <div id="top-navbar">
     adkwx.com
     <button id="snow-navbar-btn" onclick="window.location.href='snow.html'">Snow</button>
@@ -261,12 +927,10 @@
     <div class="main-content">
       <!-- Main single image display -->
       <div id="main-img-container" style="text-align:center;">
-        <img id="main-img" src="" alt="">
-        <div id="main-slider-controls" style="margin-top:4px;display:flex;align-items:center;">
+        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
+        <div id="main-slider-controls" style="margin-top:4px;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
-          <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;margin-left:8px;"></div>
-          <!-- Progress bar/percentage -->
-          <div id="preload-progress" style="margin-left:12px;color:#41507a;font-size:1em;min-width:60px;display:none;"></div>
+          <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
         </div>
       </div>
       <div id="fullscreen-modal">
@@ -474,52 +1138,10 @@
           updateMainImage(currentIdx);
         };
 
-        // Cache for loaded PNGs (URL: true)
-        const loadedPngCache = {};
-
+        // Preload all images for current type as soon as you activate it
         function preloadImages(imgArray) {
-          let loaded = 0;
-          let total = imgArray.length;
-          if (total === 0) {
-            preloadProgress.style.display = "none";
-            globalPreloadStatus.style.display = "none";
-            return;
-          }
-          preloadProgress.style.display = "";
-          preloadProgress.textContent = "Preloading...";
-          globalPreloadStatus.style.display = "";
-          globalPreloadPercent.textContent = "0%";
           imgArray.forEach(src => {
-            // If already loaded, skip actual loading and just count as loaded
-            if (loadedPngCache[src]) {
-              loaded++;
-              let pct = Math.round((loaded / total) * 100);
-              preloadProgress.textContent = pct + "%";
-              globalPreloadPercent.textContent = pct + "%";
-              if (loaded === total) {
-                setTimeout(() => {
-                  preloadProgress.textContent = "100%";
-                  globalPreloadPercent.textContent = "100%";
-                  setTimeout(() => { preloadProgress.style.display = "none"; globalPreloadStatus.style.display = "none"; }, 1200);
-                }, 200);
-              }
-              return;
-            }
             const img = new Image();
-            img.onload = img.onerror = function() {
-              loadedPngCache[src] = true;
-              loaded++;
-              let pct = Math.round((loaded / total) * 100);
-              preloadProgress.textContent = pct + "%";
-              globalPreloadPercent.textContent = pct + "%";
-              if (loaded === total) {
-                setTimeout(() => {
-                  preloadProgress.textContent = "100%";
-                  globalPreloadPercent.textContent = "100%";
-                  setTimeout(() => { preloadProgress.style.display = "none"; globalPreloadStatus.style.display = "none"; }, 1200);
-                }, 200);
-              }
-            };
             img.src = src;
           });
         }
@@ -860,9 +1482,8 @@
       </script>
       <!-- ...existing code... -->
     </div>
-    <!-- REMOVE RIGHT PANEL -->
-    <!-- <div class="right-panel">
-      Right panel content
-    </div> -->
+    <div class="right-panel">
+      <!-- Right panel content -->
+    </div>
   </div>
 
