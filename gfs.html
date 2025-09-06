@@ -69,10 +69,10 @@
       padding: 4px 0 !important;
     }
     #fullscreen-img {
-      max-width: 100vw !important;
-      width: 100vw !important;
-      max-height: 98vh !important;
-      height: 98vh !important;
+      max-width: 98vw !important;
+      width: 98vw !important;
+      max-height: 85vh !important;
+      height: 85vh !important;
       object-fit: contain;
       border-radius: 10px;
       margin: 0 auto;
@@ -101,10 +101,10 @@
     flex-direction: column;
   }
   #fullscreen-img {
-    max-width: 98vw;
-    max-height: 95vh;
-    width: 98vw;
-    height: 95vh;
+    max-width: 80vw;
+    max-height: 75vh;
+    width: auto;
+    height: auto;
     box-shadow: 0 4px 32px #000;
     border-radius: 10px;
     transition: opacity 0.25s;
@@ -598,16 +598,6 @@
           }
         };
 
-        // Update slider in modal when clicking main image
-        function updateSlider() {
-          imgSlider.min = 0;
-          imgSlider.max = availableImgs.length - 1;
-          imgSlider.value = currentIdx;
-          imgSlider.style.display = availableImgs.length > 1 ? "" : "none";
-          sliderLabel.style.display = availableImgs.length > 1 ? "" : "none";
-          sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-        }
-
         // Update slider on navigation
         leftArrow.onclick = function(e) {
           e.stopPropagation();
@@ -681,19 +671,6 @@
             modalImg.style.cursor = "pointer";
             zoomed = false;
           }
-        };
-
-        // Add click handler to main image to open fullscreen modal
-        mainImg.onclick = function() {
-          // Show modal at currentIdx
-          showModal(currentIdx);
-          // Sync slider in modal
-          imgSlider.min = 0;
-          imgSlider.max = availableImgs.length - 1;
-          imgSlider.value = currentIdx;
-          imgSlider.style.display = availableImgs.length > 1 ? "" : "none";
-          sliderLabel.style.display = availableImgs.length > 1 ? "" : "none";
-          sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
         };
 
         modalImg.onclick = function(e) {
