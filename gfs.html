@@ -97,6 +97,17 @@
       margin-top: 8px;
     }
   }
+  /* --- Add desktop style for main image --- */
+  #main-img {
+    max-width: 70%;
+    width: 70%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px #0002;
+    cursor: pointer;
+    margin-bottom: 12px;
+    display: inline-block;
+  }
   #fullscreen-modal {
     display: none;
     position: fixed;
@@ -250,7 +261,7 @@
     <div class="main-content">
       <!-- Main single image display -->
       <div id="main-img-container" style="text-align:center;">
-        <img id="main-img" src="" alt="" style="max-width:100%;width:100%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
+        <img id="main-img" src="" alt="">
         <div id="main-slider-controls" style="margin-top:4px;display:flex;align-items:center;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
           <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;margin-left:8px;"></div>
