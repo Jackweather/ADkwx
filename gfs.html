@@ -210,6 +210,10 @@
 </style>
 </head>
 <body>
+  <!-- PNG preload percentage display -->
+  <div id="global-preload-status" style="position:fixed;top:8px;right:18px;z-index:3001;background:#fff2;padding:6px 18px;border-radius:12px;color:#263159;font-size:1.1em;box-shadow:0 2px 8px #0002;display:none;">
+    PNG Loaded: <span id="global-preload-percent">0%</span>
+  </div>
   <div id="top-navbar">
     adkwx.com
     <button id="snow-navbar-btn" onclick="window.location.href='snow.html'">Snow</button>
@@ -237,9 +241,11 @@
       <!-- Main single image display -->
       <div id="main-img-container" style="text-align:center;">
         <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
-        <div id="main-slider-controls" style="margin-top:4px;">
+        <div id="main-slider-controls" style="margin-top:4px;display:flex;align-items:center;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
-          <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
+          <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;margin-left:8px;"></div>
+          <!-- Progress bar/percentage -->
+          <div id="preload-progress" style="margin-left:12px;color:#41507a;font-size:1em;min-width:60px;display:none;"></div>
         </div>
       </div>
       <div id="fullscreen-modal">
@@ -449,8 +455,32 @@
 
         // Preload all images for current type as soon as you activate it
         function preloadImages(imgArray) {
+          let loaded = 0;
+          let total = imgArray.length;
+          if (total === 0) {
+            preloadProgress.style.display = "none";
+            globalPreloadStatus.style.display = "none";
+            return;
+          }
+          preloadProgress.style.display = "";
+          preloadProgress.textContent = "Preloading...";
+          globalPreloadStatus.style.display = "";
+          globalPreloadPercent.textContent = "0%";
           imgArray.forEach(src => {
             const img = new Image();
+            img.onload = img.onerror = function() {
+              loaded++;
+              let pct = Math.round((loaded / total) * 100);
+              preloadProgress.textContent = pct + "%";
+              globalPreloadPercent.textContent = pct + "%";
+              if (loaded === total) {
+                setTimeout(() => {
+                  preloadProgress.textContent = "100%";
+                  globalPreloadPercent.textContent = "100%";
+                  setTimeout(() => { preloadProgress.style.display = "none"; globalPreloadStatus.style.display = "none"; }, 1200);
+                }, 200);
+              }
+            };
             img.src = src;
           });
         }
