@@ -598,6 +598,16 @@
           }
         };
 
+        // Update slider in modal when clicking main image
+        function updateSlider() {
+          imgSlider.min = 0;
+          imgSlider.max = availableImgs.length - 1;
+          imgSlider.value = currentIdx;
+          imgSlider.style.display = availableImgs.length > 1 ? "" : "none";
+          sliderLabel.style.display = availableImgs.length > 1 ? "" : "none";
+          sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
+        }
+
         // Update slider on navigation
         leftArrow.onclick = function(e) {
           e.stopPropagation();
@@ -671,6 +681,19 @@
             modalImg.style.cursor = "pointer";
             zoomed = false;
           }
+        };
+
+        // Add click handler to main image to open fullscreen modal
+        mainImg.onclick = function() {
+          // Show modal at currentIdx
+          showModal(currentIdx);
+          // Sync slider in modal
+          imgSlider.min = 0;
+          imgSlider.max = availableImgs.length - 1;
+          imgSlider.value = currentIdx;
+          imgSlider.style.display = availableImgs.length > 1 ? "" : "none";
+          sliderLabel.style.display = availableImgs.length > 1 ? "" : "none";
+          sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
         };
 
         modalImg.onclick = function(e) {
