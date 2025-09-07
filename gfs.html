@@ -44,6 +44,9 @@
     /* Use more width since right-panel is gone */
     max-width: 1200px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   @media (max-width: 900px) {
     .left-panel {
@@ -103,9 +106,9 @@
     box-shadow: 0 2px 12px #0002;
     cursor: pointer;
     margin-bottom: 12px;
-    display: block;
     margin-left: auto;
     margin-right: auto;
+    display: block;
   }
   #fullscreen-modal {
     display: none;
@@ -255,7 +258,7 @@
     </div>
     <div class="main-content">
       <!-- Main single image display -->
-      <div id="main-img-container" style="text-align:center;">
+      <div id="main-img-container">
         <img id="main-img" src="" alt="">
         <div id="main-slider-controls" style="margin-top:4px;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
