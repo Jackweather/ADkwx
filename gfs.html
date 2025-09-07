@@ -28,7 +28,7 @@
     min-height: 100vh;
     background: #f5f7fa;
   }
-  .left-panel {
+  .left-panel, .right-panel {
     width: 140px;
     background: #31416a;
     color: #fff;
@@ -41,18 +41,13 @@
     padding: 32px 24px;
     background: #fff;
     min-height: calc(100vh - 54px);
-    /* Use more width since right-panel is gone */
-    max-width: 1200px;
-    margin: 0 auto;
   }
   @media (max-width: 900px) {
-    .left-panel {
+    .left-panel, .right-panel {
       display: none;
     }
-    /* Remove .right-panel display:none */
     .main-content {
       padding: 16px 4vw;
-      max-width: 100vw;
     }
   }
   /* --- Add mobile styles for iPhone and similar devices --- */
@@ -72,7 +67,6 @@
     }
     .main-content {
       padding: 4px 0 !important;
-      max-width: 100vw;
     }
     #fullscreen-img {
       max-width: 98vw !important;
@@ -93,20 +87,6 @@
       margin-top: 8px;
     }
   }
-  #main-img {
-    /* Make PNG larger for desktop */
-    max-width: 95vw;
-    width: 95vw;
-    height: 80vh;
-    object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px #0002;
-    cursor: pointer;
-    margin-bottom: 12px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-  }
   #fullscreen-modal {
     display: none;
     position: fixed;
@@ -121,8 +101,8 @@
     flex-direction: column;
   }
   #fullscreen-img {
-    max-width: 90vw;
-    max-height: 85vh;
+    max-width: 80vw;
+    max-height: 75vh;
     width: auto;
     height: auto;
     box-shadow: 0 4px 32px #000;
@@ -256,7 +236,7 @@
     <div class="main-content">
       <!-- Main single image display -->
       <div id="main-img-container" style="text-align:center;">
-        <img id="main-img" src="" alt="">
+        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
         <div id="main-slider-controls" style="margin-top:4px;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
           <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
@@ -839,9 +819,8 @@
       </script>
       <!-- ...existing code... -->
     </div>
-    <!-- Remove right-panel -->
-    <!-- <div class="right-panel">
+    <div class="right-panel">
       <!-- Right panel content -->
-    <!-- </div> -->
+    </div>
   </div>
 
