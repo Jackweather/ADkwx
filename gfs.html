@@ -207,69 +207,6 @@
   #snow-navbar-btn:hover {
     background: #263159;
   }
-  /* --- iPhone modal styles --- */
-  #iphone-modal {
-    display: none;
-    position: fixed;
-    z-index: 4000;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(20,30,50,0.96);
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  #iphone-img-container {
-    width: 80vw;
-    height: 80vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  #iphone-img {
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 12px;
-    box-shadow: 0 4px 32px #000;
-    background: #fff;
-    object-fit: contain;
-  }
-  #iphone-slider-container {
-    width: 80vw;
-    height: 20vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    margin-top: 12px;
-  }
-  #iphone-slider {
-    width: 90%;
-    margin-top: 18px;
-  }
-  #iphone-slider-label {
-    color: #fff;
-    margin-top: 6px;
-    font-size: 1.1em;
-  }
-  #iphone-close-btn {
-    position: absolute;
-    top: 18px;
-    right: 28px;
-    background: #263159;
-    color: #fff;
-    border: none;
-    border-radius: 18px;
-    padding: 8px 22px;
-    font-size: 1em;
-    cursor: pointer;
-    box-shadow: 0 2px 8px #0002;
-    transition: background 0.18s;
-    letter-spacing: 1px;
-    z-index: 4100;
-  }
 </style>
 </head>
 <body>
@@ -319,17 +256,6 @@
         </div>
         <input type="range" id="img-slider" min="0" max="0" value="0" style="width: 70%; margin-top: 18px; display: none;">
         <div id="slider-label" style="color: #fff; margin-top: 6px; font-size: 1.1em; display: none;"></div>
-      </div>
-      <!-- iPhone Modal -->
-      <div id="iphone-modal">
-        <button id="iphone-close-btn">Close</button>
-        <div id="iphone-img-container">
-          <img id="iphone-img" src="" alt="">
-        </div>
-        <div id="iphone-slider-container">
-          <input type="range" id="iphone-slider" min="0" max="0" value="0">
-          <div id="iphone-slider-label"></div>
-        </div>
       </div>
       <script>
         // --- Image grid and modal logic ---
@@ -759,108 +685,48 @@
           checkNext();
         }
 
-        const iphoneBtn = document.getElementById('iphone-btn');
-        const iphoneModal = document.getElementById('iphone-modal');
-        const iphoneImg = document.getElementById('iphone-img');
-        const iphoneSlider = document.getElementById('iphone-slider');
-        const iphoneSliderLabel = document.getElementById('iphone-slider-label');
-        const iphoneCloseBtn = document.getElementById('iphone-close-btn');
-
-        // Show iPhone modal
-        iphoneBtn.onclick = function() {
-          if (availableImgs.length === 0) return;
-          iphoneModal.style.display = "flex";
-          updateIphoneModal(currentIdx);
-        };
-
-        // Close iPhone modal
-        iphoneCloseBtn.onclick = function() {
-          iphoneModal.style.display = "none";
-        };
-
-        // Update iPhone modal image and slider
-        function updateIphoneModal(idx) {
-          if (availableImgs.length === 0) {
-            iphoneImg.src = "";
-            iphoneImg.alt = "";
-            iphoneSlider.style.display = "none";
-            iphoneSliderLabel.style.display = "none";
-            return;
-          }
-          let minIdx = parseInt(mainImgSlider.min, 10) || 0;
-          if (idx < minIdx) idx = minIdx;
-          currentIdx = idx;
-          let alt = "";
-          if (currentType === "prate") {
-            alt = `prate_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "tmp") {
-            alt = `2mtemp_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip6") {
-            alt = `precip6_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip24") {
-            alt = `precip24_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip12") {
-            alt = `precip12_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_precip") {
-            alt = `totalprecip_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_cloud") {
-            alt = `total_lcdc_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          }
-          iphoneImg.src = availableImgs[currentIdx];
-          iphoneImg.alt = alt;
-          if (availableImgs.length > 1) {
-            iphoneSlider.style.display = "";
-            iphoneSliderLabel.style.display = "";
-            iphoneSlider.min = minIdx;
-            iphoneSlider.max = availableImgs.length - 1;
-            iphoneSlider.value = currentIdx;
-            iphoneSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-          } else {
-            iphoneSlider.style.display = "none";
-            iphoneSliderLabel.style.display = "none";
-          }
-        }
-
-        // iPhone slider logic
-        iphoneSlider.oninput = function() {
-          if (availableImgs.length === 0) return;
-          let minIdx = parseInt(iphoneSlider.min, 10) || 0;
-          let val = parseInt(iphoneSlider.value, 10);
-          if (val < minIdx) val = minIdx;
-          currentIdx = val;
-          updateIphoneModal(currentIdx);
-        };
-
-        // Also update iPhone modal if main image changes
-        mainImgSlider.oninput = function() {
-          // ...existing code...
-          updateIphoneModal(currentIdx);
-        };
-
-        // Update iPhone modal on arrow keys if open
-        document.addEventListener('keydown', function(e) {
-          if (iphoneModal.style.display === "flex") {
-            if (e.key === "ArrowLeft") {
-              let minIdx = parseInt(iphoneSlider.min, 10) || 0;
-              let nextIdx = currentIdx - 1;
-              if (nextIdx < minIdx) nextIdx = minIdx;
-              currentIdx = nextIdx;
-              updateIphoneModal(currentIdx);
-              e.preventDefault();
-            } else if (e.key === "ArrowRight") {
-              let maxIdx = availableImgs.length - 1;
-              let nextIdx = currentIdx + 1;
-              if (nextIdx > maxIdx) nextIdx = maxIdx;
-              currentIdx = nextIdx;
-              updateIphoneModal(currentIdx);
-              e.preventDefault();
-            }
-          }
-        });
-
-        // When switching type, update iPhone modal if open
         function activate(type) {
-          // ...existing code...
+          if (currentType === type) return;
+          currentType = type;
+          loadToken++;
+          prateBtn.classList.toggle('active', type === "prate");
+          tmpBtn.classList.toggle('active', type === "tmp");
+          precip6Btn.classList.toggle('active', type === "precip6");
+          precip12Btn.classList.toggle('active', type === "precip12");
+          precip24Btn.classList.toggle('active', type === "precip24");
+          totalPrecipBtn.classList.toggle('active', type === "total_precip");
+          totalCloudBtn.classList.toggle('active', type === "total_cloud");
+          // MANUAL: Add new .classList.toggle for another image type
+          if (type === "prate") {
+            imgSrcs = getPrateSrcs();
+            availableHours = hours;
+          } else if (type === "tmp") {
+            imgSrcs = getTmpSrcs();
+            availableHours = hours;
+          } else if (type === "precip6") {
+            imgSrcs = getPrecip6Srcs();
+            availableHours = hours;
+          } else if (type === "precip12") {
+            let hours12 = [];
+            for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
+            imgSrcs = getPrecip12Srcs();
+            availableHours = hours12;
+          } else if (type === "precip24") {
+            let hours24 = [];
+            for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
+            imgSrcs = getPrecip24Srcs();
+            availableHours = hours24;
+          } else if (type === "total_precip") {
+            imgSrcs = getTotalPrecipSrcs();
+            availableHours = hours;
+          } else if (type === "total_cloud") {
+            imgSrcs = getTotalCloudSrcs();
+            availableHours = hours;
+          }
+          // MANUAL: Add new logic here for another image type
+          availableImgs = imgSrcs.slice();
+
+          // Find the first PNG that actually exists (not 404)
           findFirstAvailableIndex(availableImgs, function(firstIdx) {
             currentIdx = firstIdx;
             // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
@@ -873,7 +739,6 @@
             preloadImages(availableImgs);
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
-            updateIphoneModal(currentIdx); // Update iPhone modal here
           });
         }
 
@@ -956,7 +821,6 @@
     </div>
     <div class="right-panel">
       <!-- Right panel content -->
-      <button id="iphone-btn" class="side-btn">iPhone</button>
     </div>
   </div>
 
