@@ -249,15 +249,21 @@
       </div>
       <div id="fullscreen-modal">
         <img id="fullscreen-img" src="" alt="">
-        <button id="zoom-btn">🔍 Zoom</button>
-        <input type="range" id="img-slider" min="0" max="0" value="0" style="width: 70%; margin-top: 18px;">
-        <div id="slider-label" style="color: #fff; margin-top: 6px; font-size: 1.1em;"></div>
+        <div id="arrow-controls">
+          <button id="left-arrow">&#8592;</button>
+          <button id="right-arrow">&#8594;</button>
+          <button id="zoom-btn">🔍 Zoom</button>
+        </div>
+        <input type="range" id="img-slider" min="0" max="0" value="0" style="width: 70%; margin-top: 18px; display: none;">
+        <div id="slider-label" style="color: #fff; margin-top: 6px; font-size: 1.1em; display: none;"></div>
       </div>
       <script>
         // --- Image grid and modal logic ---
         // const grid = document.getElementById('gfs-image-grid');
         const modal = document.getElementById('fullscreen-modal');
         const modalImg = document.getElementById('fullscreen-img');
+        const leftArrow = document.getElementById('left-arrow');
+        const rightArrow = document.getElementById('right-arrow');
         const zoomBtn = document.getElementById('zoom-btn');
         const prateBtn = document.getElementById('prate-btn');
         const tmpBtn = document.getElementById('tmp-btn');
@@ -446,61 +452,7 @@
           updateMainImage(currentIdx);
         };
 
-        // Remove left/right arrow logic for modal
-        // Update slider logic for modal
-        imgSlider.oninput = function() {
-          if (availableImgs.length === 0) return;
-          currentIdx = parseInt(imgSlider.value, 10);
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        };
-
-        function showModal(idx) {
-          currentIdx = idx;
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          modal.style.display = "flex";
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-            // Show slider and label in modal
-            imgSlider.style.display = "";
-            sliderLabel.style.display = "";
-            imgSlider.max = availableImgs.length - 1;
-            imgSlider.value = currentIdx;
-            sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-          };
-          tempImg.src = availableImgs[currentIdx];
-        }
-
-        function updateSlider() {
-          imgSlider.max = availableImgs.length - 1;
-          imgSlider.value = currentIdx;
-          sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-        }
-
-        // Preload all images for current type when activating
+        // Preload all images for current type as soon as you activate it
         function preloadImages(imgArray) {
           imgArray.forEach(src => {
             const img = new Image();
@@ -508,6 +460,7 @@
           });
         }
 
+        // Always start with PNG 000 (index 0) when activating a type
         function activate(type) {
           if (currentType === type) return;
           currentType = type;
@@ -548,20 +501,18 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          preloadImages(availableImgs); // Preload all images for selected type
+
+          // Find the first PNG that actually exists (not 404)
           findFirstAvailableIndex(availableImgs, function(firstIdx) {
             currentIdx = firstIdx;
+            // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
             if (mainImgSlider) {
               mainImgSlider.min = firstIdx;
               mainImgSlider.value = currentIdx;
             }
             updateMainImage(currentIdx);
-            // Setup modal slider
-            imgSlider.max = availableImgs.length - 1;
-            imgSlider.value = currentIdx;
-            sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-            imgSlider.style.display = "";
-            sliderLabel.style.display = "";
+            setupModalNavigation();
+            preloadImages(availableImgs);
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
           });
@@ -607,6 +558,48 @@
             modal.style.display = "none";
             updateSlider();
           }
+        };
+
+        // Update slider on navigation
+        leftArrow.onclick = function(e) {
+          e.stopPropagation();
+          if (availableImgs.length === 0) return;
+          currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
+          // Only reset zoom if not in zoomMode
+          if (!zoomMode) resetZoomState();
+          modalImg.style.opacity = 0;
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = availableImgs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+            updateSlider();
+            // If zoomMode and zoomed, keep zoom
+            if (zoomMode && zoomed) {
+              modalImg.style.transform = "scale(2.2)";
+              modalImg.style.cursor = "zoom-out";
+            }
+          };
+          tempImg.src = availableImgs[currentIdx];
+        };
+        rightArrow.onclick = function(e) {
+          e.stopPropagation();
+          if (availableImgs.length === 0) return;
+          currentIdx = (currentIdx + 1) % availableImgs.length;
+          // Only reset zoom if not in zoomMode
+          if (!zoomMode) resetZoomState();
+          modalImg.style.opacity = 0;
+          const tempImg = new Image();
+          tempImg.onload = function() {
+            modalImg.src = availableImgs[currentIdx];
+            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
+            updateSlider();
+            // If zoomMode and zoomed, keep zoom
+            if (zoomMode && zoomed) {
+              modalImg.style.transform = "scale(2.2)";
+              modalImg.style.cursor = "zoom-out";
+            }
+          };
+          tempImg.src = availableImgs[currentIdx];
         };
 
         // Slider logic
@@ -737,7 +730,8 @@
           }
           // MANUAL: Add new logic here for another image type
           availableImgs = imgSrcs.slice();
-          preloadImages(availableImgs); // Preload all images for selected type
+
+          // Find the first PNG that actually exists (not 404)
           findFirstAvailableIndex(availableImgs, function(firstIdx) {
             currentIdx = firstIdx;
             // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
@@ -746,12 +740,8 @@
               mainImgSlider.value = currentIdx;
             }
             updateMainImage(currentIdx);
-            // Setup modal slider
-            imgSlider.max = availableImgs.length - 1;
-            imgSlider.value = currentIdx;
-            sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-            imgSlider.style.display = "";
-            sliderLabel.style.display = "";
+            setupModalNavigation();
+            preloadImages(availableImgs);
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
           });
