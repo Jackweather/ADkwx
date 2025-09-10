@@ -238,19 +238,24 @@
       <div id="main-img-container" style="text-align:center;">
         <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;" onclick="openMainImgModal()">
         <div id="main-slider-controls" style="margin-top:4px;">
-          <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:100%;height:32px;">
-          <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;"></div>
+          <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
+          <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
+          <!-- Add arrow buttons below slider -->
+          <div id="main-slider-arrows" style="margin-top:10px;display:flex;justify-content:center;gap:40px;">
+            <button id="main-left-arrow" style="font-size:2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;">&#8592;</button>
+            <button id="main-right-arrow" style="font-size:2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;">&#8594;</button>
+          </div>
         </div>
       </div>
       <div id="fullscreen-modal">
         <img id="fullscreen-img" src="" alt="">
-        <div id="arrow-controls" style="display:none;">
-          <button id="left-arrow" style="display:none;">&#8592;</button>
-          <button id="right-arrow" style="display:none;">&#8594;</button>
+        <div id="arrow-controls">
+          <button id="left-arrow">&#8592;</button>
+          <button id="right-arrow">&#8594;</button>
           <button id="zoom-btn">🔍 Zoom</button>
         </div>
-        <input type="range" id="img-slider" min="0" max="0" value="0" style="width: 90%; margin-top: 18px;">
-        <div id="slider-label" style="color: #fff; margin-top: 6px; font-size: 1.1em;"></div>
+        <input type="range" id="img-slider" min="0" max="0" value="0" style="width: 70%; margin-top: 18px; display: none;">
+        <div id="slider-label" style="color: #fff; margin-top: 6px; font-size: 1.1em; display: none;"></div>
       </div>
       <script>
         // --- Image grid and modal logic ---
@@ -446,90 +451,6 @@
           currentIdx = val;
           updateMainImage(currentIdx);
         };
-        // Mouse drag support for slider (native input[type=range] supports mouse drag)
-        // Keyboard navigation for main image (always active)
-        document.addEventListener('keydown', function(e) {
-          if (e.key === "ArrowLeft") {
-            if (availableImgs.length > 1) {
-              let minIdx = parseInt(mainImgSlider.min, 10) || 0;
-              let nextIdx = currentIdx - 1;
-              if (nextIdx < minIdx) nextIdx = minIdx;
-              currentIdx = nextIdx;
-              mainImgSlider.value = currentIdx;
-              updateMainImage(currentIdx);
-            }
-            e.preventDefault();
-          } else if (e.key === "ArrowRight") {
-            if (availableImgs.length > 1) {
-              let maxIdx = availableImgs.length - 1;
-              let nextIdx = currentIdx + 1;
-              if (nextIdx > maxIdx) nextIdx = maxIdx;
-              currentIdx = nextIdx;
-              mainImgSlider.value = currentIdx;
-              updateMainImage(currentIdx);
-            }
-            e.preventDefault();
-          }
-        });
-
-        // --- MODAL SLIDER LOGIC ---
-        function updateSlider() {
-          if (availableImgs.length > 1) {
-            imgSlider.style.display = "";
-            sliderLabel.style.display = "";
-            imgSlider.max = availableImgs.length - 1;
-            imgSlider.value = currentIdx;
-            sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
-          } else {
-            imgSlider.style.display = "none";
-            sliderLabel.style.display = "none";
-          }
-        }
-        imgSlider.oninput = function() {
-          if (availableImgs.length === 0) return;
-          currentIdx = parseInt(imgSlider.value, 10);
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        };
-        // Keyboard navigation for modal slider
-        modal.addEventListener('keydown', function(e) {
-          if (modal.style.display === "flex") {
-            if (e.key === "ArrowLeft") {
-              if (availableImgs.length > 1) {
-                let minIdx = 0;
-                let nextIdx = currentIdx - 1;
-                if (nextIdx < minIdx) nextIdx = minIdx;
-                currentIdx = nextIdx;
-                imgSlider.value = currentIdx;
-                imgSlider.oninput();
-              }
-              e.preventDefault();
-            } else if (e.key === "ArrowRight") {
-              if (availableImgs.length > 1) {
-                let maxIdx = availableImgs.length - 1;
-                let nextIdx = currentIdx + 1;
-                if (nextIdx > maxIdx) nextIdx = maxIdx;
-                currentIdx = nextIdx;
-                imgSlider.value = currentIdx;
-                imgSlider.oninput();
-              }
-              e.preventDefault();
-            }
-          }
-        });
 
         // Preload all images for current type as soon as you activate it
         function preloadImages(imgArray) {
