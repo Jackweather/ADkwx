@@ -101,17 +101,13 @@
     flex-direction: column;
   }
   #fullscreen-img {
-    max-width: 96vw;
-    max-height: 92vh;
-    width: auto;
-    height: auto;
-    box-shadow: 0 4px 32px #000;
-    border-radius: 10px;
-    transition: opacity 0.25s;
+    max-width: 60vw !important;
+    width: 60vw !important;
+    max-height: 60vh !important;
+    height: 60vh !important;
     object-fit: contain;
-    display: block;
+    border-radius: 10px;
     margin: 0 auto;
-    cursor: pointer;
   }
   #arrow-controls {
     margin-top: 18px;
@@ -779,10 +775,18 @@
         document.addEventListener('keydown', function(e) {
           if (modal.style.display === "flex") {
             if (e.key === "ArrowLeft") {
-              leftArrow.click();
+              if (availableImgs.length > 1) {
+                let prevIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
+                imgSlider.value = prevIdx;
+                imgSlider.dispatchEvent(new Event('input'));
+              }
               e.preventDefault();
             } else if (e.key === "ArrowRight") {
-              rightArrow.click();
+              if (availableImgs.length > 1) {
+                let nextIdx = (currentIdx + 1) % availableImgs.length;
+                imgSlider.value = nextIdx;
+                imgSlider.dispatchEvent(new Event('input'));
+              }
               e.preventDefault();
             }
           }
