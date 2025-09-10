@@ -87,6 +87,17 @@
       margin-top: 8px;
     }
   }
+  @media (min-width: 601px) {
+    #fullscreen-img {
+      max-width: 60vw !important;
+      max-height: 60vh !important;
+      width: auto !important;
+      height: auto !important;
+    }
+    #img-slider {
+      width: 40vw !important;
+    }
+  }
   #fullscreen-modal {
     display: none;
     position: fixed;
@@ -558,7 +569,6 @@
         imgSlider.oninput = function() {
           if (availableImgs.length === 0) return;
           currentIdx = parseInt(imgSlider.value, 10);
-          // Only reset zoom if not in zoomMode
           if (!zoomMode) resetZoomState();
           modalImg.style.opacity = 0;
           const tempImg = new Image();
@@ -566,7 +576,6 @@
             modalImg.src = availableImgs[currentIdx];
             setTimeout(() => { modalImg.style.opacity = 1; }, 10);
             updateSlider();
-            // If zoomMode and zoomed, keep zoom
             if (zoomMode && zoomed) {
               modalImg.style.transform = "scale(2.2)";
               modalImg.style.cursor = "zoom-out";
@@ -574,7 +583,26 @@
           };
           tempImg.src = availableImgs[currentIdx];
         };
-
+        // Add keyboard support for modal slider
+        imgSlider.addEventListener('keydown', function(e) {
+          if (modal.style.display === "flex") {
+            if (e.key === "ArrowLeft") {
+              if (currentIdx > 0) {
+                currentIdx--;
+                imgSlider.value = currentIdx;
+                imgSlider.oninput();
+              }
+              e.preventDefault();
+            } else if (e.key === "ArrowRight") {
+              if (currentIdx < availableImgs.length - 1) {
+                currentIdx++;
+                imgSlider.value = currentIdx;
+                imgSlider.oninput();
+              }
+              e.preventDefault();
+            }
+          }
+        });
         zoomBtn.onclick = function(e) {
           e.stopPropagation();
           zoomMode = !zoomMode;
