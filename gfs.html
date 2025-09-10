@@ -533,6 +533,18 @@
           if (!zoomMode) resetZoomState();
           modalImg.style.opacity = 0;
           modal.style.display = "flex";
+          // Show slider in modal
+          if (availableImgs.length > 1) {
+            imgSlider.style.display = "";
+            sliderLabel.style.display = "";
+            imgSlider.max = availableImgs.length - 1;
+            imgSlider.min = 0;
+            imgSlider.value = currentIdx;
+            sliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
+          } else {
+            imgSlider.style.display = "none";
+            sliderLabel.style.display = "none";
+          }
           const tempImg = new Image();
           tempImg.onload = function() {
             modalImg.src = availableImgs[currentIdx];
