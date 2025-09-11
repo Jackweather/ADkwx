@@ -174,6 +174,10 @@ def serve_community_html():
 def serve_snow_html():
     return send_from_directory(os.path.dirname(__file__), 'snow.html')
 
+@app.route('/parent.html')
+def serve_parent_html():
+    return send_from_directory(os.path.dirname(__file__), 'parent.html')
+
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
     directory = '/var/data'  # GIFs are saved here
