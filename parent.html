@@ -75,18 +75,9 @@
       font-size: 1.1em;
       color: #263159;
     }
-    #loading-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(38, 49, 89, 0.85);
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -101,10 +92,10 @@
     <button class="nav-btn" onclick="selectFolder('total_lcdc')">Total Cloud Cover</button>
   </div>
   <div id="main-content">
-    <div id="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(38,49,89,0.85); z-index:9999; display:flex; align-items:center; justify-content:center;">
-      <div style="color:#fff; font-size:2em;">Loading images...</div>
-    </div>
     <div id="image-container"></div>
+    <div id="loading-spinner" style="display:none;align-items:center;justify-content:center;height:300px;width:100%;">
+      <div style="border:8px solid #f3f3f3;border-top:8px solid #263159;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;"></div>
+    </div>
     <div id="slider-container" style="display:none;">
       <div id="hour-label">Hour: <span id="hour-value">0</span></div>
       <input type="range" id="hour-slider" min="0" max="384" step="6" value="0" oninput="updateImage()">
@@ -112,7 +103,6 @@
   </div>
   <script>
     let currentFolder = null;
-    let preloadedImages = {};
     function getImageName(folder, hour) {
       const paddedHour = hour.toString().padStart(3, '0');
       let prefix = '';
@@ -125,40 +115,38 @@
       else if (folder === 'total_lcdc') prefix = 'total_lcdc';
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
+    function preloadImages(folder) {
+      const images = [];
+      for (let hour = 0; hour <= 384; hour += 6) {
+        const img = new Image();
+        img.src = getImageName(folder, hour);
+        images.push(img);
+      }
+      return images;
+    }
     function selectFolder(folder) {
       currentFolder = folder;
-      document.getElementById('slider-container').style.display = 'none';
-      document.getElementById('image-container').innerHTML = '';
-      document.getElementById('loading-overlay').style.display = 'flex';
-      preloadImages(folder); // Start preloading immediately
-      setTimeout(() => {
-        document.getElementById('loading-overlay').style.display = 'none';
-        document.getElementById('slider-container').style.display = 'flex';
-        document.getElementById('hour-slider').value = 0;
-        document.getElementById('hour-value').textContent = '0';
+      document.getElementById('slider-container').style.display = 'flex';
+      document.getElementById('hour-slider').value = 0;
+      document.getElementById('hour-value').textContent = '0';
+      if (folder === 'PRATEGFS' || folder === 'tmp_surface') {
+        document.getElementById('image-container').innerHTML = '';
+        document.getElementById('loading-spinner').style.display = 'flex';
+        preloadImages(folder);
+        setTimeout(() => {
+          document.getElementById('loading-spinner').style.display = 'none';
+          showImage(0);
+        }, 5000);
+      } else {
         showImage(0);
-      }, 5000);
-    }
-    function preloadImages(folder) {
-      preloadedImages[folder] = {};
-      for (let hour = 0; hour <= 384; hour += 6) {
-        const src = getImageName(folder, hour);
-        const img = new window.Image();
-        img.src = src;
-        preloadedImages[folder][hour] = img;
       }
     }
     function showImage(hour) {
       const container = document.getElementById('image-container');
       container.innerHTML = '';
       if (!currentFolder) return;
-      let img;
-      if (preloadedImages[currentFolder] && preloadedImages[currentFolder][hour]) {
-        img = preloadedImages[currentFolder][hour].cloneNode();
-      } else {
-        img = document.createElement('img');
-        img.src = getImageName(currentFolder, hour);
-      }
+      const img = document.createElement('img');
+      img.src = getImageName(currentFolder, hour);
       img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
       img.className = 'image-item';
       img.onerror = () => img.remove();
