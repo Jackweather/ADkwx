@@ -22,20 +22,31 @@
   body {
     margin: 0;
     padding-top: 54px; /* prevent content underlap */
+    height: 100vh;
+    width: 100vw;
+    box-sizing: border-box;
   }
   .layout-container {
     display: flex;
     min-height: 100vh;
     background: #f5f7fa;
-    justify-content: center;
+    width: 100vw;
+    height: calc(100vh - 54px);
+    margin: 0;
+    padding: 0;
+    /* Remove centering */
+    justify-content: flex-start;
   }
   .main-content {
-    max-width: 900px;
-    margin: 0 auto;
     flex: 1;
+    width: 100vw;
+    height: 100%;
     padding: 32px 24px;
     background: #fff;
     min-height: calc(100vh - 54px);
+    max-width: none;
+    margin: 0;
+    box-sizing: border-box;
   }
   @media (max-width: 900px) {
     .main-content {
@@ -209,8 +220,8 @@
     <button id="updates-navbar-btn" onclick="window.location.href='updates.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Updates</button>
     <button id="community-navbar-btn" onclick="window.location.href='community.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Community</button>
   </div>
-  <div class="layout-container" style="justify-content:center;">
-    <div class="main-content" style="max-width:900px;margin:0 auto;">
+  <div class="layout-container">
+    <div class="main-content">
       <h2 style="color:#263159;text-align:center;margin-top:0;">Image Folders</h2>
       <div id="folder-list" style="margin-bottom:24px;"></div>
       <div id="main-img-container" style="text-align:center;display:none;">
@@ -261,7 +272,6 @@
 
         function loadFolder(folder) {
           currentFolder = folder;
-          // Simulate PNGs in folder (replace with server-side fetch if needed)
           let maxHour = 384;
           let step = 6;
           if (folder === '12hour_precip_total') step = 12;
@@ -273,9 +283,36 @@
           } else if (folder !== '12hour_precip_total' && folder !== '24hour_precip_total') {
             hours = [0].concat(hours);
           }
-          imgSrcs = hours.map(hour => `/${folder}/${folder.includes('tmp') ? '2mtemp' : folder.includes('prate') ? 'prate' : folder.includes('precip') ? folder.replace('_total','').replace('total_','') : folder.includes('lcdc') ? 'total_lcdc' : ''}_${hour.toString().padStart(3, '0')}.png`);
-          currentIdx = 0;
-          showImageViewer();
+          let candidateSrcs = hours.map(hour => `/${folder}/${folder.includes('tmp') ? '2mtemp' : folder.includes('prate') ? 'prate' : folder.includes('precip') ? folder.replace('_total','').replace('total_','') : folder.includes('lcdc') ? 'total_lcdc' : ''}_${hour.toString().padStart(3, '0')}.png`);
+          let availableSrcs = [];
+          let checked = 0;
+          if (candidateSrcs.length === 0) {
+            imgSrcs = [];
+            currentIdx = 0;
+            showImageViewer();
+            return;
+          }
+          candidateSrcs.forEach((src, idx) => {
+            const img = new window.Image();
+            img.onload = function() {
+              availableSrcs.push(src);
+              checked++;
+              if (checked === candidateSrcs.length) {
+                imgSrcs = availableSrcs;
+                currentIdx = 0;
+                showImageViewer();
+              }
+            };
+            img.onerror = function() {
+              checked++;
+              if (checked === candidateSrcs.length) {
+                imgSrcs = availableSrcs;
+                currentIdx = 0;
+                showImageViewer();
+              }
+            };
+            img.src = src;
+          });
         }
 
         function showImageViewer() {
