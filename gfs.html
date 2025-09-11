@@ -27,25 +27,17 @@
     display: flex;
     min-height: 100vh;
     background: #f5f7fa;
-  }
-  .left-panel, .right-panel {
-    width: 140px;
-    background: #31416a;
-    color: #fff;
-    padding: 0;
-    box-sizing: border-box;
-    min-height: calc(100vh - 54px);
+    justify-content: center;
   }
   .main-content {
+    max-width: 900px;
+    margin: 0 auto;
     flex: 1;
     padding: 32px 24px;
     background: #fff;
     min-height: calc(100vh - 54px);
   }
   @media (max-width: 900px) {
-    .left-panel, .right-panel {
-      display: none;
-    }
     .main-content {
       padding: 16px 4vw;
     }
@@ -217,615 +209,149 @@
     <button id="updates-navbar-btn" onclick="window.location.href='updates.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Updates</button>
     <button id="community-navbar-btn" onclick="window.location.href='community.html'" style="margin-left:18px;background:#41507a;color:#fff;border:none;border-radius:18px;padding:8px 22px;font-size:1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;">Community</button>
   </div>
-  <div class="layout-container">
-    <div class="left-panel">
-      <!-- GFS label box (smaller) -->
-      <div style="width:60%;margin:10px auto 0 auto;padding:4px 0;background:#263159;color:#fff;text-align:center;border-radius:5px;font-size:0.95em;letter-spacing:1px;">
-        GFS
-      </div>
-      <!-- Left panel content -->
-      <button id="prate-btn" class="side-btn">Prate</button>
-      <button id="tmp-btn" class="side-btn">Tmp</button>
-      <button id="precip6-btn" class="side-btn">6hPrecip</button>
-      <button id="precip12-btn" class="side-btn">12hPrecip</button>
-      <button id="precip24-btn" class="side-btn">24hPrecip</button>
-      <button id="total_precip_btn" class="side-btn">Total Precip</button>
-      <!-- MANUAL: Add new button here for another image type -->
-      <button id="total_cloud_btn" class="side-btn">Total Cloud Cover</button>
-    </div>
-    <div class="main-content">
-      <!-- Main single image display -->
-      <div id="main-img-container" style="text-align:center;">
-        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;" onclick="openMainImgModal()">
+  <div class="layout-container" style="justify-content:center;">
+    <div class="main-content" style="max-width:900px;margin:0 auto;">
+      <h2 style="color:#263159;text-align:center;margin-top:0;">Image Folders</h2>
+      <div id="folder-list" style="margin-bottom:24px;"></div>
+      <div id="main-img-container" style="text-align:center;display:none;">
+        <img id="main-img" src="" alt="" style="max-width:70%;height:auto;border-radius:8px;box-shadow:0 2px 12px #0002;cursor:pointer;margin-bottom:12px;">
         <div id="main-slider-controls" style="margin-top:4px;">
           <input type="range" id="main-img-slider" min="0" max="0" value="0" style="width:80%;height:32px;display:none;">
           <div id="main-slider-label" style="color:#263159;margin-top:4px;font-size:1.1em;display:none;"></div>
-          <!-- Add arrow buttons below slider -->
           <div id="main-slider-arrows" style="margin-top:10px;display:flex;justify-content:center;gap:40px;">
             <button id="main-left-arrow" style="font-size:2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;">&#8592;</button>
             <button id="main-right-arrow" style="font-size:2em;padding:6px 18px;border:none;background:#263159;color:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 8px #0003;">&#8594;</button>
           </div>
         </div>
       </div>
-      <div id="fullscreen-modal">
-        <img id="fullscreen-img" src="" alt="">
-        <div id="arrow-controls">
-          <button id="left-arrow">&#8592;</button>
-          <button id="right-arrow">&#8594;</button>
-          <button id="zoom-btn">🔍 Zoom</button>
-        </div>
-        <input type="range" id="img-slider" min="0" max="0" value="0" style="width: 70%; margin-top: 18px; display: none;">
-        <div id="slider-label" style="color: #fff; margin-top: 6px; font-size: 1.1em; display: none;"></div>
-      </div>
       <script>
-        // --- Image grid and modal logic ---
-        // const grid = document.getElementById('gfs-image-grid');
-        const modal = document.getElementById('fullscreen-modal');
-        const modalImg = document.getElementById('fullscreen-img');
-        const leftArrow = document.getElementById('left-arrow');
-        const rightArrow = document.getElementById('right-arrow');
-        const zoomBtn = document.getElementById('zoom-btn');
-        const prateBtn = document.getElementById('prate-btn');
-        const tmpBtn = document.getElementById('tmp-btn');
-        const precip6Btn = document.getElementById('precip6-btn');
-        const precip12Btn = document.getElementById('precip12-btn');
-        const precip24Btn = document.getElementById('precip24-btn');
-        const totalPrecipBtn = document.getElementById('total_precip_btn');
-        const totalCloudBtn = document.getElementById('total_cloud_btn');
-        // MANUAL: Add new button variable here for another image type
-
-        // Main image and slider elements
+        // --- New logic for folder listing and image navigation ---
+        const folderList = document.getElementById('folder-list');
+        const mainImgContainer = document.getElementById('main-img-container');
         const mainImg = document.getElementById('main-img');
         const mainImgSlider = document.getElementById('main-img-slider');
         const mainSliderLabel = document.getElementById('main-slider-label');
-
-        const imgSlider = document.getElementById('img-slider');
-        const sliderLabel = document.getElementById('slider-label');
-        let hours = [];
-        for (let hour = 0; hour <= 384; hour += 6) hours.push(hour);
-
-        const GRID_IMG_LIMIT = 65; // Only show/check first 16 images
-
-        function getPrateSrcs() {
-          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/PRATEGFS/prate_${hour.toString().padStart(3, '0')}.png`);
-        }
-        function getTmpSrcs() {
-          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/tmp_surface/2mtemp_${hour.toString().padStart(3, '0')}.png`);
-        }
-        function getPrecip6Srcs() {
-          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/6hour_precip_total/precip6_${hour.toString().padStart(3, '0')}.png`);
-        }
-        function getPrecip24Srcs() {
-          let hours24 = [];
-          for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
-          return hours24.slice(0, GRID_IMG_LIMIT).map(hour => `/24hour_precip_total/precip24_${hour.toString().padStart(3, '0')}.png`);
-        }
-        function getPrecip12Srcs() {
-          let hours12 = [];
-          for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
-          return hours12.slice(0, GRID_IMG_LIMIT).map(hour => `/12hour_precip_total/precip12_${hour.toString().padStart(3, '0')}.png`);
-        }
-        function getTotalPrecipSrcs() {
-          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/total_precip/totalprecip_${hour.toString().padStart(3, '0')}.png`);
-        }
-        function getTotalCloudSrcs() {
-          return hours.slice(0, GRID_IMG_LIMIT).map(hour => `/total_lcdc/total_lcdc_${hour.toString().padStart(3, '0')}.png`);
-        }
-        // MANUAL: Add new get*Srcs function here for another image type
-
+        const mainLeftArrow = document.getElementById('main-left-arrow');
+        const mainRightArrow = document.getElementById('main-right-arrow');
+        let currentFolder = null;
         let imgSrcs = [];
-        let availableImgs = [];
-        let availableHours = [];
         let currentIdx = 0;
-        let zoomMode = false;
-        let zoomed = false;
-        let currentType = null;
-        let refreshInterval = null;
-        let refreshActive = true;
-        let loadToken = 0; // Add a token to cancel outdated loads
 
-        // Poll every 10 seconds
-        const REFRESH_MS = 2000; // 10 seconds
+        // Simulate folder list (replace with server-side fetch if needed)
+        const folders = [
+          'PRATEGFS',
+          'tmp_surface',
+          '6hour_precip_total',
+          '12hour_precip_total',
+          '24hour_precip_total',
+          'total_precip',
+          'total_lcdc'
+        ];
 
-        function clearGrid() {
-          while (grid.firstChild) grid.removeChild(grid.firstChild);
-        }
-
-        function addImgToGrid(src, idx) {
-          const img = document.createElement('img');
-          img.src = src;
-          img.loading = "lazy";
-          if (currentType === "prate") {
-            img.alt = `prate_${hours[idx].toString().padStart(3, '0')}`;
-          } else if (currentType === "tmp") {
-            img.alt = `2mtemp_${hours[idx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip6") {
-            img.alt = `precip6_${hours[idx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip24") {
-            img.alt = `precip24_${(24 * (idx + 1)).toString().padStart(3, '0')}`;
-          } else if (currentType === "precip12") {
-            img.alt = `precip12_${(12 * (idx + 1)).toString().padStart(3, '0')}`;
-          } else if (currentType === "total_precip") {
-            img.alt = `totalprecip_${hours[idx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_cloud") {
-            img.alt = `total_lcdc_${hours[idx].toString().padStart(3, '0')}`;
-          }
-          // MANUAL: Add new alt logic here for another image type
-          img.style.width = "100%";
-          img.style.maxWidth = "100%";
-          img.style.borderRadius = "6px";
-          img.style.cursor = "pointer";
-          img.onclick = function() {
-            showModal(idx);
-          };
-          grid.appendChild(img);
-        }
-
-        function loadAvailableImages(callback) {
-          const thisToken = ++loadToken;
-          let newAvailableImgs = [];
-          let newAvailableHours = [];
-          let checked = 0;
-          let total = imgSrcs.length;
-          if (!total) {
-            if (callback) callback([], []);
-            return;
-          }
-          // All images start loading at once (concurrent).
-          imgSrcs.forEach((src, idx) => {
-            const img = new Image();
-            img.onload = function() {
-              if (thisToken !== loadToken) return; // Ignore if token changed
-              newAvailableImgs.push(src);
-              newAvailableHours.push(availableHours[idx]);
-              checked++;
-              if (checked === total && callback) {
-                // Sort by hour to ensure order
-                let zipped = newAvailableImgs.map((img, i) => ({img, hour: newAvailableHours[i]}));
-                zipped.sort((a, b) => a.hour - b.hour);
-                callback(zipped.map(z => z.img), zipped.map(z => z.hour));
-              }
-            };
-            img.onerror = function() {
-              if (thisToken !== loadToken) return; // Ignore if token changed
-              checked++;
-              if (checked === total && callback) {
-                let zipped = newAvailableImgs.map((img, i) => ({img, hour: newAvailableHours[i]}));
-                zipped.sort((a, b) => a.hour - b.hour);
-                callback(zipped.map(z => z.img), zipped.map(z => z.hour));
-              }
-            };
-            img.src = src;
+        function renderFolderList() {
+          folderList.innerHTML = '';
+          folders.forEach(folder => {
+            const btn = document.createElement('button');
+            btn.textContent = folder;
+            btn.style = 'margin:8px 12px 8px 0;padding:10px 22px;background:#41507a;color:#fff;border:none;border-radius:8px;font-size:1.1em;cursor:pointer;box-shadow:0 2px 8px #0002;transition:background 0.18s;letter-spacing:1px;';
+            btn.onclick = () => loadFolder(folder);
+            folderList.appendChild(btn);
           });
         }
 
-        // Only load PNG when slider is moved (not preloading all)
+        function loadFolder(folder) {
+          currentFolder = folder;
+          // Simulate PNGs in folder (replace with server-side fetch if needed)
+          let maxHour = 384;
+          let step = 6;
+          if (folder === '12hour_precip_total') step = 12;
+          if (folder === '24hour_precip_total') step = 24;
+          let hours = [];
+          for (let hour = step; hour <= maxHour; hour += step) hours.push(hour);
+          if (folder === 'PRATEGFS') {
+            hours = [0].concat(hours);
+          } else if (folder !== '12hour_precip_total' && folder !== '24hour_precip_total') {
+            hours = [0].concat(hours);
+          }
+          imgSrcs = hours.map(hour => `/${folder}/${folder.includes('tmp') ? '2mtemp' : folder.includes('prate') ? 'prate' : folder.includes('precip') ? folder.replace('_total','').replace('total_','') : folder.includes('lcdc') ? 'total_lcdc' : ''}_${hour.toString().padStart(3, '0')}.png`);
+          currentIdx = 0;
+          showImageViewer();
+        }
+
+        function showImageViewer() {
+          mainImgContainer.style.display = '';
+          updateMainImage(currentIdx);
+        }
+
         function updateMainImage(idx) {
-          if (availableImgs.length === 0) {
-            mainImg.src = "";
-            mainImg.alt = "";
-            mainImgSlider.style.display = "none";
-            mainSliderLabel.style.display = "none";
+          if (imgSrcs.length === 0) {
+            mainImg.src = '';
+            mainImg.alt = '';
+            mainImgSlider.style.display = 'none';
+            mainSliderLabel.style.display = 'none';
             return;
           }
-          // --- MODIFIED: Clamp idx to minIdx ---
-          let minIdx = parseInt(mainImgSlider.min, 10) || 0;
-          if (idx < minIdx) idx = minIdx;
+          if (idx < 0) idx = 0;
+          if (idx > imgSrcs.length - 1) idx = imgSrcs.length - 1;
           currentIdx = idx;
-          let alt = "";
-          if (currentType === "prate") {
-            alt = `prate_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "tmp") {
-            alt = `2mtemp_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip6") {
-            alt = `precip6_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip24") {
-            alt = `precip24_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "precip12") {
-            alt = `precip12_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_precip") {
-            alt = `totalprecip_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          } else if (currentType === "total_cloud") {
-            alt = `total_lcdc_${availableHours[currentIdx].toString().padStart(3, '0')}`;
-          }
-          mainImg.src = availableImgs[currentIdx];
-          mainImg.alt = alt;
-          if (availableImgs.length > 1) {
-            mainImgSlider.style.display = "";
-            mainSliderLabel.style.display = "";
-            mainImgSlider.max = availableImgs.length - 1;
+          mainImg.src = imgSrcs[currentIdx];
+          mainImg.alt = `${currentFolder} ${currentIdx}`;
+          if (imgSrcs.length > 1) {
+            mainImgSlider.style.display = '';
+            mainSliderLabel.style.display = '';
+            mainImgSlider.max = imgSrcs.length - 1;
             mainImgSlider.value = currentIdx;
-            mainSliderLabel.textContent = "Hour: " + (availableHours[currentIdx] !== undefined ? availableHours[currentIdx] : "");
+            mainSliderLabel.textContent = `Image ${currentIdx + 1} of ${imgSrcs.length}`;
           } else {
-            mainImgSlider.style.display = "none";
-            mainSliderLabel.style.display = "none";
+            mainImgSlider.style.display = 'none';
+            mainSliderLabel.style.display = 'none';
           }
         }
 
-        // Load PNG only when slider is moved
         mainImgSlider.oninput = function() {
-          if (availableImgs.length === 0) return;
-          let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+          if (imgSrcs.length === 0) return;
           let val = parseInt(mainImgSlider.value, 10);
-          if (val < minIdx) val = minIdx;
+          if (val < 0) val = 0;
+          if (val > imgSrcs.length - 1) val = imgSrcs.length - 1;
           currentIdx = val;
           updateMainImage(currentIdx);
         };
 
-        // Preload all images for current type as soon as you activate it
-        function preloadImages(imgArray) {
-          imgArray.forEach(src => {
-            const img = new Image();
-            img.src = src;
-          });
-        }
-
-        // Always start with PNG 000 (index 0) when activating a type
-        function activate(type) {
-          if (currentType === type) return;
-          currentType = type;
-          loadToken++;
-          prateBtn.classList.toggle('active', type === "prate");
-          tmpBtn.classList.toggle('active', type === "tmp");
-          precip6Btn.classList.toggle('active', type === "precip6");
-          precip12Btn.classList.toggle('active', type === "precip12");
-          precip24Btn.classList.toggle('active', type === "precip24");
-          totalPrecipBtn.classList.toggle('active', type === "total_precip");
-          totalCloudBtn.classList.toggle('active', type === "total_cloud");
-          // MANUAL: Add new .classList.toggle for another image type
-          if (type === "prate") {
-            imgSrcs = getPrateSrcs();
-            availableHours = hours;
-          } else if (type === "tmp") {
-            imgSrcs = getTmpSrcs();
-            availableHours = hours;
-          } else if (type === "precip6") {
-            imgSrcs = getPrecip6Srcs();
-            availableHours = hours;
-          } else if (type === "precip12") {
-            let hours12 = [];
-            for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
-            imgSrcs = getPrecip12Srcs();
-            availableHours = hours12;
-          } else if (type === "precip24") {
-            let hours24 = [];
-            for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
-            imgSrcs = getPrecip24Srcs();
-            availableHours = hours24;
-          } else if (type === "total_precip") {
-            imgSrcs = getTotalPrecipSrcs();
-            availableHours = hours;
-          } else if (type === "total_cloud") {
-            imgSrcs = getTotalCloudSrcs();
-            availableHours = hours;
-          }
-          // MANUAL: Add new logic here for another image type
-          availableImgs = imgSrcs.slice();
-
-          // Find the first PNG that actually exists (not 404)
-          findFirstAvailableIndex(availableImgs, function(firstIdx) {
-            currentIdx = firstIdx;
-            // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
-            if (mainImgSlider) {
-              mainImgSlider.min = firstIdx;
-              mainImgSlider.value = currentIdx;
-            }
-            updateMainImage(currentIdx);
-            setupModalNavigation();
-            preloadImages(availableImgs);
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
-          });
-        }
-
-        // On refresh, just update availableImgs and slider, don't load images
-        function refreshImageGrid() {
-          if (!refreshActive) return;
-          availableImgs = imgSrcs.slice();
-          updateMainImage(currentIdx);
-          setupModalNavigation();
-          preloadImages(availableImgs); // Preload again in case images changed
-        }
-
-        function showModal(idx) {
-          currentIdx = idx;
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          modal.style.display = "flex";
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        }
-
-        // Add function to open modal from main image
-        function openMainImgModal() {
-          showModal(currentIdx);
-        }
-
-        // Update slider when modal is shown/hidden or images change
-        modal.onclick = function(e) {
-          if (e.target === modal) {
-            modal.style.display = "none";
-            updateSlider();
-          }
-        };
-
-        // Update slider on navigation
-        leftArrow.onclick = function(e) {
-          e.stopPropagation();
-          if (availableImgs.length === 0) return;
-          currentIdx = (currentIdx - 1 + availableImgs.length) % availableImgs.length;
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        };
-        rightArrow.onclick = function(e) {
-          e.stopPropagation();
-          if (availableImgs.length === 0) return;
-          currentIdx = (currentIdx + 1) % availableImgs.length;
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        };
-
-        // Slider logic
-        imgSlider.oninput = function() {
-          if (availableImgs.length === 0) return;
-          currentIdx = parseInt(imgSlider.value, 10);
-          // Only reset zoom if not in zoomMode
-          if (!zoomMode) resetZoomState();
-          modalImg.style.opacity = 0;
-          const tempImg = new Image();
-          tempImg.onload = function() {
-            modalImg.src = availableImgs[currentIdx];
-            setTimeout(() => { modalImg.style.opacity = 1; }, 10);
-            updateSlider();
-            // If zoomMode and zoomed, keep zoom
-            if (zoomMode && zoomed) {
-              modalImg.style.transform = "scale(2.2)";
-              modalImg.style.cursor = "zoom-out";
-            }
-          };
-          tempImg.src = availableImgs[currentIdx];
-        };
-
-        zoomBtn.onclick = function(e) {
-          e.stopPropagation();
-          zoomMode = !zoomMode;
-          zoomBtn.style.background = zoomMode ? "#41507a" : "#263159";
-          zoomBtn.textContent = zoomMode ? "🔎 Click Image" : "🔍 Zoom";
-          if (!zoomMode && zoomed) {
-            modalImg.style.transform = "";
-            modalImg.style.cursor = "pointer";
-            zoomed = false;
-          }
-        };
-
-        modalImg.onclick = function(e) {
-          if (!zoomMode) return;
-          if (!zoomed) {
-            const rect = modalImg.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const xPct = (x / rect.width) * 100;
-            const yPct = (y / rect.height) * 100;
-            modalImg.style.transformOrigin = `${xPct}% ${yPct}%`;
-            modalImg.style.transform = "scale(2.2)";
-            modalImg.style.cursor = "zoom-out";
-            zoomed = true;
-          } else {
-            modalImg.style.transform = "";
-            modalImg.style.cursor = "pointer";
-            zoomed = false;
-          }
-        };
-
-        function resetZoomState() {
-          zoomMode = false;
-          zoomed = false;
-          zoomBtn.style.background = "#263159";
-          zoomBtn.textContent = "🔍 Zoom";
-          modalImg.style.transform = "";
-          modalImg.style.cursor = "pointer";
-        }
-
-        function arraysEqual(a, b) {
-          if (a.length !== b.length) return false;
-          for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-          return true;
-        }
-
-        // Pause polling when tab is hidden, resume when visible
-        document.addEventListener('visibilitychange', function() {
-          refreshActive = !document.hidden;
-        });
-
-        // Helper: Find first available PNG (not 404) in the folder and set slider to it
-        function findFirstAvailableIndex(imgArray, callback) {
-          let idx = 0;
-          function checkNext() {
-            if (idx >= imgArray.length) {
-              callback(0); // fallback to 0 if none found
-              return;
-            }
-            const testImg = new Image();
-            testImg.onload = function() { callback(idx); };
-            testImg.onerror = function() { idx++; checkNext(); };
-            testImg.src = imgArray[idx];
-          }
-          checkNext();
-        }
-
-        function activate(type) {
-          if (currentType === type) return;
-          currentType = type;
-          loadToken++;
-          prateBtn.classList.toggle('active', type === "prate");
-          tmpBtn.classList.toggle('active', type === "tmp");
-          precip6Btn.classList.toggle('active', type === "precip6");
-          precip12Btn.classList.toggle('active', type === "precip12");
-          precip24Btn.classList.toggle('active', type === "precip24");
-          totalPrecipBtn.classList.toggle('active', type === "total_precip");
-          totalCloudBtn.classList.toggle('active', type === "total_cloud");
-          // MANUAL: Add new .classList.toggle for another image type
-          if (type === "prate") {
-            imgSrcs = getPrateSrcs();
-            availableHours = hours;
-          } else if (type === "tmp") {
-            imgSrcs = getTmpSrcs();
-            availableHours = hours;
-          } else if (type === "precip6") {
-            imgSrcs = getPrecip6Srcs();
-            availableHours = hours;
-          } else if (type === "precip12") {
-            let hours12 = [];
-            for (let hour = 12; hour <= 384; hour += 12) hours12.push(hour);
-            imgSrcs = getPrecip12Srcs();
-            availableHours = hours12;
-          } else if (type === "precip24") {
-            let hours24 = [];
-            for (let hour = 24; hour <= 384; hour += 24) hours24.push(hour);
-            imgSrcs = getPrecip24Srcs();
-            availableHours = hours24;
-          } else if (type === "total_precip") {
-            imgSrcs = getTotalPrecipSrcs();
-            availableHours = hours;
-          } else if (type === "total_cloud") {
-            imgSrcs = getTotalCloudSrcs();
-            availableHours = hours;
-          }
-          // MANUAL: Add new logic here for another image type
-          availableImgs = imgSrcs.slice();
-
-          // Find the first PNG that actually exists (not 404)
-          findFirstAvailableIndex(availableImgs, function(firstIdx) {
-            currentIdx = firstIdx;
-            // --- MODIFIED: Set slider min to firstIdx so can't go back to 000 if missing ---
-            if (mainImgSlider) {
-              mainImgSlider.min = firstIdx;
-              mainImgSlider.value = currentIdx;
-            }
-            updateMainImage(currentIdx);
-            setupModalNavigation();
-            preloadImages(availableImgs);
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(refreshImageGrid, REFRESH_MS);
-          });
-        }
-
-        prateBtn.onclick = function() { activate("prate"); };
-        tmpBtn.onclick = function() { activate("tmp"); };
-        precip6Btn.onclick = function() { activate("precip6"); };
-        precip12Btn.onclick = function() { activate("precip12"); };
-        precip24Btn.onclick = function() { activate("precip24"); };
-        totalPrecipBtn.onclick = function() { activate("total_precip"); };
-        totalCloudBtn.onclick = function() { activate("total_cloud"); };
-        // MANUAL: Add new button onclick here for another image type
-
-        // Show all prate PNGs on page load
-        window.addEventListener('DOMContentLoaded', function() {
-          activate("prate");
-        });
-
-        // Do NOT load images on page load
-
-        // Keyboard navigation for modal
-        document.addEventListener('keydown', function(e) {
-          if (modal.style.display === "flex") {
-            if (e.key === "ArrowLeft") {
-              leftArrow.click();
-              e.preventDefault();
-            } else if (e.key === "ArrowRight") {
-              rightArrow.click();
-              e.preventDefault();
-            }
-          }
-        });
-
-        // Keyboard navigation for main image (always active)
-        document.addEventListener('keydown', function(e) {
-          if (e.key === "ArrowLeft") {
-            if (availableImgs.length > 1) {
-              let minIdx = parseInt(mainImgSlider.min, 10) || 0;
-              let nextIdx = currentIdx - 1;
-              if (nextIdx < minIdx) nextIdx = minIdx;
-              currentIdx = nextIdx;
-              updateMainImage(currentIdx);
-            }
-            e.preventDefault();
-          } else if (e.key === "ArrowRight") {
-            if (availableImgs.length > 1) {
-              let maxIdx = availableImgs.length - 1;
-              let nextIdx = currentIdx + 1;
-              if (nextIdx > maxIdx) nextIdx = maxIdx;
-              currentIdx = nextIdx;
-              updateMainImage(currentIdx);
-            }
-            e.preventDefault();
-          }
-        });
-
-        const mainLeftArrow = document.getElementById('main-left-arrow');
-        const mainRightArrow = document.getElementById('main-right-arrow');
-
-        // Arrow button logic for main image slider
         mainLeftArrow.onclick = function() {
-          if (availableImgs.length > 1) {
-            let minIdx = parseInt(mainImgSlider.min, 10) || 0;
+          if (imgSrcs.length > 1) {
             let nextIdx = currentIdx - 1;
-            if (nextIdx < minIdx) nextIdx = minIdx;
+            if (nextIdx < 0) nextIdx = 0;
             currentIdx = nextIdx;
             updateMainImage(currentIdx);
           }
         };
         mainRightArrow.onclick = function() {
-          if (availableImgs.length > 1) {
-            let maxIdx = availableImgs.length - 1;
+          if (imgSrcs.length > 1) {
             let nextIdx = currentIdx + 1;
-            if (nextIdx > maxIdx) nextIdx = maxIdx;
+            if (nextIdx > imgSrcs.length - 1) nextIdx = imgSrcs.length - 1;
             currentIdx = nextIdx;
             updateMainImage(currentIdx);
           }
         };
+
+        document.addEventListener('keydown', function(e) {
+          if (imgSrcs.length > 1 && mainImgContainer.style.display !== 'none') {
+            if (e.key === 'ArrowLeft') {
+              mainLeftArrow.click();
+              e.preventDefault();
+            } else if (e.key === 'ArrowRight') {
+              mainRightArrow.click();
+              e.preventDefault();
+            }
+          }
+        });
+
+        window.addEventListener('DOMContentLoaded', function() {
+          renderFolderList();
+        });
       </script>
       <!-- ...existing code... -->
     </div>
-    <div class="right-panel">
-      <!-- Right panel content -->
-    </div>
   </div>
+</body>
 
