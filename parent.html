@@ -130,14 +130,14 @@
       document.getElementById('slider-container').style.display = 'none';
       document.getElementById('image-container').innerHTML = '';
       document.getElementById('loading-overlay').style.display = 'flex';
+      preloadImages(folder); // Start preloading immediately
       setTimeout(() => {
-        preloadImages(folder);
         document.getElementById('loading-overlay').style.display = 'none';
         document.getElementById('slider-container').style.display = 'flex';
         document.getElementById('hour-slider').value = 0;
         document.getElementById('hour-value').textContent = '0';
         showImage(0);
-      }, 6000);
+      }, 5000);
     }
     function preloadImages(folder) {
       preloadedImages[folder] = {};
