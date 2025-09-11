@@ -11,15 +11,12 @@
         container.style.display = 'block';
 
         // Fetch PNG files dynamically
-        fetch(folderPath)
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const links = doc.querySelectorAll('a[href$=".png"]');
-                links.forEach(link => {
+        fetch('/list-images?folder=PRATEGFS') // Use a Flask route to list images
+            .then(response => response.json())
+            .then(data => {
+                data.images.forEach(image => {
                     const img = document.createElement('img');
-                    img.src = folderPath + link.getAttribute('href');
+                    img.src = `${folderPath}${image}`;
                     img.style.margin = '10px';
                     img.style.maxWidth = '100%';
                     container.appendChild(img);
