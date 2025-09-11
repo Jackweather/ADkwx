@@ -1,0 +1,31 @@
+<!-- ...existing code... -->
+<button id="mslp_pratewithsnow_btn">mslp_pratewithsnow</button>
+<div id="mslp_pratewithsnow_images" style="display: none;">
+    <!-- Images will be dynamically loaded here -->
+</div>
+<script>
+    document.getElementById('mslp_pratewithsnow_btn').addEventListener('click', function () {
+        const folderPath = './mslp_pratewithsnow/'; // Adjust folder path if necessary
+        const container = document.getElementById('mslp_pratewithsnow_images');
+        container.innerHTML = ''; // Clear previous content
+        container.style.display = 'block';
+
+        // Fetch PNG files dynamically
+        fetch(folderPath)
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const links = doc.querySelectorAll('a[href$=".png"]');
+                links.forEach(link => {
+                    const img = document.createElement('img');
+                    img.src = folderPath + link.getAttribute('href');
+                    img.style.margin = '10px';
+                    img.style.maxWidth = '100%';
+                    container.appendChild(img);
+                });
+            })
+            .catch(err => console.error('Error loading images:', err));
+    });
+</script>
+<!-- ...existing code... -->
