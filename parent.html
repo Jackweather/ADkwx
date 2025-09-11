@@ -1,28 +1,76 @@
-<!-- ...existing code... -->
-<button id="mslp_pratewithsnow_btn">mslp_pratewithsnow</button>
-<div id="mslp_pratewithsnow_images" style="display: none;">
-    <!-- Images will be dynamically loaded here -->
-</div>
-<script>
-    document.getElementById('mslp_pratewithsnow_btn').addEventListener('click', function () {
-        const folderPath = '/GFS/static/PRATEGFS/'; // Adjusted folder path
-        const container = document.getElementById('mslp_pratewithsnow_images');
-        container.innerHTML = ''; // Clear previous content
-        container.style.display = 'block';
-
-        // Fetch PNG files dynamically
-        fetch('/list-images?folder=PRATEGFS') // Use a Flask route to list images
-            .then(response => response.json())
-            .then(data => {
-                data.images.forEach(image => {
-                    const img = document.createElement('img');
-                    img.src = `${folderPath}${image}`;
-                    img.style.margin = '10px';
-                    img.style.maxWidth = '100%';
-                    container.appendChild(img);
-                });
-            })
-            .catch(err => console.error('Error loading images:', err));
-    });
-</script>
-<!-- ...existing code... -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parent Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+    }
+    #navbar {
+      display: flex;
+      justify-content: center;
+      background: #263159;
+      padding: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .nav-btn {
+      background: #41507a;
+      color: #fff;
+      border: none;
+      border-radius: 18px;
+      padding: 8px 22px;
+      font-size: 1em;
+      cursor: pointer;
+      margin: 0 10px;
+      transition: background 0.18s;
+    }
+    .nav-btn:hover {
+      background: #263159;
+    }
+    #image-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+      gap: 20px;
+    }
+    .image-item {
+      max-width: 200px;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar">
+    <button class="nav-btn" onclick="loadImages('PRATEGFS')">Prate</button>
+    <button class="nav-btn" onclick="loadImages('tmp_surface')">Tmp</button>
+    <button class="nav-btn" onclick="loadImages('6hour_precip_total')">6hPrecip</button>
+    <button class="nav-btn" onclick="loadImages('12hour_precip_total')">12hPrecip</button>
+    <button class="nav-btn" onclick="loadImages('24hour_precip_total')">24hPrecip</button>
+    <button class="nav-btn" onclick="loadImages('total_precip')">Total Precip</button>
+    <button class="nav-btn" onclick="loadImages('total_lcdc')">Total Cloud Cover</button>
+  </div>
+  <div id="image-container"></div>
+  <script>
+    function loadImages(folder) {
+      const container = document.getElementById('image-container');
+      container.innerHTML = ''; // Clear existing images
+      for (let hour = 0; hour <= 384; hour += 6) {
+        const paddedHour = hour.toString().padStart(3, '0');
+        const img = document.createElement('img');
+        img.src = `/${folder}/${folder === 'PRATEGFS' ? 'prate' : folder === 'tmp_surface' ? '2mtemp' : folder === '6hour_precip_total' ? 'precip6' : folder === '12hour_precip_total' ? 'precip12' : folder === '24hour_precip_total' ? 'precip24' : folder === 'total_precip' ? 'totalprecip' : 'total_lcdc'}_${paddedHour}.png`;
+        img.alt = `${folder}_${paddedHour}`;
+        img.className = 'image-item';
+        img.onerror = () => img.remove(); // Remove image if it fails to load
+        container.appendChild(img);
+      }
+    }
+  </script>
+</body>
+</html>
