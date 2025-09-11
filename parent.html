@@ -10,66 +10,121 @@
       margin: 0;
       padding: 0;
       background: #f5f7fa;
-    }
-    #navbar {
       display: flex;
-      justify-content: center;
+    }
+    #sidebar {
+      width: 180px;
       background: #263159;
-      padding: 10px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px 0;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-height: 100vh;
     }
     .nav-btn {
       background: #41507a;
       color: #fff;
       border: none;
       border-radius: 18px;
-      padding: 8px 22px;
+      padding: 10px 22px;
       font-size: 1em;
       cursor: pointer;
-      margin: 0 10px;
+      margin: 8px 0 0 18px;
       transition: background 0.18s;
+      width: 140px;
+      text-align: left;
     }
     .nav-btn:hover {
       background: #263159;
     }
+    #main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 0 0 0;
+    }
     #image-container {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 20px;
+      flex-direction: column;
+      align-items: center;
       gap: 20px;
+      min-height: 300px;
     }
     .image-item {
-      max-width: 200px;
+      max-width: 400px;
       border-radius: 8px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+    #slider-container {
+      margin-top: 24px;
+      width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #hour-label {
+      margin-bottom: 8px;
+      font-size: 1.1em;
+      color: #263159;
     }
   </style>
 </head>
 <body>
-  <div id="navbar">
-    <button class="nav-btn" onclick="loadImages('PRATEGFS')">Prate</button>
-    <button class="nav-btn" onclick="loadImages('tmp_surface')">Tmp</button>
-    <button class="nav-btn" onclick="loadImages('6hour_precip_total')">6hPrecip</button>
-    <button class="nav-btn" onclick="loadImages('12hour_precip_total')">12hPrecip</button>
-    <button class="nav-btn" onclick="loadImages('24hour_precip_total')">24hPrecip</button>
-    <button class="nav-btn" onclick="loadImages('total_precip')">Total Precip</button>
-    <button class="nav-btn" onclick="loadImages('total_lcdc')">Total Cloud Cover</button>
+  <div id="sidebar">
+    <button class="nav-btn" onclick="selectFolder('PRATEGFS')">Prate</button>
+    <button class="nav-btn" onclick="selectFolder('tmp_surface')">Tmp</button>
+    <button class="nav-btn" onclick="selectFolder('6hour_precip_total')">6hPrecip</button>
+    <button class="nav-btn" onclick="selectFolder('12hour_precip_total')">12hPrecip</button>
+    <button class="nav-btn" onclick="selectFolder('24hour_precip_total')">24hPrecip</button>
+    <button class="nav-btn" onclick="selectFolder('total_precip')">Total Precip</button>
+    <button class="nav-btn" onclick="selectFolder('total_lcdc')">Total Cloud Cover</button>
   </div>
-  <div id="image-container"></div>
+  <div id="main-content">
+    <div id="image-container"></div>
+    <div id="slider-container" style="display:none;">
+      <div id="hour-label">Hour: <span id="hour-value">0</span></div>
+      <input type="range" id="hour-slider" min="0" max="384" step="6" value="0" oninput="updateImage()">
+    </div>
+  </div>
   <script>
-    function loadImages(folder) {
+    let currentFolder = null;
+    function getImageName(folder, hour) {
+      const paddedHour = hour.toString().padStart(3, '0');
+      let prefix = '';
+      if (folder === 'PRATEGFS') prefix = 'prate';
+      else if (folder === 'tmp_surface') prefix = '2mtemp';
+      else if (folder === '6hour_precip_total') prefix = 'precip6';
+      else if (folder === '12hour_precip_total') prefix = 'precip12';
+      else if (folder === '24hour_precip_total') prefix = 'precip24';
+      else if (folder === 'total_precip') prefix = 'totalprecip';
+      else if (folder === 'total_lcdc') prefix = 'total_lcdc';
+      return `/${folder}/${prefix}_${paddedHour}.png`;
+    }
+    function selectFolder(folder) {
+      currentFolder = folder;
+      document.getElementById('slider-container').style.display = 'flex';
+      document.getElementById('hour-slider').value = 0;
+      document.getElementById('hour-value').textContent = '0';
+      showImage(0);
+    }
+    function showImage(hour) {
       const container = document.getElementById('image-container');
-      container.innerHTML = ''; // Clear existing images
-      for (let hour = 0; hour <= 384; hour += 6) {
-        const paddedHour = hour.toString().padStart(3, '0');
-        const img = document.createElement('img');
-        img.src = `/${folder}/${folder === 'PRATEGFS' ? 'prate' : folder === 'tmp_surface' ? '2mtemp' : folder === '6hour_precip_total' ? 'precip6' : folder === '12hour_precip_total' ? 'precip12' : folder === '24hour_precip_total' ? 'precip24' : folder === 'total_precip' ? 'totalprecip' : 'total_lcdc'}_${paddedHour}.png`;
-        img.alt = `${folder}_${paddedHour}`;
-        img.className = 'image-item';
-        img.onerror = () => img.remove(); // Remove image if it fails to load
-        container.appendChild(img);
-      }
+      container.innerHTML = '';
+      if (!currentFolder) return;
+      const img = document.createElement('img');
+      img.src = getImageName(currentFolder, hour);
+      img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
+      img.className = 'image-item';
+      img.onerror = () => img.remove();
+      container.appendChild(img);
+    }
+    function updateImage() {
+      const hour = parseInt(document.getElementById('hour-slider').value);
+      document.getElementById('hour-value').textContent = hour;
+      showImage(hour);
     }
   </script>
 </body>
