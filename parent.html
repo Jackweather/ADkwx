@@ -133,11 +133,31 @@
       }
       return images;
     }
+    function findFirstAvailableHour(folder, callback) {
+      let hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h = 12; h <= 384; h += 12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h = 24; h <= 384; h += 24) hours.push(h);
+      } else {
+        for (let h = 0; h <= 384; h += 6) hours.push(h);
+      }
+      let idx = 0;
+      function checkNext() {
+        if (idx >= hours.length) {
+          callback(hours[0]); // fallback to first
+          return;
+        }
+        const img = new Image();
+        img.onload = function() { callback(hours[idx]); };
+        img.onerror = function() { idx++; checkNext(); };
+        img.src = getImageName(folder, hours[idx]);
+      }
+      checkNext();
+    }
     function selectFolder(folder) {
       currentFolder = folder;
       document.getElementById('slider-container').style.display = 'flex';
-      document.getElementById('hour-slider').value = 0;
-      document.getElementById('hour-value').textContent = '0';
       document.getElementById('image-container').innerHTML = '';
       if (loadingTimeout) {
         clearTimeout(loadingTimeout);
@@ -154,13 +174,21 @@
       if (spinnerFolders.includes(folder)) {
         document.getElementById('loading-spinner').style.display = 'flex';
         preloadImages(folder);
-        loadingTimeout = setTimeout(() => {
-          document.getElementById('loading-spinner').style.display = 'none';
-          showImage(0);
-        }, 5000);
+        findFirstAvailableHour(folder, function(firstHour) {
+          document.getElementById('hour-slider').value = firstHour;
+          document.getElementById('hour-value').textContent = firstHour;
+          loadingTimeout = setTimeout(() => {
+            document.getElementById('loading-spinner').style.display = 'none';
+            showImage(firstHour);
+          }, 5000);
+        });
       } else {
-        document.getElementById('loading-spinner').style.display = 'none';
-        showImage(0);
+        findFirstAvailableHour(folder, function(firstHour) {
+          document.getElementById('hour-slider').value = firstHour;
+          document.getElementById('hour-value').textContent = firstHour;
+          document.getElementById('loading-spinner').style.display = 'none';
+          showImage(firstHour);
+        });
       }
     }
     function showImage(hour) {
