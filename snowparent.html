@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snow Parent Page</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; display: flex; }
+    #sidebar { width: 180px; background: #263159; padding: 20px 0; box-shadow: 2px 0 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: flex-start; min-height: 100vh; }
+    .nav-btn { background: #41507a; color: #fff; border: none; border-radius: 18px; padding: 10px 22px; font-size: 1em; cursor: pointer; margin: 8px 0 0 18px; transition: background 0.18s; width: 140px; text-align: left; }
+    .nav-btn:hover { background: #263159; }
+    #main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 40px 0 0 0; }
+    #image-container { display: flex; flex-direction: column; align-items: center; gap: 20px; min-height: 300px; }
+    .image-item { width: 100%; max-width: 100vw; max-height: 80vh; height: auto; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.2); object-fit: contain; display: block; }
+    #slider-container { margin-top: 24px; width: 400px; display: flex; flex-direction: column; align-items: center; }
+    #hour-label { margin-bottom: 8px; font-size: 1.1em; color: #263159; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <button class="nav-btn" style="background:#e6b800;color:#263159;font-weight:bold;" onclick="window.location.href='parent.html'">Switch to Model</button>
+    <button class="nav-btn" onclick="selectSnowType('3to1')">3:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectSnowType('5to1')">5:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectSnowType('8to1')">8:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectSnowType('10to1')">10:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectSnowType('12to1')">12:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectSnowType('15to1')">15:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectSnowType('20to1')">20:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectSnowType('positive')">Positive Snow Depth Change</button>
+  </div>
+  <div id="main-content">
+    <div id="image-container"></div>
+    <div id="loading-spinner" style="display:none;align-items:center;justify-content:center;height:300px;width:100%;">
+      <div style="border:8px solid #f3f3f3;border-top:8px solid #263159;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;"></div>
+    </div>
+    <div id="slider-container" style="display:none;">
+      <div id="hour-label">Hour: <span id="hour-value">0</span></div>
+      <input type="range" id="hour-slider" min="0" max="384" step="6" value="0" oninput="updateImage()">
+    </div>
+  </div>
+  <script>
+    let currentType = null;
+    let loadingTimeout = null;
+    let snowHours = [];
+    for (let hour = 0; hour <= 384; hour += 6) snowHours.push(hour);
+    let snowSrcs = {
+      '3to1': snowHours.map(h => `/GFS/static/totalsnowfall_3to1/totalsnowfall_3to1_${h.toString().padStart(3,'0')}.png`),
+      '5to1': snowHours.map(h => `/GFS/static/totalsnowfall_5to1/totalsnowfall_5to1_${h.toString().padStart(3,'0')}.png`),
+      '8to1': snowHours.map(h => `/GFS/static/totalsnowfall_8to1/totalsnowfall_8to1_${h.toString().padStart(3,'0')}.png`),
+      '10to1': snowHours.map(h => `/GFS/static/totalsnowfall_10to1/totalsnowfall_10to1_${h.toString().padStart(3,'0')}.png`),
+      '12to1': snowHours.map(h => `/GFS/static/totalsnowfall_12to1/totalsnowfall_12to1_${h.toString().padStart(3,'0')}.png`),
+      '15to1': snowHours.map(h => `/GFS/static/totalsnowfall_15to1/totalsnowfall_15to1_${h.toString().padStart(3,'0')}.png`),
+      '20to1': snowHours.map(h => `/GFS/static/totalsnowfall_20to1/totalsnowfall_20to1_${h.toString().padStart(3,'0')}.png`),
+      'positive': snowHours.map(h => `/GFS/static/snow_depth/snowdepth_${h.toString().padStart(3,'0')}.png`)
+    };
+    function preloadImages(type) {
+      snowSrcs[type].forEach(src => { const img = new Image(); img.src = src; });
+    }
+    function findFirstAvailableIndex(type, callback) {
+      let idx = 0;
+      let arr = snowSrcs[type];
+      function checkNext() {
+        if (idx >= arr.length) { callback(0); return; }
+        const img = new Image();
+        img.onload = function() { callback(idx); };
+        img.onerror = function() { idx++; checkNext(); };
+        img.src = arr[idx];
+      }
+      checkNext();
+    }
+    function selectSnowType(type) {
+      currentType = type;
+      document.getElementById('slider-container').style.display = 'flex';
+      document.getElementById('image-container').innerHTML = '';
+      if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
+      findFirstAvailableIndex(type, function(firstIdx) {
+        const slider = document.getElementById('hour-slider');
+        slider.value = snowHours[firstIdx];
+        slider.min = snowHours[firstIdx];
+        document.getElementById('hour-value').textContent = snowHours[firstIdx];
+        document.getElementById('loading-spinner').style.display = 'flex';
+        preloadImages(type);
+        loadingTimeout = setTimeout(() => {
+          document.getElementById('loading-spinner').style.display = 'none';
+          showImage(snowHours[firstIdx]);
+        }, 3000);
+      });
+    }
+    function showImage(hour) {
+      const container = document.getElementById('image-container');
+      container.innerHTML = '';
+      if (!currentType) return;
+      const idx = snowHours.indexOf(hour);
+      if (idx === -1) return;
+      const img = document.createElement('img');
+      img.src = snowSrcs[currentType][idx];
+      img.alt = `${currentType}_${hour.toString().padStart(3,'0')}`;
+      img.className = 'image-item';
+      img.onerror = () => img.remove();
+      container.appendChild(img);
+    }
+    function updateImage() {
+      const hour = parseInt(document.getElementById('hour-slider').value);
+      document.getElementById('hour-value').textContent = hour;
+      showImage(hour);
+    }
+    document.addEventListener('keydown', function(e) {
+      const slider = document.getElementById('hour-slider');
+      let min = parseInt(slider.min, 10);
+      let max = parseInt(slider.max, 10);
+      let step = parseInt(slider.step, 10);
+      let val = parseInt(slider.value, 10);
+      if (e.key === 'ArrowLeft') {
+        let next = val - step;
+        if (next < min) next = min;
+        slider.value = next;
+        document.getElementById('hour-value').textContent = next;
+        showImage(next);
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        let next = val + step;
+        if (next > max) next = max;
+        slider.value = next;
+        document.getElementById('hour-value').textContent = next;
+        showImage(next);
+        e.preventDefault();
+      }
+    });
+    // Show positive snow depth change PNGs on page load
+    window.addEventListener('DOMContentLoaded', function() {
+      selectSnowType('positive');
+    });
+  </script>
+</body>
+</html>
