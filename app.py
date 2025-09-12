@@ -22,7 +22,7 @@ BASE_DATA_DIR = '/var/data'
 
 @app.route('/')
 def index():
-    with open('gfs.html', 'r', encoding='utf-8') as f:
+    with open('parent.html', 'r', encoding='utf-8') as f:
         html = f.read()
     directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
     images_html = ''.join(
