@@ -205,6 +205,28 @@
       document.getElementById('hour-value').textContent = hour;
       showImage(hour);
     }
+    document.addEventListener('keydown', function(e) {
+      const slider = document.getElementById('hour-slider');
+      let min = parseInt(slider.min, 10);
+      let max = parseInt(slider.max, 10);
+      let step = parseInt(slider.step, 10);
+      let val = parseInt(slider.value, 10);
+      if (e.key === 'ArrowLeft') {
+        let next = val - step;
+        if (next < min) next = min;
+        slider.value = next;
+        document.getElementById('hour-value').textContent = next;
+        showImage(next);
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        let next = val + step;
+        if (next > max) next = max;
+        slider.value = next;
+        document.getElementById('hour-value').textContent = next;
+        showImage(next);
+        e.preventDefault();
+      }
+    });
   </script>
 </body>
 </html>
