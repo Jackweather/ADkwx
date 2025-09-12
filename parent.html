@@ -171,25 +171,23 @@
         '24hour_precip_total',
         'total_precip'
       ];
-      if (spinnerFolders.includes(folder)) {
-        document.getElementById('loading-spinner').style.display = 'flex';
-        preloadImages(folder);
-        findFirstAvailableHour(folder, function(firstHour) {
-          document.getElementById('hour-slider').value = firstHour;
-          document.getElementById('hour-value').textContent = firstHour;
+      findFirstAvailableHour(folder, function(firstHour) {
+        const slider = document.getElementById('hour-slider');
+        slider.value = firstHour;
+        slider.min = firstHour;
+        document.getElementById('hour-value').textContent = firstHour;
+        if (spinnerFolders.includes(folder)) {
+          document.getElementById('loading-spinner').style.display = 'flex';
+          preloadImages(folder);
           loadingTimeout = setTimeout(() => {
             document.getElementById('loading-spinner').style.display = 'none';
             showImage(firstHour);
           }, 5000);
-        });
-      } else {
-        findFirstAvailableHour(folder, function(firstHour) {
-          document.getElementById('hour-slider').value = firstHour;
-          document.getElementById('hour-value').textContent = firstHour;
+        } else {
           document.getElementById('loading-spinner').style.display = 'none';
           showImage(firstHour);
-        });
-      }
+        }
+      });
     }
     function showImage(hour) {
       const container = document.getElementById('image-container');
