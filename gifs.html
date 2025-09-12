@@ -59,7 +59,7 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px #0001;
       padding: 24px 24px;
-      overflow-y: auto;
+      overflow: hidden;
       font-size: 1.08em;
       margin-bottom: 0;
       display: flex;
@@ -67,9 +67,22 @@
       gap: 10px;
     }
     #gif-image-grid {
+      flex: 1;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 18px;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      align-items: stretch;
+    }
+    #gif-image-grid img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #fff;
+      display: block;
     }
     #fullscreen-modal {
       display: none;
@@ -203,12 +216,10 @@
   </div>
   <div id="main-content">
     <h2 style="color:#263159;">GIF Gallery</h2>
-    <div class="gif-area">
-      <div id="gif-image-grid"></div>
-      <div id="fullscreen-modal" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:#263159;align-items:center;justify-content:center;">
-        <button id="fullscreen-close" style="position:absolute;top:24px;right:36px;font-size:2em;background:none;border:none;color:#fff;cursor:pointer;z-index:3100;">&#10006;</button>
-        <img id="fullscreen-img" src="" alt="" style="position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;max-width:90vw;max-height:85vh;width:90vw;height:85vh;box-shadow:0 4px 32px #000;border-radius:0;transition:opacity 0.25s;cursor:pointer;display:block;object-fit:contain;background:#263159;">
-      </div>
+    <div id="gif-image-grid"></div>
+    <div id="fullscreen-modal" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:#263159;align-items:center;justify-content:center;">
+      <button id="fullscreen-close" style="position:absolute;top:24px;right:36px;font-size:2em;background:none;border:none;color:#fff;cursor:pointer;z-index:3100;">&#10006;</button>
+      <img id="fullscreen-img" src="" alt="" style="position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;max-width:90vw;max-height:85vh;width:90vw;height:85vh;box-shadow:0 4px 32px #000;border-radius:0;transition:opacity 0.25s;cursor:pointer;display:block;object-fit:contain;background:#263159;">
     </div>
   </div>
   <script>
