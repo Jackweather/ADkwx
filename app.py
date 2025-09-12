@@ -153,6 +153,14 @@ def serve_totalsnowfall_15to1_image(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
+@app.route('/thickness/<path:filename>')
+def serve_thickness_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'THICKNESS')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
 @app.route('/gifs.html')
 def gifs_html():
     with open('gifs.html', 'r', encoding='utf-8') as f:
@@ -412,7 +420,7 @@ def run_task1():
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
 
-         # --- Run gfsmodel/totalsnowfall_10to1.py ---
+        # --- Run gfsmodel/totalsnowfall_10to1.py ---
         try:
             result = subprocess.run(
                 ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py"],
@@ -427,7 +435,21 @@ def run_task1():
             print(f"Error running totalsnowfall_10to1.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
-
+        # --- Run gfsmodel/thickness_1000_500.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/thickness_1000_500.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("thickness_1000_500.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running thickness_1000_500.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
         # --- Run Gifs/gif.py ---
         try:
             result = subprocess.run(
