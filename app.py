@@ -161,6 +161,14 @@ def serve_thickness_image(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
+@app.route('/GFS/static/THICKNESS/<path:filename>')
+def serve_thickness_png(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'THICKNESS')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
 @app.route('/gifs.html')
 def gifs_html():
     with open('gifs.html', 'r', encoding='utf-8') as f:
