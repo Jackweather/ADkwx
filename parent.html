@@ -122,7 +122,7 @@
       else if (folder === '24hour_precip_total') prefix = 'precip24';
       else if (folder === 'total_precip') prefix = 'totalprecip';
       else if (folder === 'total_lcdc') prefix = 'total_lcdc';
-      else if (folder === 'THICKNESS') prefix = 'THICKNESS';
+      else if (folder === 'THICKNESS') prefix = 'thickness';
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
     function preloadImages(folder) {
@@ -136,7 +136,7 @@
         else if (folder === '24hour_precip_total') prefix = 'precip24';
         else if (folder === 'total_precip') prefix = 'totalprecip';
         else if (folder === 'total_lcdc') prefix = 'total_lcdc';
-        else if (folder === 'THICKNESS') prefix = 'THICKNESS';
+        else if (folder === 'THICKNESS') prefix = 'thickness';
         const img = new Image();
         img.src = `/${folder}/${prefix}_${hour.toString().padStart(3, '0')}.png`;
         img.onload = () => images.push(img);
