@@ -97,7 +97,7 @@
     <button class="nav-btn" onclick="selectFolder('24hour_precip_total')">24hPrecip</button>
     <button class="nav-btn" onclick="selectFolder('total_precip')">Total Precip</button>
     <button class="nav-btn" onclick="selectFolder('total_lcdc')">Total Cloud Cover</button>
-    <button class="nav-btn" onclick="selectFolder('THICKNESS')">Thickness</button>
+    <button class="nav-btn" onclick="selectFolder('THICKNESS')">THICKNESS</button>
   </div>
   <div id="main-content">
     <div id="image-container"></div>
@@ -122,7 +122,7 @@
       else if (folder === '24hour_precip_total') prefix = 'precip24';
       else if (folder === 'total_precip') prefix = 'totalprecip';
       else if (folder === 'total_lcdc') prefix = 'total_lcdc';
-      else if (folder === 'THICKNESS') prefix = 'thickness';
+      else if (folder === 'THICKNESS') prefix = 'THICKNESS';
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
     function preloadImages(folder) {
@@ -136,7 +136,7 @@
         else if (folder === '24hour_precip_total') prefix = 'precip24';
         else if (folder === 'total_precip') prefix = 'totalprecip';
         else if (folder === 'total_lcdc') prefix = 'total_lcdc';
-        else if (folder === 'THICKNESS') prefix = 'thickness';
+        else if (folder === 'THICKNESS') prefix = 'THICKNESS';
         const img = new Image();
         img.src = `/${folder}/${prefix}_${hour.toString().padStart(3, '0')}.png`;
         img.onload = () => images.push(img);
