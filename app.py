@@ -162,7 +162,6 @@ def serve_thickness_image(filename):
     return send_from_directory(directory, filename)
 
 
-
 @app.route('/gifs.html')
 def gifs_html():
     with open('gifs.html', 'r', encoding='utf-8') as f:
@@ -501,6 +500,8 @@ def get_chats():
                     # fallback for old format
                     messages.append({'text': line, 'timestamp': ''})
     return jsonify({'messages': messages})
+
+
 
 
 if __name__ == '__main__':
