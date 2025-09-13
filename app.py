@@ -153,7 +153,7 @@ def serve_totalsnowfall_15to1_image(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
-@app.route('/GFS/static/THICKNESS/<path:filename>')
+@app.route('/GFS/static/thickness/<path:filename>')
 def serve_thickness_image(filename):
     directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'THICKNESS')
     abs_path = os.path.join(directory, filename)
