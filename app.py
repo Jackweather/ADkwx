@@ -161,6 +161,22 @@ def serve_thickness_image(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
+@app.route('/usa_pngs/<path:filename>')
+def serve_usa_png(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'usa_pngs')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/northeast_pngs/<path:filename>')
+def serve_northeast_png(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'northeast_pngs')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
 
 @app.route('/gifs.html')
 def gifs_html():
@@ -501,7 +517,21 @@ def get_chats():
                     messages.append({'text': line, 'timestamp': ''})
     return jsonify({'messages': messages})
 
+@app.route('/usa_pngs/<path:filename>')
+def serve_usa_png(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'usa_pngs')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
 
+@app.route('/northeast_pngs/<path:filename>')
+def serve_northeast_png(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'northeast_pngs')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
 
 
 if __name__ == '__main__':
