@@ -90,7 +90,7 @@
   </div>
   <div id="sidebar" style="margin-top:54px;">
     <button class="nav-btn" style="background:#e6b800;color:#263159;font-weight:bold;" onclick="window.location.href='snowparent.html'">Switch to Snow</button>
-    <button class="nav-btn" onclick="selectFolder('PRATEGFS')">Prate</button>
+    <button class="nav-btn" onclick="selectFolder('usa_pngs')">USA</button>
     <button class="nav-btn" onclick="selectFolder('tmp_surface')">Tmp</button>
     <button class="nav-btn" onclick="selectFolder('6hour_precip_total')">6hPrecip</button>
     <button class="nav-btn" onclick="selectFolder('12hour_precip_total')">12hPrecip</button>
@@ -115,7 +115,7 @@
     function getImageName(folder, hour) {
       const paddedHour = hour.toString().padStart(3, '0');
       let prefix = '';
-      if (folder === 'PRATEGFS') prefix = 'prate';
+      if (folder === 'usa_pngs') prefix = 'usa_gfs';
       else if (folder === 'tmp_surface') prefix = '2mtemp';
       else if (folder === '6hour_precip_total') prefix = 'precip6';
       else if (folder === '12hour_precip_total') prefix = 'precip12';
@@ -129,7 +129,7 @@
       const images = [];
       for (let hour = 0; hour <= 384; hour += 6) {
         let prefix = '';
-        if (folder === 'PRATEGFS') prefix = 'prate';
+        if (folder === 'usa_pngs') prefix = 'usa_gfs';
         else if (folder === 'tmp_surface') prefix = '2mtemp';
         else if (folder === '6hour_precip_total') prefix = 'precip6';
         else if (folder === '12hour_precip_total') prefix = 'precip12';
@@ -174,7 +174,7 @@
         loadingTimeout = null;
       }
       const spinnerFolders = [
-        'PRATEGFS',
+        'usa_pngs',
         'tmp_surface',
         '6hour_precip_total',
         '12hour_precip_total',
