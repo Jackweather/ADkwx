@@ -24,9 +24,9 @@ BASE_DATA_DIR = '/var/data'
 def index():
     with open('parent.html', 'r', encoding='utf-8') as f:
         html = f.read()
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'usa_pngs')
     images_html = ''.join(
-        f'<img src="/PRATEGFS/{png}" alt="{png}"><br>\n'
+        f'<img src="/usa_pngs/{png}" alt="{png}"><br>\n'
         for png in sorted(f for f in os.listdir(directory) if f.endswith('.png'))
     )
     return html.replace('<!--IMAGES-->', images_html)
@@ -517,21 +517,7 @@ def get_chats():
                     messages.append({'text': line, 'timestamp': ''})
     return jsonify({'messages': messages})
 
-@app.route('/usa_pngs/<path:filename>')
-def serve_usa_png(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'usa_pngs')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
 
-@app.route('/northeast_pngs/<path:filename>')
-def serve_northeast_png(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'northeast_pngs')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
 
 
 if __name__ == '__main__':
