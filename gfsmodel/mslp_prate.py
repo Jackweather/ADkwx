@@ -38,6 +38,12 @@ png_dir = combined_dir
 os.makedirs(grib_dir, exist_ok=True)
 os.makedirs(png_dir, exist_ok=True)
 
+# Create subfolders for USA and Northeast PNGs
+usa_png_dir = os.path.join(output_dir, "static", "usa_pngs")
+northeast_png_dir = os.path.join(output_dir, "static", "northeast_pngs")
+os.makedirs(usa_png_dir, exist_ok=True)
+os.makedirs(northeast_png_dir, exist_ok=True)
+
 # Output directory for combined PNGs
 # combined_dir = os.path.join(BASE_DIR, "GFS", "static", "combined_mslp_prate")
 # os.makedirs(combined_dir, exist_ok=True)
@@ -475,17 +481,167 @@ def plot_combined(mslp_path, prate_path, step, csnow_path=None):
     print(f"Generated combined PNG: {png_path}")
     return png_path
 
+# Function to plot USA PNG
+
+def plot_usa(mslp_path, prate_path, step):
+    try:
+        ds_mslp = xr.open_dataset(mslp_path, engine="cfgrib")
+        ds_prate = xr.open_dataset(prate_path, engine="cfgrib", filter_by_keys={"stepType": "instant"})
+    except Exception as e:
+        print(f"Error opening dataset: {e}")
+        return None
+    mslp = ds_mslp['mslet'].values / 100.0
+    prate = ds_prate['prate'].values * 3600
+    lats = ds_mslp['latitude'].values
+    lons = ds_mslp['longitude'].values
+    lons_plot = np.where(lons > 180, lons - 360, lons)
+    if lats.ndim == 1 and lons.ndim == 1:
+        Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
+        mslp2d = mslp.squeeze()
+        prate2d = prate.squeeze()
+    else:
+        Lon2d, Lat2d = lons_plot, lats
+        mslp2d = mslp.squeeze()
+        prate2d = prate.squeeze()
+    fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
+    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
+    extent = [-130, -65, 20, 54]
+    ax.set_extent(extent, crs=ccrs.PlateCarree())
+    ax.add_feature(cfeature.LAND, facecolor='lightgray')
+    ax.add_feature(cfeature.OCEAN, facecolor='white')
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
+    ax.add_feature(cfeature.STATES, linewidth=0.3)
+    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
+    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
+    mesh = ax.contourf(
+        Lon2d, Lat2d, prate2d,
+        levels=prate_levels,
+        cmap=prate_cmap,
+        norm=prate_norm,
+        extend='max',
+        transform=ccrs.PlateCarree(),
+        alpha=0.7
+    )
+    # Title block copied from plot_northeast/plot_combined
+    run_hour_map = {
+        "00": 20,
+        "06": 2,
+        "12": 8,
+        "18": 14
+    }
+    base_hour = run_hour_map.get(hour_str, 8)
+    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
+    valid_time = base_time + timedelta(hours=step)
+    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
+    day_of_week = valid_time.strftime('%A')
+    run_str = f"{hour_str}z"
+    title_str = (
+        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
+        f"Precipitation Rate & Mean Sea Level Pressure"
+    )
+    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
+    cbar = plt.colorbar(mesh, ax=ax, orientation='horizontal', pad=0.01, aspect=25, shrink=0.65, fraction=0.035, anchor=(0.5, 0.0), location='bottom', ticks=prate_levels, boundaries=prate_levels)
+    cbar.set_label("Precipitation Rate (mm/hr)", fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+    cbar.ax.set_facecolor('white')
+    cbar.outline.set_edgecolor('black')
+    cs = ax.contour(Lon2d, Lat2d, mslp2d, levels=mslp_levels, colors='black', linewidths=0.7, transform=ccrs.PlateCarree())
+    ax.clabel(cs, fmt='%d', fontsize=4, colors='black', inline=True)
+    ax.set_axis_off()
+    png_path = os.path.join(usa_png_dir, f"usa_gfs_{step:03d}.png")
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
+    plt.close(fig)
+    print(f"Generated USA PNG: {png_path}")
+    return png_path
+
+# Function to plot Northeast PNG
+
+def plot_northeast(mslp_path, prate_path, step):
+    try:
+        ds_mslp = xr.open_dataset(mslp_path, engine="cfgrib")
+        ds_prate = xr.open_dataset(prate_path, engine="cfgrib", filter_by_keys={"stepType": "instant"})
+    except Exception as e:
+        print(f"Error opening dataset: {e}")
+        return None
+    mslp = ds_mslp['mslet'].values / 100.0
+    prate = ds_prate['prate'].values * 3600
+    lats = ds_mslp['latitude'].values
+    lons = ds_mslp['longitude'].values
+    lons_plot = np.where(lons > 180, lons - 360, lons)
+    if lats.ndim == 1 and lons.ndim == 1:
+        Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
+        mslp2d = mslp.squeeze()
+        prate2d = prate.squeeze()
+    else:
+        Lon2d, Lat2d = lons_plot, lats
+        mslp2d = mslp.squeeze()
+        prate2d = prate.squeeze()
+    fig = plt.figure(figsize=(8, 8), dpi=600, facecolor='white')
+    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
+    extent = [-80, -65, 39, 48]  # Northeast region
+    ax.set_extent(extent, crs=ccrs.PlateCarree())
+    ax.add_feature(cfeature.LAND, facecolor='lightgray')
+    ax.add_feature(cfeature.OCEAN, facecolor='white')
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
+    ax.add_feature(cfeature.STATES, linewidth=0.3)
+    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
+    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
+    mesh = ax.contourf(
+        Lon2d, Lat2d, prate2d,
+        levels=prate_levels,
+        cmap=prate_cmap,
+        norm=prate_norm,
+        extend='max',
+        transform=ccrs.PlateCarree(),
+        alpha=0.7
+    )
+    # Title block copied from plot_combined
+    run_hour_map = {
+        "00": 20,
+        "06": 2,
+        "12": 8,
+        "18": 14
+    }
+    base_hour = run_hour_map.get(hour_str, 8)
+    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
+    valid_time = base_time + timedelta(hours=step)
+    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
+    day_of_week = valid_time.strftime('%A')
+    run_str = f"{hour_str}z"
+    title_str = (
+        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
+        f"Precipitation Rate & Mean Sea Level Pressure"
+    )
+    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
+    cbar = plt.colorbar(mesh, ax=ax, orientation='horizontal', pad=0.01, aspect=25, shrink=0.65, fraction=0.035, anchor=(0.5, 0.0), location='bottom', ticks=prate_levels, boundaries=prate_levels)
+    cbar.set_label("Precipitation Rate (mm/hr)", fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+    cbar.ax.set_facecolor('white')
+    cbar.outline.set_edgecolor('black')
+    cs = ax.contour(Lon2d, Lat2d, mslp2d, levels=mslp_levels, colors='black', linewidths=0.7, transform=ccrs.PlateCarree())
+    ax.clabel(cs, fmt='%d', fontsize=4, colors='black', inline=True)
+    ax.set_axis_off()
+    png_path = os.path.join(northeast_png_dir, f"northeast_gfs_{step:03d}.png")
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
+    plt.close(fig)
+    print(f"Generated Northeast PNG: {png_path}")
+    return png_path
+
 # Main process
 for step in forecast_steps:
     mslp_grib = get_mslp_grib(step)
     prate_grib = get_prate_grib(step)
     csnow_grib = get_csnow_grib(step)
     if mslp_grib and prate_grib:
-        plot_combined(mslp_grib, prate_grib, step, csnow_grib)
+        plot_usa(mslp_grib, prate_grib, step)
+        plot_northeast(mslp_grib, prate_grib, step)
         gc.collect()
         time.sleep(3)
-
-        print("All combined PNG creation tasks complete!")
+        print("All PNG creation tasks complete!")
         time.sleep(3)
 
 # --- Delete all GRIB files in grib_dir after PNGs are made ---
