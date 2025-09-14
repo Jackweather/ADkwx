@@ -207,9 +207,6 @@ def serve_parent_html():
 def serve_snowparent_html():
     return send_from_directory(os.path.dirname(__file__), 'snowparent.html')
 
-@app.route('/northeastgfs.html')
-def serve_northeast_html():
-    return send_from_directory(os.path.dirname(__file__), 'northeastgfs.html')
 
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
