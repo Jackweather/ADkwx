@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Northeast GFS</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      display: flex;
+    }
+    #sidebar {
+      width: 180px;
+      background: #263159;
+      padding: 20px 0;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .nav-btn {
+      background: #41507a;
+      color: #fff;
+      border: none;
+      border-radius: 18px;
+      padding: 10px 22px;
+      font-size: 1em;
+      cursor: pointer;
+      margin: 8px 0 0 18px;
+      transition: background 0.18s;
+      width: 140px;
+      text-align: left;
+    }
+    .nav-btn:hover {
+      background: #263159;
+    }
+    #main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 100px 0 0 0;
+    }
+    #image-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      min-height: 300px;
+    }
+    .image-item {
+      width: 100%;
+      max-width: 100vw;
+      max-height: 80vh;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      object-fit: contain;
+      display: block;
+    }
+    #slider-container {
+      margin-top: 24px;
+      width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #hour-label {
+      margin-bottom: 8px;
+      font-size: 1.1em;
+      color: #263159;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div style="width:100vw;display:flex;align-items:center;justify-content:flex-start;background:#263159;color:#fff;padding:10px 24px 10px 24px;position:fixed;top:0;left:0;z-index:10;gap:18px;">
+    <span style="font-size:1.3em;font-weight:bold;letter-spacing:1px;">adkwx.com</span>
+    <button onclick="window.location.href='community.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:18px;">Community</button>
+    <button onclick="window.location.href='updates.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:8px;">Updates</button>
+    <button onclick="window.location.href='gifs.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:8px;">GIFs</button>
+  </div>
+  <div id="sidebar" style="margin-top:54px;">
+    <button class="nav-btn" style="background:#e6b800;color:#263159;font-weight:bold;" onclick="window.location.href='parent.html'">Switch to Model</button>
+    <button class="nav-btn" onclick="selectFolder('northeast_pngs')">Prate</button>
+    <!-- Sidebar present, no PNG selection buttons -->
+  </div>
+  <div id="main-content">
+    <div id="image-container"></div>
+    <div id="loading-spinner" style="display:none;align-items:center;justify-content:center;height:300px;width:100%;">
+      <div style="border:8px solid #f3f3f3;border-top:8px solid #263159;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;"></div>
+    </div>
+    <div id="slider-container" style="display:none;">
+      <div id="hour-label">Hour: <span id="hour-value">0</span></div>
+      <input type="range" id="hour-slider" min="0" max="384" step="6" value="0" oninput="updateImage()">
+    </div>
+  </div>
+  <script>
+    let currentFolder = null;
+    let loadingTimeout = null;
+    function getImageName(folder, hour) {
+      const paddedHour = hour.toString().padStart(3, '0');
+      let prefix = '';
+      if (folder === 'northeast_pngs') prefix = 'northeast_gfs';
+      return `/${folder}/${prefix}_${paddedHour}.png`;
+    }
+    function preloadImages(folder) {
+      const images = [];
+      for (let hour = 0; hour <= 384; hour += 6) {
+        let prefix = '';
+        if (folder === 'northeast_pngs') prefix = 'northeast_gfs';
+        const img = new Image();
+        img.src = `/${folder}/${prefix}_${hour.toString().padStart(3, '0')}.png`;
+        img.onload = () => images.push(img);
+      }
+      return images;
+    }
+    function findFirstAvailableHour(folder, callback) {
+      let hours = [];
+      for (let h = 0; h <= 384; h += 6) hours.push(h);
+      let idx = 0;
+      function checkNext() {
+        if (idx >= hours.length) {
+          callback(hours[0]); // fallback to first
+          return;
+        }
+        const img = new Image();
+        img.onload = function() { callback(hours[idx]); };
+        img.onerror = function() { idx++; checkNext(); };
+        img.src = getImageName(folder, hours[idx]);
+      }
+      checkNext();
+    }
+    function selectFolder(folder) {
+      currentFolder = folder;
+      document.getElementById('slider-container').style.display = 'flex';
+      document.getElementById('image-container').innerHTML = '';
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+      }
+      const spinnerFolders = [
+        'northeast_pngs'
+      ];
+      findFirstAvailableHour(folder, function(firstHour) {
+        const slider = document.getElementById('hour-slider');
+        slider.value = firstHour;
+        slider.min = firstHour;
+        document.getElementById('hour-value').textContent = firstHour;
+        if (spinnerFolders.includes(folder)) {
+          document.getElementById('loading-spinner').style.display = 'flex';
+          preloadImages(folder);
+          loadingTimeout = setTimeout(() => {
+            document.getElementById('loading-spinner').style.display = 'none';
+            showImage(firstHour);
+          }, 3000);
+        } else {
+          document.getElementById('loading-spinner').style.display = 'none';
+          showImage(firstHour);
+        }
+      });
+    }
+    function showImage(hour) {
+      const container = document.getElementById('image-container');
+      container.innerHTML = '';
+      if (!currentFolder) return;
+      const img = document.createElement('img');
+      img.src = getImageName(currentFolder, hour);
+      img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
+      img.className = 'image-item';
+      img.onerror = () => img.remove();
+      container.appendChild(img);
+    }
+    function updateImage() {
+      const hour = parseInt(document.getElementById('hour-slider').value);
+      document.getElementById('hour-value').textContent = hour;
+      showImage(hour);
+    }
+    document.addEventListener('keydown', function(e) {
+      const slider = document.getElementById('hour-slider');
+      let min = parseInt(slider.min, 10);
+      let max = parseInt(slider.max, 10);
+      let step = parseInt(slider.step, 10);
+      let val = parseInt(slider.value, 10);
+      if (e.key === 'ArrowLeft') {
+        let next = val - step;
+        if (next < min) next = min;
+        slider.value = next;
+        document.getElementById('hour-value').textContent = next;
+        showImage(next);
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        let next = val + step;
+        if (next > max) next = max;
+        slider.value = next;
+        document.getElementById('hour-value').textContent = next;
+        showImage(next);
+        e.preventDefault();
+      }
+    });
+    // Show initial image
+    selectFolder('northeast_pngs');
+  </script>
+</body>
+</html>
