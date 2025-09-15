@@ -177,9 +177,9 @@ def serve_northeast_png(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
-@app.route('/wind_200/<path:filename>')
+@app.route('/WIND_200/<path:filename>')
 def serve_wind_200_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'wind_200')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'WIND_200')
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -476,6 +476,21 @@ def run_task1():
         except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running thickness_1000_500.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- Run gfsmodel/wind_200.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/wind_200.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("wind_200.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running wind_200.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
         # --- Run Gifs/gif.py ---
