@@ -177,6 +177,16 @@ def serve_northeast_png(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
+@app.route('/wind_200/<path:filename>')
+def serve_wind_200_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'wind_200')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+
+
 
 @app.route('/gifs.html')
 def gifs_html():
