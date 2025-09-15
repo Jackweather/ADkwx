@@ -74,9 +74,12 @@ def get_wind_grib(step):
     )
     return download_grib(url, file_path)
 
-def get_hgt_grib():
-    # Download 200mb height for current run
-    file_name = f"gfs.t{hour_str}z.pgrb2.0p25.anl"
+def get_hgt_grib(step):
+    # Download 200mb height for the given forecast hour
+    if step == 0:
+        file_name = f"gfs.t{hour_str}z.pgrb2.0p25.f000"
+    else:
+        file_name = f"gfs.t{hour_str}z.pgrb2.0p25.f{step:03d}"
     file_path = os.path.join(grib_dir, f"hgt200_{file_name}")
     url = (
         f"{base_url_0p25}?file={file_name}"
@@ -234,11 +237,9 @@ def plot_wind_200(grib_path, step, hgt_grib_path=None):
     print(f"Generated wind200 PNG: {png_path}")
     return png_path
 
-# --- Download HGT GRIB file once for the run ---
-hgt_grib_path = get_hgt_grib()
-
 for step in forecast_steps:
     wind_grib = get_wind_grib(step)
+    hgt_grib_path = get_hgt_grib(step)
     if wind_grib:
         plot_wind_200(wind_grib, step, hgt_grib_path=hgt_grib_path)
         gc.collect()
