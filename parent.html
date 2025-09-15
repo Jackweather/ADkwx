@@ -106,6 +106,7 @@
     <button class="nav-btn" onclick="selectFolder('total_precip')">Total Precip</button>
     <button class="nav-btn" onclick="selectFolder('total_lcdc')">Total Cloud Cover</button>
     <button class="nav-btn" onclick="selectFolder('THICKNESS')">THICKNESS</button>
+    <button class="nav-btn" onclick="selectFolder('wind_200')">200mb Wind</button>
   </div>
   <div id="main-content">
     <div id="image-container"></div>
@@ -131,7 +132,8 @@
       else if (folder === 'total_precip') prefix = 'totalprecip';
       else if (folder === 'total_lcdc') prefix = 'total_lcdc';
       else if (folder === 'THICKNESS') prefix = 'thickness';
-      else if (folder === 'northeast_pngs') prefix = 'northeast_gfs'; // <-- add this line
+      else if (folder === 'northeast_pngs') prefix = 'northeast_gfs';
+      else if (folder === 'wind_200') prefix = 'wind200';
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
     function preloadImages(folder) {
@@ -146,7 +148,8 @@
         else if (folder === 'total_precip') prefix = 'totalprecip';
         else if (folder === 'total_lcdc') prefix = 'total_lcdc';
         else if (folder === 'THICKNESS') prefix = 'thickness';
-        else if (folder === 'northeast_pngs') prefix = 'northeast_gfs'; // <-- add this line
+        else if (folder === 'northeast_pngs') prefix = 'northeast_gfs';
+        else if (folder === 'wind_200') prefix = 'wind200';
         const img = new Image();
         img.src = `/${folder}/${prefix}_${hour.toString().padStart(3, '0')}.png`;
         img.onload = () => images.push(img);
@@ -191,7 +194,8 @@
         '24hour_precip_total',
         'total_precip',
         'THICKNESS',
-        'northeast_pngs' // <-- add this line
+        'northeast_pngs',
+        'wind_200'
       ];
       findFirstAvailableHour(folder, function(firstHour) {
         const slider = document.getElementById('hour-slider');
