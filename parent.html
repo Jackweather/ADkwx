@@ -140,6 +140,10 @@
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
 
+    function isMobile() {
+      return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    }
+
     function preloadImages(folder, callback, firstHourToShow) {
       imageCache[folder] = {};
       let hours = [];
@@ -150,8 +154,15 @@
       } else {
         for (let h = 0; h <= 384; h += 6) hours.push(h);
       }
+
+      // On mobile, only preload images within ±24 hours of the firstHourToShow
+      let preloadHours = hours;
+      if (isMobile() && typeof firstHourToShow === 'number') {
+        preloadHours = hours.filter(h => Math.abs(h - firstHourToShow) <= 24);
+      }
+
       let loaded = 0;
-      let total = hours.length;
+      let total = preloadHours.length;
       let firstShown = false;
       if (total === 0) {
         document.getElementById('loading-percent').textContent = '100%';
@@ -163,7 +174,7 @@
         document.getElementById('loading-percent').textContent = percent + '%';
       }
       updatePercent();
-      hours.forEach(hour => {
+      preloadHours.forEach(hour => {
         const img = new Image();
         img.src = getImageName(folder, hour);
         img.onload = () => {
