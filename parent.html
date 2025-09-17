@@ -62,14 +62,6 @@
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
       object-fit: contain;
       display: block;
-      transition: opacity 0.4s;
-      opacity: 1;
-    }
-    .fade-out {
-      opacity: 0;
-    }
-    .fade-in {
-      opacity: 1;
     }
     #slider-container {
       margin-top: 24px;
@@ -129,6 +121,9 @@
   <script>
     let currentFolder = null;
     let loadingTimeout = null;
+    // Cache for preloaded images: { folder: { hour: Image } }
+    const imageCache = {};
+
     function getImageName(folder, hour) {
       const paddedHour = hour.toString().padStart(3, '0');
       let prefix = '';
@@ -144,26 +139,39 @@
       else if (folder === 'WIND_200') prefix = 'wind200';
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
-    function preloadImages(folder) {
-      const images = [];
-      for (let hour = 0; hour <= 384; hour += 6) {
-        let prefix = '';
-        if (folder === 'usa_pngs') prefix = 'usa_gfs';
-        else if (folder === 'tmp_surface') prefix = '2mtemp';
-        else if (folder === '6hour_precip_total') prefix = 'precip6';
-        else if (folder === '12hour_precip_total') prefix = 'precip12';
-        else if (folder === '24hour_precip_total') prefix = 'precip24';
-        else if (folder === 'total_precip') prefix = 'totalprecip';
-        else if (folder === 'total_lcdc') prefix = 'total_lcdc';
-        else if (folder === 'THICKNESS') prefix = 'thickness';
-        else if (folder === 'northeast_pngs') prefix = 'northeast_gfs';
-        else if (folder === 'WIND_200') prefix = 'wind200';
-        const img = new Image();
-        img.src = `/${folder}/${prefix}_${hour.toString().padStart(3, '0')}.png`;
-        img.onload = () => images.push(img);
+
+    function preloadImages(folder, callback) {
+      // Preload all images for the selected folder and store in cache
+      imageCache[folder] = {};
+      let hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h = 12; h <= 384; h += 12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h = 24; h <= 384; h += 24) hours.push(h);
+      } else {
+        for (let h = 0; h <= 384; h += 6) hours.push(h);
       }
-      return images;
+      let loaded = 0;
+      let total = hours.length;
+      if (total === 0) {
+        if (callback) callback();
+        return;
+      }
+      hours.forEach(hour => {
+        const img = new Image();
+        img.src = getImageName(folder, hour);
+        img.onload = () => {
+          imageCache[folder][hour] = img;
+          loaded++;
+          if (loaded === total && callback) callback();
+        };
+        img.onerror = () => {
+          loaded++;
+          if (loaded === total && callback) callback();
+        };
+      });
     }
+
     function findFirstAvailableHour(folder, callback) {
       let hours = [];
       if (folder === '12hour_precip_total') {
@@ -186,6 +194,7 @@
       }
       checkNext();
     }
+
     function selectFolder(folder) {
       currentFolder = folder;
       document.getElementById('slider-container').style.display = 'flex';
@@ -210,53 +219,49 @@
         slider.value = firstHour;
         slider.min = firstHour;
         document.getElementById('hour-value').textContent = firstHour;
-        if (spinnerFolders.includes(folder)) {
-          document.getElementById('loading-spinner').style.display = 'flex';
-          preloadImages(folder);
-          loadingTimeout = setTimeout(() => {
-            document.getElementById('loading-spinner').style.display = 'none';
-            showImage(firstHour);
-          }, 3000);
-        } else {
+        document.getElementById('loading-spinner').style.display = 'flex';
+        preloadImages(folder, function() {
           document.getElementById('loading-spinner').style.display = 'none';
-          showImage(firstHour);
-        }
+          showImage(firstHour, true);
+        });
       });
     }
-    function showImage(hour) {
+
+    // Show image from cache if available, fallback to loading if not
+    // If fallback, keep previous image visible (no white flash)
+    function showImage(hour, force) {
       const container = document.getElementById('image-container');
-      const prevImg = container.querySelector('.image-item');
+      // Only clear if force or switching folder
+      if (force) container.innerHTML = '';
       if (!currentFolder) return;
-      const newImg = document.createElement('img');
-      newImg.src = getImageName(currentFolder, hour);
-      newImg.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
-      newImg.className = 'image-item';
-      newImg.style.opacity = 0;
-      newImg.onload = () => {
-        // Fade out previous image if exists
-        if (prevImg) {
-          prevImg.classList.add('fade-out');
-          prevImg.addEventListener('transitionend', () => {
-            if (prevImg.parentNode) prevImg.parentNode.removeChild(prevImg);
-            // Fade in new image
-            container.appendChild(newImg);
-            setTimeout(() => {
-              newImg.style.opacity = 1;
-            }, 10);
-          }, { once: true });
-        } else {
-          container.appendChild(newImg);
-          setTimeout(() => {
-            newImg.style.opacity = 1;
-          }, 10);
-        }
-      };
-      newImg.onerror = () => newImg.remove();
+      const cached = imageCache[currentFolder] && imageCache[currentFolder][hour];
+      if (cached) {
+        container.innerHTML = '';
+        // Clone to avoid DOM issues if reused
+        const img = cached.cloneNode();
+        img.className = 'image-item';
+        img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
+        container.appendChild(img);
+      } else {
+        // If not preloaded, try to load, but don't clear previous image
+        const img = new Image();
+        img.src = getImageName(currentFolder, hour);
+        img.className = 'image-item';
+        img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
+        img.onload = () => {
+          imageCache[currentFolder] = imageCache[currentFolder] || {};
+          imageCache[currentFolder][hour] = img;
+          container.innerHTML = '';
+          container.appendChild(img.cloneNode());
+        };
+        // Don't clear container on error, so previous image stays
+      }
     }
+
     function updateImage() {
       const hour = parseInt(document.getElementById('hour-slider').value);
       document.getElementById('hour-value').textContent = hour;
-      showImage(hour);
+      showImage(hour, false);
     }
     document.addEventListener('keydown', function(e) {
       const slider = document.getElementById('hour-slider');
