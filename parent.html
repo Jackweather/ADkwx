@@ -140,7 +140,7 @@
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
 
-    function preloadImages(folder, callback) {
+    function preloadImages(folder, callback, firstHourToShow) {
       imageCache[folder] = {};
       let hours = [];
       if (folder === '12hour_precip_total') {
@@ -152,6 +152,7 @@
       }
       let loaded = 0;
       let total = hours.length;
+      let firstShown = false;
       if (total === 0) {
         document.getElementById('loading-percent').textContent = '100%';
         if (callback) callback();
@@ -169,6 +170,12 @@
           imageCache[folder][hour] = img;
           loaded++;
           updatePercent();
+          // Show the first image as soon as it's loaded
+          if (!firstShown && hour === firstHourToShow) {
+            firstShown = true;
+            document.getElementById('loading-spinner').style.display = 'none';
+            showImage(hour, true);
+          }
           if (loaded === total && callback) callback();
         };
         img.onerror = () => {
@@ -229,9 +236,8 @@
         document.getElementById('loading-spinner').style.display = 'flex';
         document.getElementById('loading-percent').textContent = '0%';
         preloadImages(folder, function() {
-          document.getElementById('loading-spinner').style.display = 'none';
-          showImage(firstHour, true);
-        });
+          // All images loaded, nothing to do (first image already shown)
+        }, firstHour);
       });
     }
 
