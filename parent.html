@@ -80,22 +80,6 @@
       100% { transform: rotate(360deg); }
     }
   </style>
-  <script>
-    // Preload first 5 images for the default folder (optional, can be dynamic)
-    document.addEventListener('DOMContentLoaded', function() {
-      const folder = 'usa_pngs'; // or your default
-      let prefix = 'usa_gfs';
-      for (let h = 0; h <= 24; h += 6) {
-        const padded = h.toString().padStart(3, '0');
-        const href = `/${folder}/${prefix}_${padded}.png`;
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = href;
-        document.head.appendChild(link);
-      }
-    });
-  </script>
 </head>
 <body>
   <div style="width:100vw;display:flex;align-items:center;justify-content:flex-start;background:#263159;color:#fff;padding:10px 24px 10px 24px;position:fixed;top:0;left:0;z-index:10;gap:18px;">
@@ -156,7 +140,7 @@
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
 
-    function preloadImages(folder, callback, firstHourToShow) {
+    function preloadImages(folder, callback) {
       imageCache[folder] = {};
       let hours = [];
       if (folder === '12hour_precip_total') {
@@ -168,7 +152,6 @@
       }
       let loaded = 0;
       let total = hours.length;
-      let firstShown = false;
       if (total === 0) {
         document.getElementById('loading-percent').textContent = '100%';
         if (callback) callback();
@@ -181,18 +164,11 @@
       updatePercent();
       hours.forEach(hour => {
         const img = new Image();
-        img.decoding = "async";
         img.src = getImageName(folder, hour);
         img.onload = () => {
           imageCache[folder][hour] = img;
           loaded++;
           updatePercent();
-          // Don't hide spinner here, wait for 3s timer in selectFolder
-          if (!firstShown && hour === firstHourToShow) {
-            firstShown = true;
-            // Don't hide spinner here
-            showImage(hour, true);
-          }
           if (loaded === total && callback) callback();
         };
         img.onerror = () => {
@@ -252,20 +228,10 @@
         document.getElementById('hour-value').textContent = firstHour;
         document.getElementById('loading-spinner').style.display = 'flex';
         document.getElementById('loading-percent').textContent = '0%';
-        let spinnerDone = false;
-        let preloadDone = false;
-        loadingTimeout = setTimeout(() => {
-          spinnerDone = true;
-          if (preloadDone) {
-            document.getElementById('loading-spinner').style.display = 'none';
-          }
-        }, 3000);
         preloadImages(folder, function() {
-          preloadDone = true;
-          if (spinnerDone) {
-            document.getElementById('loading-spinner').style.display = 'none';
-          }
-        }, firstHour);
+          document.getElementById('loading-spinner').style.display = 'none';
+          showImage(firstHour, true);
+        });
       });
     }
 
