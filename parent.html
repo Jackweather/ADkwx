@@ -80,6 +80,22 @@
       100% { transform: rotate(360deg); }
     }
   </style>
+  <script>
+    // Preload first 5 images for the default folder (optional, can be dynamic)
+    document.addEventListener('DOMContentLoaded', function() {
+      const folder = 'usa_pngs'; // or your default
+      let prefix = 'usa_gfs';
+      for (let h = 0; h <= 24; h += 6) {
+        const padded = h.toString().padStart(3, '0');
+        const href = `/${folder}/${prefix}_${padded}.png`;
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = href;
+        document.head.appendChild(link);
+      }
+    });
+  </script>
 </head>
 <body>
   <div style="width:100vw;display:flex;align-items:center;justify-content:flex-start;background:#263159;color:#fff;padding:10px 24px 10px 24px;position:fixed;top:0;left:0;z-index:10;gap:18px;">
@@ -140,10 +156,6 @@
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
 
-    function isMobile() {
-      return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    }
-
     function preloadImages(folder, callback, firstHourToShow) {
       imageCache[folder] = {};
       let hours = [];
@@ -154,15 +166,8 @@
       } else {
         for (let h = 0; h <= 384; h += 6) hours.push(h);
       }
-
-      // On mobile, only preload images within ±24 hours of the firstHourToShow
-      let preloadHours = hours;
-      if (isMobile() && typeof firstHourToShow === 'number') {
-        preloadHours = hours.filter(h => Math.abs(h - firstHourToShow) <= 24);
-      }
-
       let loaded = 0;
-      let total = preloadHours.length;
+      let total = hours.length;
       let firstShown = false;
       if (total === 0) {
         document.getElementById('loading-percent').textContent = '100%';
@@ -174,8 +179,9 @@
         document.getElementById('loading-percent').textContent = percent + '%';
       }
       updatePercent();
-      preloadHours.forEach(hour => {
+      hours.forEach(hour => {
         const img = new Image();
+        img.decoding = "async";
         img.src = getImageName(folder, hour);
         img.onload = () => {
           imageCache[folder][hour] = img;
