@@ -187,10 +187,10 @@
           imageCache[folder][hour] = img;
           loaded++;
           updatePercent();
-          // Show the first image as soon as it's loaded
+          // Don't hide spinner here, wait for 3s timer in selectFolder
           if (!firstShown && hour === firstHourToShow) {
             firstShown = true;
-            document.getElementById('loading-spinner').style.display = 'none';
+            // Don't hide spinner here
             showImage(hour, true);
           }
           if (loaded === total && callback) callback();
@@ -252,8 +252,19 @@
         document.getElementById('hour-value').textContent = firstHour;
         document.getElementById('loading-spinner').style.display = 'flex';
         document.getElementById('loading-percent').textContent = '0%';
+        let spinnerDone = false;
+        let preloadDone = false;
+        loadingTimeout = setTimeout(() => {
+          spinnerDone = true;
+          if (preloadDone) {
+            document.getElementById('loading-spinner').style.display = 'none';
+          }
+        }, 3000);
         preloadImages(folder, function() {
-          // All images loaded, nothing to do (first image already shown)
+          preloadDone = true;
+          if (spinnerDone) {
+            document.getElementById('loading-spinner').style.display = 'none';
+          }
         }, firstHour);
       });
     }
