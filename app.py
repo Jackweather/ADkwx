@@ -193,6 +193,14 @@ def serve_sunsd_surface_image(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
+@app.route('/gfs_850mb/<path:filename>')
+def serve_gfs_850mb_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'gfs_850mb')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
 @app.route('/gifs.html')
 def gifs_html():
     with open('gifs.html', 'r', encoding='utf-8') as f:
@@ -511,6 +519,21 @@ def run_task1():
         except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running sunsd_surface_clean.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- Run gfsmodel/gfs_850mb_plot.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/gfsmodel/gfs_850mb_plot.py"],
+                check=True, cwd="/opt/render/project/src/gfsmodel",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("gfs_850mb_plot.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running gfs_850mb_plot.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
         # --- Run Gifs/gif.py ---
