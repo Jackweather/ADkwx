@@ -247,6 +247,36 @@
       animateSweep(1);
     }
 
+    // Background random hour preloader to help browser cache images
+    function backgroundRandomPreload(folder) {
+      let hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h = 12; h <= 384; h += 12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h = 24; h <= 384; h += 24) hours.push(h);
+      } else {
+        for (let h = 0; h <= 384; h += 6) hours.push(h);
+      }
+      let preloaded = new Set();
+      let start = Date.now();
+      let duration = 6000; // 6 seconds
+      function preloadRandom() {
+        if (Date.now() - start > duration) return;
+        // Pick a random hour not yet preloaded
+        let remaining = hours.filter(h => !preloaded.has(h));
+        if (remaining.length === 0) return;
+        let hour = remaining[Math.floor(Math.random() * remaining.length)];
+        preloaded.add(hour);
+        if (!imageCache[folder] || !imageCache[folder][hour]) {
+          const img = new Image();
+          img.src = getImageName(folder, hour);
+          // Don't attach to DOM, just let browser cache it
+        }
+        setTimeout(preloadRandom, 60); // ~16 per second
+      }
+      preloadRandom();
+    }
+
     function selectFolder(folder) {
       currentFolder = folder;
       document.getElementById('slider-container').style.display = 'flex';
@@ -277,8 +307,8 @@
           document.getElementById('loading-spinner').style.display = 'none';
           showImage(firstHour, true);
         });
-        // Start background slider sweep to help browser cache images
-        backgroundPreloadSlider(folder);
+        // Start background random hour preloading to help browser cache images
+        backgroundRandomPreload(folder);
       });
     }
 
