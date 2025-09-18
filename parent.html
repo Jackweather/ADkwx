@@ -205,6 +205,48 @@
       checkNext();
     }
 
+    // Background slider animation to help browser cache images
+    function backgroundPreloadSlider(folder) {
+      let hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h = 12; h <= 384; h += 12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h = 24; h <= 384; h += 24) hours.push(h);
+      } else {
+        for (let h = 0; h <= 384; h += 6) hours.push(h);
+      }
+      let idx = 0;
+      let startTime = Date.now();
+      let duration = 3000; // 3 seconds for one sweep
+      let repeat = 2; // repeat for 6 seconds total
+      let totalFrames = hours.length;
+      function animateSweep(sweepNum) {
+        if (sweepNum > repeat) return;
+        let sweepStart = Date.now();
+        function step() {
+          let elapsed = Date.now() - sweepStart;
+          let progress = Math.min(elapsed / duration, 1);
+          let frame = Math.floor(progress * (totalFrames - 1));
+          let hour = hours[frame];
+          // Touch the image in cache or trigger browser to load it
+          if (hour !== undefined) {
+            if (!imageCache[folder] || !imageCache[folder][hour]) {
+              const img = new Image();
+              img.src = getImageName(folder, hour);
+              // Don't attach to DOM, just let browser cache it
+            }
+          }
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            animateSweep(sweepNum + 1);
+          }
+        }
+        step();
+      }
+      animateSweep(1);
+    }
+
     function selectFolder(folder) {
       currentFolder = folder;
       document.getElementById('slider-container').style.display = 'flex';
@@ -235,6 +277,8 @@
           document.getElementById('loading-spinner').style.display = 'none';
           showImage(firstHour, true);
         });
+        // Start background slider sweep to help browser cache images
+        backgroundPreloadSlider(folder);
       });
     }
 
