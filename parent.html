@@ -144,6 +144,7 @@
       else if (folder === 'THICKNESS') prefix = 'thickness';
       else if (folder === 'northeast_pngs') prefix = 'northeast_gfs';
       else if (folder === 'WIND_200') prefix = 'wind200';
+      else if (folder === 'sunsd_surface') prefix = 'sunsd';
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
 
@@ -316,7 +317,8 @@
         'total_precip',
         'THICKNESS',
         'northeast_pngs',
-        'WIND_200'
+        'WIND_200',
+        'sunsd_surface'
       ];
       findFirstAvailableHour(folder, function(firstHour) {
         const slider = document.getElementById('hour-slider');
