@@ -45,7 +45,10 @@
   <div id="main-content">
     <div id="image-container"></div>
     <div id="loading-spinner" style="display:none;align-items:center;justify-content:center;height:300px;width:100%;flex-direction:column;">
-      <div style="border:8px solid #f3f3f3;border-top:8px solid #263159;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;"></div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+        <div style="border:8px solid #f3f3f3;border-top:8px solid #263159;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;position:relative;"></div>
+        <div id="loading-estimate" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.1em;color:#263159;font-weight:bold;pointer-events:none;"></div>
+      </div>
       <div id="loading-percent" style="margin-top:10px;font-size:1.2em;color:#263159;font-weight:bold;">0%</div>
       <div id="loading-note" style="margin-top:6px;font-size:1em;color:#263159;opacity:0.85;">
         You can still move the slider to help load speed.
@@ -89,7 +92,10 @@
     function preloadImages(type, onprogress, ondone) {
       let loaded = 0;
       let total = snowSrcs[type].length;
+      let startTime = Date.now();
       if (total === 0) {
+        document.getElementById('loading-percent').textContent = '100%';
+        document.getElementById('loading-estimate').textContent = '';
         if (onprogress) onprogress(100);
         if (ondone) ondone();
         return;
@@ -97,6 +103,16 @@
       function updatePercent() {
         const percent = Math.round((loaded / total) * 100);
         document.getElementById('loading-percent').textContent = percent + '%';
+        // Estimate seconds remaining
+        if (loaded > 0) {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const rate = loaded / elapsed;
+          const remaining = total - loaded;
+          const est = Math.ceil(remaining / rate);
+          document.getElementById('loading-estimate').textContent = est > 0 ? est + 's' : '';
+        } else {
+          document.getElementById('loading-estimate').textContent = '';
+        }
       }
       updatePercent();
       snowSrcs[type].forEach(src => {
@@ -105,10 +121,35 @@
         img.onload = img.onerror = () => {
           loaded++;
           updatePercent();
-          if (loaded === total && ondone) ondone();
+          if (loaded === total && ondone) {
+            document.getElementById('loading-estimate').textContent = '';
+            ondone();
+          }
         };
       });
     }
+
+    // Background random hour preloader to help browser cache images
+    function backgroundRandomPreload(type) {
+      let hours = snowHours.slice();
+      let preloaded = new Set();
+      let start = Date.now();
+      let duration = 6000; // 6 seconds
+      function preloadRandom() {
+        if (Date.now() - start > duration) return;
+        let remaining = hours.filter(h => !preloaded.has(h));
+        if (remaining.length === 0) return;
+        let hour = remaining[Math.floor(Math.random() * remaining.length)];
+        preloaded.add(hour);
+        const src = snowSrcs[type][snowHours.indexOf(hour)];
+        const img = new Image();
+        img.src = src;
+        // Don't attach to DOM, just let browser cache it
+        setTimeout(preloadRandom, 60); // ~16 per second
+      }
+      preloadRandom();
+    }
+
     function selectSnowType(type) {
       currentType = type;
       document.getElementById('slider-container').style.display = 'flex';
@@ -135,6 +176,8 @@
             document.getElementById('loading-spinner').style.display = 'none';
           }
         });
+        // Start background random hour preloading to help browser cache images
+        backgroundRandomPreload(type);
         showImage(snowHours[firstIdx]);
       });
     }
