@@ -74,30 +74,18 @@
       '20to1': snowHours.map(h => `/GFS/static/totalsnowfall_20to1/totalsnowfall_20to1_${h.toString().padStart(3,'0')}.png`),
       'positive': snowHours.map(h => `/GFS/static/snow_depth/snowdepth_${h.toString().padStart(3,'0')}.png`)
     };
-    function preloadImages(type) {
-      snowSrcs[type].forEach(src => { const img = new Image(); img.src = src; });
-    }
-    function findFirstAvailableIndex(type, callback) {
-      let idx = 0;
-      let arr = snowSrcs[type];
-      function checkNext() {
-        if (idx >= arr.length) { callback(0); return; }
-        const img = new Image();
-        img.onload = function() { callback(idx); };
-        img.onerror = function() { idx++; checkNext(); };
-        img.src = arr[idx];
-      }
-      checkNext();
-    }
-    function preloadImages(type, onprogress, ondone) {
+    const imageCache = {};
+
+    function preloadImages(type, callback) {
+      imageCache[type] = {};
+      let hours = snowHours;
       let loaded = 0;
-      let total = snowSrcs[type].length;
+      let total = hours.length;
       let startTime = Date.now();
       if (total === 0) {
         document.getElementById('loading-percent').textContent = '100%';
         document.getElementById('loading-estimate').textContent = '';
-        if (onprogress) onprogress(100);
-        if (ondone) ondone();
+        if (callback) callback();
         return;
       }
       function updatePercent() {
@@ -115,18 +103,40 @@
         }
       }
       updatePercent();
-      snowSrcs[type].forEach(src => {
+      hours.forEach((hour, idx) => {
         const img = new Image();
-        img.src = src;
-        img.onload = img.onerror = () => {
+        img.src = snowSrcs[type][idx];
+        img.onload = () => {
+          imageCache[type][hour] = img;
           loaded++;
           updatePercent();
-          if (loaded === total && ondone) {
+          if (loaded === total && callback) {
             document.getElementById('loading-estimate').textContent = '';
-            ondone();
+            callback();
+          }
+        };
+        img.onerror = () => {
+          loaded++;
+          updatePercent();
+          if (loaded === total && callback) {
+            document.getElementById('loading-estimate').textContent = '';
+            callback();
           }
         };
       });
+    }
+
+    function findFirstAvailableIndex(type, callback) {
+      let idx = 0;
+      let arr = snowSrcs[type];
+      function checkNext() {
+        if (idx >= arr.length) { callback(0); return; }
+        const img = new Image();
+        img.onload = function() { callback(idx); };
+        img.onerror = function() { idx++; checkNext(); };
+        img.src = arr[idx];
+      }
+      checkNext();
     }
 
     // Background random hour preloader to help browser cache images
@@ -141,10 +151,11 @@
         if (remaining.length === 0) return;
         let hour = remaining[Math.floor(Math.random() * remaining.length)];
         preloaded.add(hour);
-        const src = snowSrcs[type][snowHours.indexOf(hour)];
-        const img = new Image();
-        img.src = src;
-        // Don't attach to DOM, just let browser cache it
+        if (!imageCache[type] || !imageCache[type][hour]) {
+          const src = snowSrcs[type][snowHours.indexOf(hour)];
+          const img = new Image();
+          img.src = src;
+        }
         setTimeout(preloadRandom, 60); // ~16 per second
       }
       preloadRandom();
@@ -162,43 +173,47 @@
         document.getElementById('hour-value').textContent = snowHours[firstIdx];
         document.getElementById('loading-spinner').style.display = 'flex';
         document.getElementById('loading-percent').textContent = '0%';
-        let spinnerDone = false;
-        let preloadDone = false;
-        loadingTimeout = setTimeout(() => {
-          spinnerDone = true;
-          if (preloadDone) {
-            document.getElementById('loading-spinner').style.display = 'none';
-          }
-        }, 3000);
-        preloadImages(type, null, function() {
-          preloadDone = true;
-          if (spinnerDone) {
-            document.getElementById('loading-spinner').style.display = 'none';
-          }
+        preloadImages(type, function() {
+          document.getElementById('loading-spinner').style.display = 'none';
+          showImage(snowHours[firstIdx], true);
         });
-        // Start background random hour preloading to help browser cache images
         backgroundRandomPreload(type);
-        showImage(snowHours[firstIdx]);
       });
     }
-    function showImage(hour) {
+
+    function showImage(hour, force) {
       const container = document.getElementById('image-container');
-      container.innerHTML = '';
+      if (force) container.innerHTML = '';
       if (!currentType) return;
       const idx = snowHours.indexOf(hour);
       if (idx === -1) return;
-      const img = document.createElement('img');
-      img.src = snowSrcs[currentType][idx];
-      img.alt = `${currentType}_${hour.toString().padStart(3,'0')}`;
-      img.className = 'image-item';
-      img.onerror = () => img.remove();
-      container.appendChild(img);
+      const cached = imageCache[currentType] && imageCache[currentType][hour];
+      if (cached) {
+        container.innerHTML = '';
+        const img = cached.cloneNode();
+        img.className = 'image-item';
+        img.alt = `${currentType}_${hour.toString().padStart(3,'0')}`;
+        container.appendChild(img);
+      } else {
+        const img = new Image();
+        img.src = snowSrcs[currentType][idx];
+        img.className = 'image-item';
+        img.alt = `${currentType}_${hour.toString().padStart(3,'0')}`;
+        img.onload = () => {
+          imageCache[currentType] = imageCache[currentType] || {};
+          imageCache[currentType][hour] = img;
+          container.innerHTML = '';
+          container.appendChild(img.cloneNode());
+        };
+      }
     }
+
     function updateImage() {
       const hour = parseInt(document.getElementById('hour-slider').value);
       document.getElementById('hour-value').textContent = hour;
-      showImage(hour);
+      showImage(hour, false);
     }
+
     document.addEventListener('keydown', function(e) {
       const slider = document.getElementById('hour-slider');
       let min = parseInt(slider.min, 10);
@@ -221,7 +236,7 @@
         e.preventDefault();
       }
     });
-    // Show positive snow depth change PNGs on page load
+
     window.addEventListener('DOMContentLoaded', function() {
       selectSnowType('positive');
     });
