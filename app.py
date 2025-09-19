@@ -24,9 +24,9 @@ BASE_DATA_DIR = '/var/data'
 def index():
     with open('parent.html', 'r', encoding='utf-8') as f:
         html = f.read()
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'usa_pngs')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
     images_html = ''.join(
-        f'<img src="/usa_pngs/{png}" alt="{png}"><br>\n'
+        f'<img src="/PRATEGFS/{png}" alt="{png}"><br>\n'
         for png in sorted(f for f in os.listdir(directory) if f.endswith('.png'))
     )
     return html.replace('<!--IMAGES-->', images_html)
