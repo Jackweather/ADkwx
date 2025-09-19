@@ -98,7 +98,7 @@
       </div>
     </div>
     <button class="nav-btn" style="background:#e6b800;color:#263159;font-weight:bold;" onclick="window.location.href='snowparent.html'">Switch to Snow</button>
-    <button class="nav-btn" onclick="selectFolder('usa_pngs')">USA_Prate</button>
+    <button class="nav-btn" onclick="selectFolder('PRATEGFS')">USA_Prate</button>
     <button class="nav-btn" onclick="selectFolder('tmp_surface')">Tmp</button>
     <button class="nav-btn" onclick="selectFolder('6hour_precip_total')">6hPrecip</button>
     <button class="nav-btn" onclick="selectFolder('12hour_precip_total')">12hPrecip</button>
@@ -135,7 +135,7 @@
     function getImageName(folder, hour) {
       const paddedHour = hour.toString().padStart(3, '0');
       let prefix = '';
-      if (folder === 'usa_pngs') prefix = 'usa_gfs';
+      if (folder === 'PRATEGFS') prefix = 'usa_gfs';
       else if (folder === 'tmp_surface') prefix = '2mtemp';
       else if (folder === '6hour_precip_total') prefix = 'precip6';
       else if (folder === '12hour_precip_total') prefix = 'precip12';
@@ -311,7 +311,7 @@
         loadingTimeout = null;
       }
       const spinnerFolders = [
-        'usa_pngs',
+        'PRATEGFS',
         'tmp_surface',
         '6hour_precip_total',
         '12hour_precip_total',
