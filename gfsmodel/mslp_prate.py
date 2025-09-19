@@ -469,7 +469,7 @@ def plot_combined(mslp_path, prate_path, step, csnow_path=None):
                 plotted_low_points.append((abs_min_y, abs_min_x))
 
     ax.set_axis_off()
-    png_path = os.path.join(combined_dir, f"prate_{step:03d}.png")
+    png_path = os.path.join(combined_dir, f"usa_gfs_{step:03d}.png")
     plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
     plt.close(fig)
     print(f"Generated combined PNG: {png_path}")
