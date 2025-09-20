@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, abort, request, jsonify, Blueprint
+from flask import Flask, send_from_directory, abort, request, jsonify
 import os
 import subprocess
 import traceback
@@ -18,54 +18,188 @@ logging.getLogger('werkzeug').addFilter(
     )
 )
 
-# --- Begin PNG Blueprint code ---
 BASE_DATA_DIR = '/var/data'
-png_bp = Blueprint('png_bp', __name__)
-
-def register_png_route(route, subdir):
-    @png_bp.route(route + '/<path:filename>')
-    def serve_png(filename, subdir=subdir):
-        directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', subdir)
-        abs_path = os.path.join(directory, filename)
-        if not os.path.isfile(abs_path):
-            abort(404)
-        return send_from_directory(directory, filename)
-
-png_routes = [
-    ('/PRATEGFS', 'PRATEGFS'),
-    ('/tmp_surface', 'tmp_surface'),
-    ('/6hour_precip_total', '6hour_precip_total'),
-    ('/24hour_precip_total', '24hour_precip_total'),
-    ('/12hour_precip_total', '12hour_precip_total'),
-    ('/total_precip', 'total_precip'),
-    ('/total_lcdc', 'total_lcdc'),
-    ('/GFS/static/snow_depth', 'snow_depth'),
-    ('/GFS/static/totalsnowfall_10to1', 'totalsnowfall_10to1'),
-    ('/GFS/static/totalsnowfall_3to1', 'totalsnowfall_3to1'),
-    ('/GFS/static/totalsnowfall_5to1', 'totalsnowfall_5to1'),
-    ('/GFS/static/totalsnowfall_20to1', 'totalsnowfall_20to1'),
-    ('/GFS/static/totalsnowfall_8to1', 'totalsnowfall_8to1'),
-    ('/GFS/static/totalsnowfall_12to1', 'totalsnowfall_12to1'),
-    ('/GFS/static/totalsnowfall_15to1', 'totalsnowfall_15to1'),
-    ('/THICKNESS', 'THICKNESS'),
-    ('/usa_pngs', 'usa_pngs'),
-    ('/northeast_pngs', 'northeast_pngs'),
-    ('/WIND_200', 'WIND_200'),
-    ('/sunsd_surface', 'sunsd_surface'),
-    ('/gfs_850mb', 'gfs_850mb'),
-]
-
-for route, subdir in png_routes:
-    register_png_route(route, subdir)
-
-app.register_blueprint(png_bp)
-# --- End PNG Blueprint code ---
 
 @app.route('/')
 def index():
     with open('parent.html', 'r', encoding='utf-8') as f:
         html = f.read()
-    return html.replace('<!--IMAGES-->', '')
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
+    images_html = ''.join(
+        f'<img src="/PRATEGFS/{png}" alt="{png}"><br>\n'
+        for png in sorted(f for f in os.listdir(directory) if f.endswith('.png'))
+    )
+    return html.replace('<!--IMAGES-->', images_html)
+
+@app.route('/PRATEGFS/<path:filename>')
+def serve_prate_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/tmp_surface/<path:filename>')
+def serve_tmp_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'tmp_surface')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/6hour_precip_total/<path:filename>')
+def serve_precip6_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '6hour_precip_total')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/24hour_precip_total/<path:filename>')
+def serve_precip24_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '24hour_precip_total')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/12hour_precip_total/<path:filename>')
+def serve_precip12_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '12hour_precip_total')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+
+@app.route('/total_precip/<path:filename>')
+def serve_total_precip_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'total_precip')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+    
+
+@app.route('/total_lcdc/<path:filename>')
+def serve_total_lcdc_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'total_lcdc')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/GFS/static/snow_depth/<path:filename>')
+def serve_snow_depth_png(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'snow_depth')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/GFS/static/totalsnowfall_10to1/<path:filename>')
+def serve_totalsnowfall_10to1_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_10to1')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/GFS/static/totalsnowfall_3to1/<path:filename>')
+def serve_totalsnowfall_3to1_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_3to1')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/GFS/static/totalsnowfall_5to1/<path:filename>')
+def serve_totalsnowfall_5to1_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_5to1')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/GFS/static/totalsnowfall_20to1/<path:filename>')
+def serve_totalsnowfall_20to1_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_20to1')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/GFS/static/totalsnowfall_8to1/<path:filename>')
+def serve_totalsnowfall_8to1_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_8to1')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/GFS/static/totalsnowfall_12to1/<path:filename>')
+def serve_totalsnowfall_12to1_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_12to1')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/GFS/static/totalsnowfall_15to1/<path:filename>')
+def serve_totalsnowfall_15to1_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_15to1')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/THICKNESS/<path:filename>')
+def serve_thickness_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'THICKNESS')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/usa_pngs/<path:filename>')
+def serve_usa_png(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'usa_pngs')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/northeast_pngs/<path:filename>')
+def serve_northeast_png(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'northeast_pngs')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/WIND_200/<path:filename>')
+def serve_wind_200_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'WIND_200')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/sunsd_surface/<path:filename>')
+def serve_sunsd_surface_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'sunsd_surface')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
+
+@app.route('/gfs_850mb/<path:filename>')
+def serve_gfs_850mb_image(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'gfs_850mb')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
 
 @app.route('/gifs.html')
 def gifs_html():
