@@ -8,7 +8,6 @@ import threading
 import json
 from datetime import datetime
 import pytz
-from serve_pngs import png_bp
 
 app = Flask(__name__)
 
@@ -20,6 +19,12 @@ logging.getLogger('werkzeug').addFilter(
 )
 
 BASE_DATA_DIR = '/var/data'
+
+try:
+    from serve_pngs import png_bp
+except ImportError:
+    # For package-based imports (if using __init__.py)
+    from .serve_pngs import png_bp
 
 app.register_blueprint(png_bp)
 
