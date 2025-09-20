@@ -20,6 +20,31 @@ logging.getLogger('werkzeug').addFilter(
 
 BASE_DATA_DIR = '/var/data'
 
+# Mapping of URL prefix to subdirectory path
+IMAGE_ROUTE_MAP = {
+    'PRATEGFS': ['GFS', 'static', 'PRATEGFS'],
+    'tmp_surface': ['GFS', 'static', 'tmp_surface'],
+    '6hour_precip_total': ['GFS', 'static', '6hour_precip_total'],
+    '24hour_precip_total': ['GFS', 'static', '24hour_precip_total'],
+    '12hour_precip_total': ['GFS', 'static', '12hour_precip_total'],
+    'total_precip': ['GFS', 'static', 'total_precip'],
+    'total_lcdc': ['GFS', 'static', 'total_lcdc'],
+    'GFS/static/snow_depth': ['GFS', 'static', 'snow_depth'],
+    'GFS/static/totalsnowfall_10to1': ['GFS', 'static', 'totalsnowfall_10to1'],
+    'GFS/static/totalsnowfall_3to1': ['GFS', 'static', 'totalsnowfall_3to1'],
+    'GFS/static/totalsnowfall_5to1': ['GFS', 'static', 'totalsnowfall_5to1'],
+    'GFS/static/totalsnowfall_20to1': ['GFS', 'static', 'totalsnowfall_20to1'],
+    'GFS/static/totalsnowfall_8to1': ['GFS', 'static', 'totalsnowfall_8to1'],
+    'GFS/static/totalsnowfall_12to1': ['GFS', 'static', 'totalsnowfall_12to1'],
+    'GFS/static/totalsnowfall_15to1': ['GFS', 'static', 'totalsnowfall_15to1'],
+    'THICKNESS': ['GFS', 'static', 'THICKNESS'],
+    'usa_pngs': ['GFS', 'static', 'usa_pngs'],
+    'northeast_pngs': ['GFS', 'static', 'northeast_pngs'],
+    'WIND_200': ['GFS', 'static', 'WIND_200'],
+    'sunsd_surface': ['GFS', 'static', 'sunsd_surface'],
+    'gfs_850mb': ['GFS', 'static', 'gfs_850mb'],
+}
+
 @app.route('/')
 def index():
     with open('parent.html', 'r', encoding='utf-8') as f:
@@ -31,175 +56,27 @@ def index():
     )
     return html.replace('<!--IMAGES-->', images_html)
 
-@app.route('/PRATEGFS/<path:filename>')
-def serve_prate_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/tmp_surface/<path:filename>')
-def serve_tmp_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'tmp_surface')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/6hour_precip_total/<path:filename>')
-def serve_precip6_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '6hour_precip_total')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/24hour_precip_total/<path:filename>')
-def serve_precip24_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '24hour_precip_total')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/12hour_precip_total/<path:filename>')
-def serve_precip12_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', '12hour_precip_total')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-
-@app.route('/total_precip/<path:filename>')
-def serve_total_precip_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'total_precip')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-    
-
-@app.route('/total_lcdc/<path:filename>')
-def serve_total_lcdc_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'total_lcdc')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/GFS/static/snow_depth/<path:filename>')
-def serve_snow_depth_png(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'snow_depth')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/GFS/static/totalsnowfall_10to1/<path:filename>')
-def serve_totalsnowfall_10to1_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_10to1')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/GFS/static/totalsnowfall_3to1/<path:filename>')
-def serve_totalsnowfall_3to1_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_3to1')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/GFS/static/totalsnowfall_5to1/<path:filename>')
-def serve_totalsnowfall_5to1_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_5to1')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/GFS/static/totalsnowfall_20to1/<path:filename>')
-def serve_totalsnowfall_20to1_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_20to1')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/GFS/static/totalsnowfall_8to1/<path:filename>')
-def serve_totalsnowfall_8to1_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_8to1')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/GFS/static/totalsnowfall_12to1/<path:filename>')
-def serve_totalsnowfall_12to1_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_12to1')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/GFS/static/totalsnowfall_15to1/<path:filename>')
-def serve_totalsnowfall_15to1_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'totalsnowfall_15to1')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/THICKNESS/<path:filename>')
-def serve_thickness_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'THICKNESS')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/usa_pngs/<path:filename>')
-def serve_usa_png(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'usa_pngs')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/northeast_pngs/<path:filename>')
-def serve_northeast_png(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'northeast_pngs')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/WIND_200/<path:filename>')
-def serve_wind_200_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'WIND_200')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/sunsd_surface/<path:filename>')
-def serve_sunsd_surface_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'sunsd_surface')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/gfs_850mb/<path:filename>')
-def serve_gfs_850mb_image(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'gfs_850mb')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
+@app.route('/<path:prefix>/<path:filename>')
+def serve_image(prefix, filename):
+    # Handle nested prefixes for snow_depth, totalsnowfall, etc.
+    full_prefix = prefix
+    # Try to match the longest possible prefix in the mapping
+    for key in sorted(IMAGE_ROUTE_MAP.keys(), key=lambda x: -len(x)):
+        if prefix.startswith(key):
+            full_prefix = key
+            break
+    if full_prefix in IMAGE_ROUTE_MAP:
+        directory = os.path.join(BASE_DATA_DIR, *IMAGE_ROUTE_MAP[full_prefix])
+        # If the prefix is nested (e.g., GFS/static/snow_depth), remove the matched part from filename
+        if full_prefix != prefix:
+            # Remove the matched prefix from filename
+            subpath = prefix[len(full_prefix):].lstrip('/')
+            filename = os.path.join(subpath, filename) if subpath else filename
+        abs_path = os.path.join(directory, filename)
+        if not os.path.isfile(abs_path):
+            abort(404)
+        return send_from_directory(directory, filename)
+    abort(404)
 
 @app.route('/gifs.html')
 def gifs_html():
