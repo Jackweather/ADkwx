@@ -121,313 +121,43 @@ def serve_gif(filename):
 def run_task1():
     def run_all_scripts():
         print("Flask is running as user:", getpass.getuser())  # Print user for debugging
-        # --- Run gfsmodel/mslp_prate.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/mslp_prate.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("mslp_prate.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running mslp_prate.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/tmp_surface_clean.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/tmp_surface_clean.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("tmp_surface_clean.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running tmp_surface_clean.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/6hourmaxprecip.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/6hourmaxprecip.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("6hourmaxprecip.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running 6hourmaxprecip.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/12hour_precip.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/12hour_precip.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("12hour_precip.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running 12hour_precip.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/24hour_precip.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/24hour_precip.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("24hour_precip.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running 24hour_precip.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/total_precip.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/total_precip.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("total_precip.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running total_precip.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/total_cloud_cover.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/total_cloud_cover.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("total_cloud_cover.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running total_cloud_cover.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/snow_depth.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/snowdepth.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("snowdepth.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running snowdepth.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-            
-        # --- Run gfsmodel/totalsnowfall_3to1.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("totalsnowfall_3to1.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running totalsnowfall_3to1.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-        # --- Run gfsmodel/totalsnowfall_5to1.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("totalsnowfall_5to1.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running totalsnowfall_5to1.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-        # --- Run gfsmodel/totalsnowfall_20to1.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("totalsnowfall_20to1.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running totalsnowfall_20to1.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-        # --- Run gfsmodel/totalsnowfall_8to1.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("totalsnowfall_8to1.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running totalsnowfall_8to1.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-        # --- Run gfsmodel/totalsnowfall_12to1.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("totalsnowfall_12to1.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running totalsnowfall_12to1.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-        # --- Run gfsmodel/totalsnowfall_15to1.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("totalsnowfall_15to1.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running totalsnowfall_15to1.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-        # --- Run gfsmodel/totalsnowfall_10to1.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("totalsnowfall_10to1.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running totalsnowfall_10to1.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/thickness_1000_500.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/thickness_1000_500.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("thickness_1000_500.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running thickness_1000_500.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/wind_200.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/wind_200.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("wind_200.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running wind_200.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/sunsd_surface_clean.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/sunsd_surface_clean.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("sunsd_surface_clean.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running sunsd_surface_clean.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run gfsmodel/gfs_850mb_plot.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/gfsmodel/gfs_850mb_plot.py"],
-                check=True, cwd="/opt/render/project/src/gfsmodel",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("gfs_850mb_plot.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running gfs_850mb_plot.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-        # --- Run Gifs/gif.py ---
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/Gifs/gif.py"],
-                check=True, cwd="/opt/render/project/src/Gifs",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print("gif.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running gif.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
+        scripts = [
+            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
+        ]
+        for script, cwd in scripts:
+            try:
+                result = subprocess.run(
+                    ["python", script],
+                    check=True, cwd=cwd,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                )
+                print(f"{os.path.basename(script)} ran successfully!")
+                print("STDOUT:", result.stdout)
+                print("STDERR:", result.stderr)
+            except subprocess.CalledProcessError as e:
+                error_trace = traceback.format_exc()
+                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
+                print("STDOUT:", e.stdout)
+                print("STDERR:", e.stderr)
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
 
