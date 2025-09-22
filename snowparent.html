@@ -56,7 +56,7 @@
     </div>
     <div id="slider-container" style="display:none;">
       <div id="hour-label">Hour: <span id="hour-value">0</span></div>
-      <input type="range" id="hour-slider" min="0" max="384" step="6" value="0" oninput="updateImage()">
+      <input type="range" id="hour-slider" min="0" max="384" step="6" value="0" oninput="updateImage()" tabindex="0">
     </div>
   </div>
   <script>
@@ -220,7 +220,9 @@
       showImage(hour, false);
     }
     document.addEventListener('keydown', function(e) {
+      // Allow arrow keys to work even if slider is not focused
       const slider = document.getElementById('hour-slider');
+      if (!slider || slider.style.display === 'none') return;
       let min = parseInt(slider.min, 10);
       let max = parseInt(slider.max, 10);
       let step = parseInt(slider.step, 10);
@@ -229,7 +231,6 @@
         let next = val - step;
         if (next < min) next = min;
         slider.value = next;
-        document.getElementById('hour-value').textContent = next;
         showImage(next);
         e.preventDefault();
       } else if (e.key === 'ArrowRight') {
