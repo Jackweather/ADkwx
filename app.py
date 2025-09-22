@@ -58,21 +58,22 @@ def index():
 
 @app.route('/<path:prefix>/<path:filename>')
 def serve_image(prefix, filename):
-    # Handle nested prefixes for snow_depth, totalsnowfall, etc.
-    full_prefix = prefix
     # Try to match the longest possible prefix in the mapping
+    matched_key = None
+    matched_subpath = None
     for key in sorted(IMAGE_ROUTE_MAP.keys(), key=lambda x: -len(x)):
-        if prefix.startswith(key):
-            full_prefix = key
+        if prefix == key or prefix.startswith(key + '/'):
+            matched_key = key
+            matched_subpath = prefix[len(key):].lstrip('/')
             break
-    if full_prefix in IMAGE_ROUTE_MAP:
-        directory = os.path.join(BASE_DATA_DIR, *IMAGE_ROUTE_MAP[full_prefix])
-        # If the prefix is nested (e.g., GFS/static/snow_depth), remove the matched part from filename
-        if full_prefix != prefix:
-            # Remove the matched prefix from filename
-            subpath = prefix[len(full_prefix):].lstrip('/')
-            filename = os.path.join(subpath, filename) if subpath else filename
+    if matched_key:
+        directory = os.path.join(BASE_DATA_DIR, *IMAGE_ROUTE_MAP[matched_key])
+        # If there is a subpath, append it to filename
+        if matched_subpath:
+            filename = os.path.join(matched_subpath, filename)
         abs_path = os.path.join(directory, filename)
+        # Debug: print the resolved path
+        # print(f"Serving: {abs_path}")
         if not os.path.isfile(abs_path):
             abort(404)
         return send_from_directory(directory, filename)
