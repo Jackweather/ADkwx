@@ -33,14 +33,14 @@
   </div>
   <div id="sidebar" style="margin-top:54px;">
     <button class="nav-btn" style="background:#e6b800;color:#263159;font-weight:bold;" onclick="window.location.href='parent.html'">Switch to Model</button>
-    <button class="nav-btn" onclick="selectSnowType('3to1')">3:1 Snowfall</button>
-    <button class="nav-btn" onclick="selectSnowType('5to1')">5:1 Snowfall</button>
-    <button class="nav-btn" onclick="selectSnowType('8to1')">8:1 Snowfall</button>
-    <button class="nav-btn" onclick="selectSnowType('10to1')">10:1 Snowfall</button>
-    <button class="nav-btn" onclick="selectSnowType('12to1')">12:1 Snowfall</button>
-    <button class="nav-btn" onclick="selectSnowType('15to1')">15:1 Snowfall</button>
-    <button class="nav-btn" onclick="selectSnowType('20to1')">20:1 Snowfall</button>
-    <button class="nav-btn" onclick="selectSnowType('positive')">Positive Snow Depth Change</button>
+    <button class="nav-btn" onclick="selectFolder('GFS/static/totalsnowfall_3to1')">3:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectFolder('GFS/static/totalsnowfall_5to1')">5:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectFolder('GFS/static/totalsnowfall_8to1')">8:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectFolder('GFS/static/totalsnowfall_10to1')">10:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectFolder('GFS/static/totalsnowfall_12to1')">12:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectFolder('GFS/static/totalsnowfall_15to1')">15:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectFolder('GFS/static/totalsnowfall_20to1')">20:1 Snowfall</button>
+    <button class="nav-btn" onclick="selectFolder('GFS/static/snow_depth')">Positive Snow Depth Change</button>
   </div>
   <div id="main-content">
     <div id="image-container"></div>
@@ -60,25 +60,33 @@
     </div>
   </div>
   <script>
-    let currentType = null;
+    let currentFolder = null;
     let loadingTimeout = null;
-    let snowHours = [];
-    for (let hour = 0; hour <= 384; hour += 6) snowHours.push(hour);
-    let snowSrcs = {
-      '3to1': snowHours.map(h => `/GFS/static/totalsnowfall_3to1/totalsnowfall_3to1_${h.toString().padStart(3,'0')}.png`),
-      '5to1': snowHours.map(h => `/GFS/static/totalsnowfall_5to1/totalsnowfall_5to1_${h.toString().padStart(3,'0')}.png`),
-      '8to1': snowHours.map(h => `/GFS/static/totalsnowfall_8to1/totalsnowfall_8to1_${h.toString().padStart(3,'0')}.png`),
-      '10to1': snowHours.map(h => `/GFS/static/totalsnowfall_10to1/totalsnowfall_10to1_${h.toString().padStart(3,'0')}.png`),
-      '12to1': snowHours.map(h => `/GFS/static/totalsnowfall_12to1/totalsnowfall_12to1_${h.toString().padStart(3,'0')}.png`),
-      '15to1': snowHours.map(h => `/GFS/static/totalsnowfall_15to1/totalsnowfall_15to1_${h.toString().padStart(3,'0')}.png`),
-      '20to1': snowHours.map(h => `/GFS/static/totalsnowfall_20to1/totalsnowfall_20to1_${h.toString().padStart(3,'0')}.png`),
-      'positive': snowHours.map(h => `/GFS/static/snow_depth/snowdepth_${h.toString().padStart(3,'0')}.png`)
-    };
     const imageCache = {};
-
-    function preloadImages(type, callback) {
-      imageCache[type] = {};
-      let hours = snowHours;
+    const snowFolders = [
+      'GFS/static/totalsnowfall_3to1',
+      'GFS/static/totalsnowfall_5to1',
+      'GFS/static/totalsnowfall_8to1',
+      'GFS/static/totalsnowfall_10to1',
+      'GFS/static/totalsnowfall_12to1',
+      'GFS/static/totalsnowfall_15to1',
+      'GFS/static/totalsnowfall_20to1',
+      'GFS/static/snow_depth'
+    ];
+    function getImageName(folder, hour) {
+      const paddedHour = hour.toString().padStart(3, '0');
+      if (folder === 'GFS/static/snow_depth') {
+        return `/${folder}/snowdepth_${paddedHour}.png`;
+      } else {
+        // folder ends with totalsnowfall_xxxto1
+        const type = folder.split('_').pop();
+        return `/${folder}/totalsnowfall_${type}_${paddedHour}.png`;
+      }
+    }
+    function preloadImages(folder, callback) {
+      imageCache[folder] = {};
+      let hours = [];
+      for (let h = 0; h <= 384; h += 6) hours.push(h);
       let loaded = 0;
       let total = hours.length;
       let startTime = Date.now();
@@ -91,7 +99,6 @@
       function updatePercent() {
         const percent = Math.round((loaded / total) * 100);
         document.getElementById('loading-percent').textContent = percent + '%';
-        // Estimate seconds remaining
         if (loaded > 0) {
           const elapsed = (Date.now() - startTime) / 1000;
           const rate = loaded / elapsed;
@@ -103,11 +110,11 @@
         }
       }
       updatePercent();
-      hours.forEach((hour, idx) => {
+      hours.forEach(hour => {
         const img = new Image();
-        img.src = snowSrcs[type][idx];
+        img.src = getImageName(folder, hour);
         img.onload = () => {
-          imageCache[type][hour] = img;
+          imageCache[folder][hour] = img;
           loaded++;
           updatePercent();
           if (loaded === total && callback) {
@@ -125,95 +132,93 @@
         };
       });
     }
-
-    function findFirstAvailableIndex(type, callback) {
+    function findFirstAvailableHour(folder, callback) {
+      let hours = [];
+      for (let h = 0; h <= 384; h += 6) hours.push(h);
       let idx = 0;
-      let arr = snowSrcs[type];
       function checkNext() {
-        if (idx >= arr.length) { callback(0); return; }
+        if (idx >= hours.length) {
+          callback(hours[0]);
+          return;
+        }
         const img = new Image();
-        img.onload = function() { callback(idx); };
+        img.onload = function() { callback(hours[idx]); };
         img.onerror = function() { idx++; checkNext(); };
-        img.src = arr[idx];
+        img.src = getImageName(folder, hours[idx]);
       }
       checkNext();
     }
-
-    // Background random hour preloader to help browser cache images
-    function backgroundRandomPreload(type) {
-      let hours = snowHours.slice();
+    function backgroundRandomPreload(folder) {
+      let hours = [];
+      for (let h = 0; h <= 384; h += 6) hours.push(h);
       let preloaded = new Set();
       let start = Date.now();
-      let duration = 6000; // 6 seconds
+      let duration = 6000;
       function preloadRandom() {
         if (Date.now() - start > duration) return;
         let remaining = hours.filter(h => !preloaded.has(h));
         if (remaining.length === 0) return;
         let hour = remaining[Math.floor(Math.random() * remaining.length)];
         preloaded.add(hour);
-        if (!imageCache[type] || !imageCache[type][hour]) {
-          const src = snowSrcs[type][snowHours.indexOf(hour)];
+        if (!imageCache[folder] || !imageCache[folder][hour]) {
           const img = new Image();
-          img.src = src;
+          img.src = getImageName(folder, hour);
         }
-        setTimeout(preloadRandom, 60); // ~16 per second
+        setTimeout(preloadRandom, 60);
       }
       preloadRandom();
     }
-
-    function selectSnowType(type) {
-      currentType = type;
+    function selectFolder(folder) {
+      currentFolder = folder;
       document.getElementById('slider-container').style.display = 'flex';
       document.getElementById('image-container').innerHTML = '';
-      if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
-      findFirstAvailableIndex(type, function(firstIdx) {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+      }
+      findFirstAvailableHour(folder, function(firstHour) {
         const slider = document.getElementById('hour-slider');
-        slider.value = snowHours[firstIdx];
-        slider.min = snowHours[firstIdx];
-        document.getElementById('hour-value').textContent = snowHours[firstIdx];
+        slider.value = firstHour;
+        slider.min = firstHour;
+        document.getElementById('hour-value').textContent = firstHour;
         document.getElementById('loading-spinner').style.display = 'flex';
         document.getElementById('loading-percent').textContent = '0%';
-        preloadImages(type, function() {
+        preloadImages(folder, function() {
           document.getElementById('loading-spinner').style.display = 'none';
-          showImage(snowHours[firstIdx], true);
+          showImage(firstHour, true);
         });
-        backgroundRandomPreload(type);
+        backgroundRandomPreload(folder);
       });
     }
-
     function showImage(hour, force) {
       const container = document.getElementById('image-container');
       if (force) container.innerHTML = '';
-      if (!currentType) return;
-      const idx = snowHours.indexOf(hour);
-      if (idx === -1) return;
-      const cached = imageCache[currentType] && imageCache[currentType][hour];
+      if (!currentFolder) return;
+      const cached = imageCache[currentFolder] && imageCache[currentFolder][hour];
       if (cached) {
         container.innerHTML = '';
         const img = cached.cloneNode();
         img.className = 'image-item';
-        img.alt = `${currentType}_${hour.toString().padStart(3,'0')}`;
+        img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
         container.appendChild(img);
       } else {
         const img = new Image();
-        img.src = snowSrcs[currentType][idx];
+        img.src = getImageName(currentFolder, hour);
         img.className = 'image-item';
-        img.alt = `${currentType}_${hour.toString().padStart(3,'0')}`;
+        img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
         img.onload = () => {
-          imageCache[currentType] = imageCache[currentType] || {};
-          imageCache[currentType][hour] = img;
+          imageCache[currentFolder] = imageCache[currentFolder] || {};
+          imageCache[currentFolder][hour] = img;
           container.innerHTML = '';
           container.appendChild(img.cloneNode());
         };
       }
     }
-
     function updateImage() {
       const hour = parseInt(document.getElementById('hour-slider').value);
       document.getElementById('hour-value').textContent = hour;
       showImage(hour, false);
     }
-
     document.addEventListener('keydown', function(e) {
       const slider = document.getElementById('hour-slider');
       let min = parseInt(slider.min, 10);
@@ -236,9 +241,8 @@
         e.preventDefault();
       }
     });
-
     window.addEventListener('DOMContentLoaded', function() {
-      selectSnowType('positive');
+      selectFolder('GFS/static/snow_depth');
     });
   </script>
 </body>
