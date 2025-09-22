@@ -58,7 +58,6 @@ def index():
 
 @app.route('/<path:prefix>/<path:filename>')
 def serve_image(prefix, filename):
-    # Try to match the longest possible prefix in the mapping
     matched_key = None
     matched_subpath = None
     for key in sorted(IMAGE_ROUTE_MAP.keys(), key=lambda x: -len(x)):
@@ -68,16 +67,24 @@ def serve_image(prefix, filename):
             break
     if matched_key:
         directory = os.path.join(BASE_DATA_DIR, *IMAGE_ROUTE_MAP[matched_key])
-        # If there is a subpath, append it to filename
         if matched_subpath:
             filename = os.path.join(matched_subpath, filename)
         abs_path = os.path.join(directory, filename)
-        # Debug: print the resolved path
-        # print(f"Serving: {abs_path}")
+        print(f"[DEBUG] Trying to serve: {abs_path}")  # <--- Add this line
         if not os.path.isfile(abs_path):
-            abort(404)
+            print(f"[DEBUG] File not found: {abs_path}")  # <--- Add this line
+            abort(404, description=f"File not found: {abs_path}")
         return send_from_directory(directory, filename)
-    abort(404)
+    print(f"[DEBUG] No mapping for prefix: {prefix}")  # <--- Add this line
+    abort(404, description=f"No mapping for prefix: {prefix}")
+
+@app.route('/GFS/static/<path:filename>')
+def serve_gfs_static(filename):
+    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static')
+    abs_path = os.path.join(directory, filename)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_from_directory(directory, filename)
 
 @app.route('/gifs.html')
 def gifs_html():
