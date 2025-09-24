@@ -475,6 +475,247 @@ def plot_combined(mslp_path, prate_path, step, csnow_path=None):
     print(f"Generated combined PNG: {png_path}")
     return png_path
 
+# Add Northeast PNG output directory
+northeast_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_pngs")
+os.makedirs(northeast_dir, exist_ok=True)
+
+def plot_northeast(mslp_path, prate_path, step, csnow_path=None):
+    try:
+        ds_mslp = xr.open_dataset(mslp_path, engine="cfgrib")
+        ds_prate = xr.open_dataset(prate_path, engine="cfgrib", filter_by_keys={"stepType": "instant"})
+        ds_csnow = None
+        if csnow_path and os.path.exists(csnow_path):
+            try:
+                ds_csnow = xr.open_dataset(csnow_path, engine="cfgrib", filter_by_keys={"stepType": "instant"})
+            except Exception as e:
+                print(f"Error opening CSNOW dataset: {e}")
+                ds_csnow = None
+    except Exception as e:
+        print(f"Error opening dataset: {e}")
+        return None
+
+    mslp = ds_mslp['mslet'].values / 100.0  # Pa to hPa
+    prate = ds_prate['prate'].values * 3600  # mm/s to mm/hr
+
+    lats = ds_mslp['latitude'].values
+    lons = ds_mslp['longitude'].values
+    lons_plot = np.where(lons > 180, lons - 360, lons)
+    if lats.ndim == 1 and lons.ndim == 1:
+        Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
+        mslp2d = mslp.squeeze()
+        prate2d = prate.squeeze()
+    else:
+        Lon2d, Lat2d = lons_plot, lats
+        mslp2d = mslp.squeeze()
+        prate2d = prate.squeeze()
+
+    data2d = mslp2d
+
+    # --- Snow mask and snow rate ---
+    snow_mask = None
+    snow_rate2d = None
+    if ds_csnow is not None and "csnow" in ds_csnow:
+        csnow = ds_csnow['csnow'].values * 3600
+        if csnow.shape == prate2d.shape:
+            snow_mask = (csnow > 0)
+            snow_rate2d = np.where(snow_mask, prate2d, np.nan)
+        else:
+            try:
+                csnow2d = csnow.squeeze()
+                snow_mask = (csnow2d > 0)
+                snow_rate2d = np.where(snow_mask, prate2d, np.nan)
+            except Exception:
+                snow_mask = None
+                snow_rate2d = None
+
+    prate2d_base = prate2d
+
+    # --- Begin custom basemap integration ---
+    fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
+    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
+    extent = [-82, -66, 38, 48]  # Northeast US
+    margin = 1.0  # match USA margin
+
+    # --- Title block (match USA style) ---
+    run_hour_map = {
+        "00": 20,
+        "06": 2,
+        "12": 8,
+        "18": 14
+    }
+    base_hour = run_hour_map.get(hour_str, 8)
+    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
+    valid_time = base_time + timedelta(hours=step)
+    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
+    day_of_week = valid_time.strftime('%A')
+    run_str = f"{hour_str}z"
+    title_str = (
+        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
+        f"Precipitation Rate & Mean Sea Level Pressure"
+    )
+    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
+
+    def in_extent(lon, lat):
+        return (extent[0] + margin <= lon <= extent[1] - margin) and (extent[2] + margin <= lat <= extent[3] - margin)
+
+    ax.set_extent(extent, crs=ccrs.PlateCarree())
+
+    # Basemap features (same as USA)
+    ax.add_feature(cfeature.LAND, facecolor='lightgray')
+    ax.add_feature(cfeature.OCEAN, facecolor='white')
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
+    ax.add_feature(cfeature.STATES, linewidth=0.3)
+    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
+    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
+
+    mesh = ax.contourf(
+        Lon2d, Lat2d, prate2d_base,
+        levels=prate_levels,
+        cmap=prate_cmap,
+        norm=prate_norm,
+        extend='max',
+        transform=ccrs.PlateCarree(),
+        alpha=0.7,
+        zorder=2,
+        edgecolors='white'
+    )
+
+    if snow_rate2d is not None:
+        snow_mesh = ax.contourf(
+            Lon2d, Lat2d, snow_rate2d,
+            levels=snow_levels,
+            cmap=snow_cmap,
+            norm=snow_norm,
+            extend='max',
+            transform=ccrs.PlateCarree(),
+            alpha=0.85,
+            zorder=3
+        )
+
+    # Place colorbars at the same height as USA PNGs
+    cax_snow = fig.add_axes([0.15, 0.12, 0.32, 0.02])
+    cax_prate = fig.add_axes([0.53, 0.12, 0.32, 0.02])
+
+    if snow_rate2d is not None:
+        cbar_snow = plt.colorbar(
+            snow_mesh, cax=cax_snow, orientation='horizontal',
+            ticks=snow_levels, boundaries=snow_levels
+        )
+        cbar_snow.set_label("Snow Rate (mm/hr, using PRATE)", fontsize=8)
+        cbar_snow.ax.tick_params(labelsize=7)
+        cbar_snow.ax.set_facecolor('white')
+        cbar_snow.outline.set_edgecolor('black')
+
+    cbar = plt.colorbar(
+        mesh, cax=cax_prate, orientation='horizontal',
+        ticks=prate_levels, boundaries=prate_levels
+    )
+    prate_tick_labels = [f"{int(v)}" if v >= 1 else f"{v:g}" for v in prate_levels]
+    cbar.ax.set_xticklabels(prate_tick_labels)
+    cbar.set_label("Precipitation Rate (mm/hr)", fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+    cbar.ax.set_facecolor('white')
+    cbar.outline.set_edgecolor('black')
+
+    # --- MSLP plotting (same as USA) ---
+    cs = ax.contour(
+        Lon2d, Lat2d, mslp2d,
+        levels=mslp_levels,
+        colors='black',
+        linewidths=0.7,
+        transform=ccrs.PlateCarree()
+    )
+    ax.clabel(cs, fmt='%d', fontsize=4, colors='black', inline=True)
+
+    # --- Highs and Lows detection (same logic as USA, but for NE extent) ---
+    mask = (
+        (Lon2d >= extent[0]) & (Lon2d <= extent[1]) &
+        (Lat2d >= extent[2]) & (Lat2d <= extent[3])
+    )
+    data_masked = np.where(mask, data2d, np.nan)
+
+    max_filt = ndimage.maximum_filter(data_masked, size=25, mode='constant', cval=np.nan)
+    highs = (data_masked == max_filt) & ~np.isnan(data_masked) & (data_masked >= 1020)
+    high_y, high_x = np.where(highs)
+    highs_plotted = 0
+    max_highs = 4
+    min_high_distance = 60
+    plotted_high_points = []
+    for y, x in zip(high_y, high_x):
+        if highs_plotted >= max_highs:
+            break
+        lon, lat = Lon2d[y, x], Lat2d[y, x]
+        if not in_extent(lon, lat):
+            continue
+        too_close = False
+        for py, px in plotted_high_points:
+            if np.hypot(y - py, x - px) < min_high_distance:
+                too_close = True
+                break
+        if too_close:
+            continue
+        plotted_high_points.append((y, x))
+        ax.text(
+            lon, lat, "H",
+            color='blue', fontsize=16, fontweight='bold',
+            ha='center', va='center', transform=ccrs.PlateCarree(),
+            zorder=3, path_effects=[path_effects.Stroke(linewidth=1, foreground='white'), path_effects.Normal()]
+        )
+        ax.text(
+            lon, lat-0.7, f"{data2d[y, x]:.0f}",
+            color='blue', fontsize=5, fontweight='bold',
+            ha='center', va='top', transform=ccrs.PlateCarree(),
+            zorder=3, path_effects=[path_effects.Stroke(linewidth=0.5, foreground='white'), path_effects.Normal()]
+        )
+        highs_plotted += 1
+
+    min_filt = ndimage.minimum_filter(data_masked, size=25, mode='constant', cval=np.nan)
+    lows = (data_masked == min_filt) & ~np.isnan(data_masked) & (data_masked <= 1006)
+    low_y, low_x = np.where(lows)
+    lows_plotted = 0
+    max_lows = 4
+    min_low_distance = 60
+    plotted_low_points = []
+
+    for y, x in zip(low_y, low_x):
+        if lows_plotted >= max_lows:
+            break
+        if (y, x) in plotted_high_points:
+            continue
+        lon, lat = Lon2d[y, x], Lat2d[y, x]
+        if not in_extent(lon, lat):
+            continue
+        too_close = False
+        for py, px in plotted_low_points:
+            if np.hypot(y - py, x - px) < min_low_distance:
+                too_close = True
+                break
+        if too_close:
+            continue
+
+        ax.text(
+            lon, lat, "L",
+            color='red', fontsize=16, fontweight='bold',
+            ha='center', va='center', transform=ccrs.PlateCarree(),
+            zorder=3, path_effects=[path_effects.Stroke(linewidth=1, foreground='white'), path_effects.Normal()]
+        )
+        ax.text(
+            lon, lat-0.7, f"{data2d[y, x]:.0f}",
+            color='red', fontsize=5, fontweight='bold',
+            ha='center', va='top', transform=ccrs.PlateCarree(),
+            zorder=3, path_effects=[path_effects.Stroke(linewidth=0.5, foreground='white'), path_effects.Normal()]
+        )
+        plotted_low_points.append((y, x))
+        lows_plotted += 1
+
+    ax.set_axis_off()
+    png_path = os.path.join(northeast_dir, f"northeast_gfs_{step:03d}.png")
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
+    plt.close(fig)
+    print(f"Generated Northeast PNG: {png_path}")
+    return png_path
+
 # Main process
 for step in forecast_steps:
     mslp_grib = get_mslp_grib(step)
@@ -482,6 +723,7 @@ for step in forecast_steps:
     csnow_grib = get_csnow_grib(step)
     if mslp_grib and prate_grib:
         plot_combined(mslp_grib, prate_grib, step, csnow_grib)
+        plot_northeast(mslp_grib, prate_grib, step, csnow_grib)
         gc.collect()
         time.sleep(3)
 
