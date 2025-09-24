@@ -8,6 +8,7 @@ import threading
 import json
 from datetime import datetime
 import pytz
+import time
 
 app = Flask(__name__)
 
@@ -201,8 +202,20 @@ def get_chats():
                     messages.append({'text': line, 'timestamp': ''})
     return jsonify({'messages': messages})
 
+def run_optimize_pngs():
+    try: subprocess.run(["python","optimize_pngs.py"],check=True,cwd=os.path.dirname(__file__),stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+    except Exception as e: print("[OPTIMIZE_PNGS]",e)
 
+def schedule_optimize_pngs():
+    last=None
+    while True:
+        n=datetime.now(); h=n.hour
+        if h in {3,9,15,21}:
+            k=(n.date(),h)
+            if last!=k: run_optimize_pngs(); last=k
+        time.sleep(60)
 
+threading.Thread(target=schedule_optimize_pngs,daemon=True).start()
 
 if __name__ == '__main__':
     app.run(debug=True)
