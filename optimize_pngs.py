@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+from concurrent.futures import ThreadPoolExecutor
 
 BASE_DIR = '/var/data'
 
@@ -13,12 +14,14 @@ def optimize_png(filepath):
     except Exception as e:
         print(f"Failed to optimize {filepath}: {e}")
 
-def walk_and_optimize(base_dir):
+def walk_and_optimize(base_dir, max_workers=8):
+    png_files = []
     for root, _, files in os.walk(base_dir):
         for file in files:
             if file.lower().endswith('.png'):
-                full_path = os.path.join(root, file)
-                optimize_png(full_path)
+                png_files.append(os.path.join(root, file))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        executor.map(optimize_png, png_files)
 
 if __name__ == '__main__':
     walk_and_optimize(BASE_DIR)
