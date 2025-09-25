@@ -11,6 +11,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import time
 import gc
+from PIL import Image
 
 BASE_DIR = '/var/data'
 
@@ -251,3 +252,19 @@ for f in os.listdir(grib_dir):
     if os.path.isfile(file_path):
         os.remove(file_path)
 print("All GRIB files deleted from grib_dir.")
+
+# --- Optimize all PNGs in the output directory ---
+def optimize_png(filepath):
+    try:
+        with Image.open(filepath) as img:
+            img = img.convert('P', palette=Image.ADAPTIVE, colors=256)
+            img.save(filepath, optimize=True)
+            print(f"Optimized PNG: {filepath}")
+    except Exception as e:
+        print(f"Failed to optimize {filepath}: {e}")
+
+for f in os.listdir(png_dir):
+    if f.lower().endswith('.png'):
+        optimize_png(os.path.join(png_dir, f))
+
+print("All PNGs optimized.")
