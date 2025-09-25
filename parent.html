@@ -13,7 +13,7 @@
       display: flex;
     }
     #sidebar {
-      width: 220px;
+      width: 180px;
       background: #263159;
       padding: 20px 0;
       box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
@@ -32,7 +32,7 @@
       cursor: pointer;
       margin: 8px 0 0 18px;
       transition: background 0.18s;
-      width: 180px;
+      width: 140px;
       text-align: left;
     }
     .nav-btn:hover {
@@ -82,6 +82,14 @@
   </style>
 </head>
 <body>
+  <!-- Beta popup modal -->
+  <div id="beta-modal" style="display:none;position:fixed;z-index:4000;top:0;left:0;width:100vw;height:100vh;background:rgba(30,40,60,0.75);align-items:center;justify-content:center;">
+    <div style="background:#fff;color:#263159;padding:32px 28px 24px 28px;border-radius:12px;box-shadow:0 4px 32px #0004;max-width:90vw;text-align:center;">
+      <div style="font-size:1.3em;font-weight:bold;margin-bottom:12px;">Notice</div>
+      <div style="font-size:1.1em;margin-bottom:18px;">This page is still in beta.</div>
+      <button onclick="document.getElementById('beta-modal').style.display='none';" style="background:#263159;color:#fff;border:none;border-radius:8px;padding:8px 28px;font-size:1em;cursor:pointer;">OK</button>
+    </div>
+  </div>
   <div style="width:100vw;display:flex;align-items:center;justify-content:flex-start;background:#263159;color:#fff;padding:10px 24px 10px 24px;position:fixed;top:0;left:0;z-index:10;gap:18px;">
     <span style="font-size:1.3em;font-weight:bold;letter-spacing:1px;">adkwx.com</span>
     <button onclick="window.location.href='community.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:18px;">Community</button>
@@ -96,26 +104,26 @@
     <div id="region-dropdown" style="display:none;flex-direction:column;width:100%;margin-left:18px;">
       <!-- Keep both region buttons always at the top -->
       <div style="display:flex;flex-direction:column;width:100%;">
-        <button class="nav-btn" id="usa-btn" style="background:#e6b800;color:#263159;font-weight:bold;width:160px;">USA</button>
-        <button class="nav-btn" id="northeast-btn" style="background:#e6b800;color:#263159;font-weight:bold;width:160px;">Northeast</button>
+        <button class="nav-btn" id="usa-btn" style="background:#e6b800;color:#263159;font-weight:bold;width:120px;">USA</button>
+        <button class="nav-btn" id="northeast-btn" style="background:#e6b800;color:#263159;font-weight:bold;width:120px;">Northeast</button>
       </div>
       <!-- USA dropdown -->
       <div id="usa-dropdown" style="display:none;flex-direction:column;width:100%;">
-        <button class="nav-btn" onclick="selectFolder('PRATEGFS')" style="width:140px;">Prate</button>
-        <button class="nav-btn" onclick="selectFolder('tmp_surface')" style="width:140px;">Tmp</button>
-        <button class="nav-btn" onclick="selectFolder('6hour_precip_total')" style="width:140px;">6hPrecip</button>
-        <button class="nav-btn" onclick="selectFolder('12hour_precip_total')" style="width:140px;">12hPrecip</button>
-        <button class="nav-btn" onclick="selectFolder('24hour_precip_total')" style="width:140px;">24hPrecip</button>
-        <button class="nav-btn" onclick="selectFolder('total_precip')" style="width:140px;">Total Precip</button>
-        <button class="nav-btn" onclick="selectFolder('total_lcdc')" style="width:140px;">Total Cloud Cover</button>
-        <button class="nav-btn" onclick="selectFolder('THICKNESS')" style="width:140px;">THICKNESS</button>
-        <button class="nav-btn" onclick="selectFolder('WIND_200')" style="width:140px;">200mb Wind</button>
-        <button class="nav-btn" onclick="selectFolder('sunsd_surface')" style="width:140px;">Sunshine Duration</button>
-        <button class="nav-btn" onclick="selectFolder('gfs_850mb')" style="width:140px;">850mb RH/Height</button>
+        <button class="nav-btn" onclick="selectFolder('PRATEGFS')" style="width:100px;">Prate</button>
+        <button class="nav-btn" onclick="selectFolder('tmp_surface')" style="width:100px;">Tmp</button>
+        <button class="nav-btn" onclick="selectFolder('6hour_precip_total')" style="width:100px;">6hPrecip</button>
+        <button class="nav-btn" onclick="selectFolder('12hour_precip_total')" style="width:100px;">12hPrecip</button>
+        <button class="nav-btn" onclick="selectFolder('24hour_precip_total')" style="width:100px;">24hPrecip</button>
+        <button class="nav-btn" onclick="selectFolder('total_precip')" style="width:100px;">Total Precip</button>
+        <button class="nav-btn" onclick="selectFolder('total_lcdc')" style="width:100px;">Total Cloud Cover</button>
+        <button class="nav-btn" onclick="selectFolder('THICKNESS')" style="width:100px;">THICKNESS</button>
+        <button class="nav-btn" onclick="selectFolder('WIND_200')" style="width:100px;">200mb Wind</button>
+        <button class="nav-btn" onclick="selectFolder('sunsd_surface')" style="width:100px;">Sunshine Duration</button>
+        <button class="nav-btn" onclick="selectFolder('gfs_850mb')" style="width:100px;">850mb RH/Height</button>
       </div>
       <!-- Northeast dropdown -->
       <div id="northeast-dropdown" style="display:none;flex-direction:column;width:100%;">
-        <button class="nav-btn" onclick="selectFolder('northeast_pngs')" style="width:140px;">Prate</button>
+        <button class="nav-btn" onclick="selectFolder('northeast_pngs')" style="width:100px;">Prate</button>
       </div>
     </div>
   </div>
@@ -429,6 +437,11 @@
       udrop.style.display = udrop.style.display === 'flex' ? 'none' : 'flex';
       ndrop.style.display = 'none';
     };
+
+    // Show beta popup on first load
+    window.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('beta-modal').style.display = 'flex';
+    });
   </script>
 </body>
 </html>
