@@ -175,6 +175,7 @@ def plot_dzdt850(grib_path, step, hgt_grib_path=None, prate_grib_path=None):
     gl.ylocator = plt.MaxNLocator(6)
 
     # --- Plot PRATE as a transparent layer if available ---
+    prate_cbar = None
     if prate2d is not None:
         prate_levels = [0.1, 0.25, 0.5, 0.75, 1.5, 2, 2.5, 3, 4, 6, 10, 16, 24]
         prate_colors = [
@@ -183,7 +184,7 @@ def plot_dzdt850(grib_path, step, hgt_grib_path=None, prate_grib_path=None):
         ]
         prate_cmap = LinearSegmentedColormap.from_list("prate_custom", prate_colors, N=len(prate_colors))
         prate_norm = BoundaryNorm(prate_levels, prate_cmap.N)
-        ax.contourf(
+        prate_mesh = ax.contourf(
             Lon2d, Lat2d, prate2d,
             levels=prate_levels,
             cmap=prate_cmap,
@@ -243,6 +244,15 @@ def plot_dzdt850(grib_path, step, hgt_grib_path=None, prate_grib_path=None):
     cbar.ax.tick_params(labelsize=7)
     cbar.ax.set_facecolor('white')
     cbar.outline.set_edgecolor('black')
+
+    # Add PRATE colorbar below if PRATE is plotted
+    if prate2d is not None:
+        cax_prate = fig.add_axes([0.15, 0.07, 0.7, 0.02])
+        prate_cbar = plt.colorbar(prate_mesh, cax=cax_prate, orientation='horizontal', ticks=prate_levels)
+        prate_cbar.set_label("Surface Precipitation Rate (mm/hr)", fontsize=8)
+        prate_cbar.ax.tick_params(labelsize=7)
+        prate_cbar.ax.set_facecolor('white')
+        prate_cbar.outline.set_edgecolor('black')
 
     ax.set_axis_off()
     png_path = os.path.join(dzdt_dir, f"dzdt850_gfs_{step:03d}.png")
