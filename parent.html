@@ -120,6 +120,7 @@
         <button class="nav-btn" onclick="selectFolder('WIND_200')" style="width:100px;">200mb Wind</button>
         <button class="nav-btn" onclick="selectFolder('sunsd_surface')" style="width:100px;">Sunshine Duration</button>
         <button class="nav-btn" onclick="selectFolder('gfs_850mb')" style="width:100px;">850mb RH/Height</button>
+        <button class="nav-btn" onclick="selectFolder('DZDT850')" style="width:100px;">850mb VV</button>
         <button class="nav-btn" onclick="selectFolder('vort850_surface')" style="width:100px;">850mb Vorticity</button>
       </div>
       <!-- Northeast dropdown -->
@@ -165,6 +166,7 @@
       else if (folder === 'WIND_200') prefix = 'wind200';
       else if (folder === 'sunsd_surface') prefix = 'sunsd';
       else if (folder === 'gfs_850mb') prefix = 'gfs_850mb';
+      else if (folder === 'DZDT850') prefix = 'dzdt850_gfs';
       else if (folder === 'vort850_surface') prefix = 'vort850pva';
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
@@ -340,7 +342,8 @@
         'northeast_pngs',
         'WIND_200',
         'sunsd_surface',
-        'gfs_850mb'
+        'gfs_850mb',
+        'DZDT850'
       ];
       findFirstAvailableHour(folder, function(firstHour) {
         const slider = document.getElementById('hour-slider');
