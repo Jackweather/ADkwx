@@ -64,7 +64,7 @@ def get_dzdt_grib(step):
     url = (
         f"{base_url_0p25}?file={file_name}"
         f"&lev_850_mb=on&var_{variable_dzdt}=on"
-        f"&subregion=&leftlon=300&rightlon=335&toplat=55&bottomlat=35"
+        f"&subregion=&leftlon=220&rightlon=300&toplat=55&bottomlat=20"
         f"&dir=%2Fgfs.{date_str}%2F{hour_str}%2Fatmos"
     )
     return download_grib(url, file_path)
@@ -78,7 +78,7 @@ def get_hgt_grib(step):
     url = (
         f"{base_url_0p25}?file={file_name}"
         f"&lev_850_mb=on&var_HGT=on"
-        f"&subregion=&leftlon=300&rightlon=335&toplat=55&bottomlat=35"
+        f"&subregion=&leftlon=220&rightlon=300&toplat=55&bottomlat=20"
         f"&dir=%2Fgfs.{date_str}%2F{hour_str}%2Fatmos"
     )
     return download_grib(url, file_path)
@@ -92,7 +92,7 @@ def get_prate_grib(step):
     url = (
         f"{base_url_0p25}?file={file_name}"
         f"&lev_surface=on&var_PRATE=on"
-        f"&subregion=&leftlon=300&rightlon=335&toplat=55&bottomlat=35"
+        f"&subregion=&leftlon=220&rightlon=300&toplat=55&bottomlat=20"
         f"&dir=%2Fgfs.{date_str}%2F{hour_str}%2Fatmos"
     )
     return download_grib(url, file_path)
@@ -153,7 +153,7 @@ def plot_dzdt850(grib_path, step, hgt_grib_path=None, prate_grib_path=None):
 
     fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
     ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
-    extent = [-60, -25, 35, 55]
+    extent = [-130, -65, 20, 54]  # USA view, matches tmp_surface_clean.py
     ax.set_extent(extent, crs=ccrs.PlateCarree())
 
     # Basemap features
