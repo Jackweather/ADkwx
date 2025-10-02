@@ -109,23 +109,30 @@
       </div>
       <!-- USA dropdown -->
       <div id="usa-dropdown" style="display:none;flex-direction:column;width:100%;">
-        <button class="nav-btn" onclick="selectFolder('PRATEGFS')" style="width:100px;">Prate</button>
-        <button class="nav-btn" onclick="selectFolder('tmp_surface')" style="width:100px;">Tmp</button>
-        <button class="nav-btn" onclick="selectFolder('6hour_precip_total')" style="width:100px;">6hPrecip</button>
-        <button class="nav-btn" onclick="selectFolder('12hour_precip_total')" style="width:100px;">12hPrecip</button>
-        <button class="nav-btn" onclick="selectFolder('24hour_precip_total')" style="width:100px;">24hPrecip</button>
-        <button class="nav-btn" onclick="selectFolder('total_precip')" style="width:100px;">Total Precip</button>
-        <button class="nav-btn" onclick="selectFolder('total_lcdc')" style="width:100px;">Total Cloud Cover</button>
-        <button class="nav-btn" onclick="selectFolder('THICKNESS')" style="width:100px;">Thickness</button>
-        <button class="nav-btn" onclick="selectFolder('WIND_200')" style="width:100px;">200mb Wind</button>
-        <button class="nav-btn" onclick="selectFolder('sunsd_surface')" style="width:100px;">Sunshine Duration</button>
-        <button class="nav-btn" onclick="selectFolder('gfs_850mb')" style="width:100px;">850mb RH/Height</button>
-        <button class="nav-btn" onclick="selectFolder('DZDT850')" style="width:100px;">850mb VV</button>
-        <button class="nav-btn" onclick="selectFolder('vort850_surface')" style="width:100px;">850mb Vorticity</button>
+        <!-- Replace button list with a select dropdown -->
+        <label for="usa-variable-select" style="color:#fff;margin-left:18px;margin-top:8px;">Variable:</label>
+        <select id="usa-variable-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="PRATEGFS">Prate</option>
+          <option value="tmp_surface">Tmp</option>
+          <option value="6hour_precip_total">6hPrecip</option>
+          <option value="12hour_precip_total">12hPrecip</option>
+          <option value="24hour_precip_total">24hPrecip</option>
+          <option value="total_precip">Total Precip</option>
+          <option value="total_lcdc">Total Cloud Cover</option>
+          <option value="THICKNESS">Thickness</option>
+          <option value="WIND_200">200mb Wind</option>
+          <option value="sunsd_surface">Sunshine Duration</option>
+          <option value="gfs_850mb">850mb RH/Height</option>
+          <option value="DZDT850">850mb VV</option>
+          <option value="vort850_surface">850mb Vorticity</option>
+        </select>
       </div>
       <!-- Northeast dropdown -->
       <div id="northeast-dropdown" style="display:none;flex-direction:column;width:100%;">
-        <button class="nav-btn" onclick="selectFolder('northeast_pngs')" style="width:100px;">Prate</button>
+        <label for="northeast-variable-select" style="color:#fff;margin-left:18px;margin-top:8px;">Variable:</label>
+        <select id="northeast-variable-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="northeast_pngs">Prate</option>
+        </select>
       </div>
     </div>
   </div>
@@ -442,6 +449,22 @@
       udrop.style.display = udrop.style.display === 'flex' ? 'none' : 'flex';
       ndrop.style.display = 'none';
     };
+
+    // Add event listener for USA variable dropdown
+    document.addEventListener('DOMContentLoaded', function() {
+      var usaSelect = document.getElementById('usa-variable-select');
+      if (usaSelect) {
+        usaSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+      var neSelect = document.getElementById('northeast-variable-select');
+      if (neSelect) {
+        neSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+    });
 
     // Show beta popup on first load
     window.addEventListener('DOMContentLoaded', function() {
