@@ -6,6 +6,7 @@ import xarray as xr
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as path_effects  # ✅ Added import
 from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
 import numpy as np
 import cartopy.crs as ccrs
@@ -92,7 +93,7 @@ def plot_lftx_surface(grib_path, step, mslp_grib_path=None):
         Lon2d, Lat2d = lons_plot, lats
         lftx2d = lftx
 
-    # LFTX colormap and levels (typical: -10 to +10)
+    # LFTX colormap and levels
     lftx_levels = np.arange(-10, 11, 1)
     lftx_colors = plt.cm.RdYlBu_r(np.linspace(0, 1, len(lftx_levels)))
     lftx_cmap = LinearSegmentedColormap.from_list("lftx_cmap", lftx_colors, N=len(lftx_colors))
@@ -119,7 +120,7 @@ def plot_lftx_surface(grib_path, step, mslp_grib_path=None):
 
     fig = plt.figure(figsize=(12, 8), dpi=600, facecolor='white')
     ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
-    extent = [-130, -65, 20, 54]  # updated extent
+    extent = [-130, -65, 20, 54]
     ax.set_extent(extent, crs=ccrs.PlateCarree())
 
     ax.add_feature(cfeature.LAND, facecolor='lightgray')
@@ -148,28 +149,21 @@ def plot_lftx_surface(grib_path, step, mslp_grib_path=None):
         zorder=2
     )
 
-    # --- Plot MSLP contours and L/H if available ---
+    # --- Plot MSLP contours and H/L markers ---
     if mslp2d is not None:
-        mslp_levels = np.arange(960, 1050+2, 2)
-        cs = ax.contour(
-            Lon2d, Lat2d, mslp2d,
-            levels=mslp_levels,
-            colors='black',
-            linewidths=0.7,
-            transform=ccrs.PlateCarree()
-        )
+        import scipy.ndimage as ndimage
+        mslp_levels = np.arange(960, 1052, 2)
+        cs = ax.contour(Lon2d, Lat2d, mslp2d,
+                        levels=mslp_levels, colors='black',
+                        linewidths=0.7, transform=ccrs.PlateCarree())
         ax.clabel(cs, fmt='%d', fontsize=5, colors='black', inline=True)
 
-        # --- Highs and Lows detection (from mslp_prate.py) ---
-        import scipy.ndimage as ndimage
         def in_extent(lon, lat):
             return (extent[0] <= lon <= extent[1]) and (extent[2] <= lat <= extent[3])
 
         data2d = mslp2d
-        mask = (
-            (Lon2d >= extent[0]) & (Lon2d <= extent[1]) &
-            (Lat2d >= extent[2]) & (Lat2d <= extent[3])
-        )
+        mask = ((Lon2d >= extent[0]) & (Lon2d <= extent[1]) &
+                (Lat2d >= extent[2]) & (Lat2d <= extent[3]))
         data_masked = np.where(mask, data2d, np.nan)
 
         # Highs
@@ -186,32 +180,18 @@ def plot_lftx_surface(grib_path, step, mslp_grib_path=None):
             lon, lat = Lon2d[y, x], Lat2d[y, x]
             if not in_extent(lon, lat):
                 continue
-            too_close = False
-            for py, px in plotted_high_points:
-                if np.hypot(y - py, x - px) < min_high_distance:
-                    too_close = True
-                    break
+            too_close = any(np.hypot(y - py, x - px) < min_high_distance for py, px in plotted_high_points)
             if too_close:
                 continue
             plotted_high_points.append((y, x))
-            ax.text(
-                lon, lat, "H",
-                color='blue', fontsize=16, fontweight='bold',
-                ha='center', va='center', transform=ccrs.PlateCarree(),
-                zorder=3, path_effects=[
-                    plt.matplotlib.patheffects.Stroke(linewidth=1, foreground='white'),
-                    plt.matplotlib.patheffects.Normal()
-                ]
-            )
-            ax.text(
-                lon, lat-0.7, f"{data2d[y, x]:.0f}",
-                color='blue', fontsize=5, fontweight='bold',
-                ha='center', va='top', transform=ccrs.PlateCarree(),
-                zorder=3, path_effects=[
-                    plt.matplotlib.patheffects.Stroke(linewidth=0.5, foreground='white'),
-                    plt.matplotlib.patheffects.Normal()
-                ]
-            )
+            ax.text(lon, lat, "H", color='blue', fontsize=16, fontweight='bold',
+                    ha='center', va='center', transform=ccrs.PlateCarree(), zorder=3,
+                    path_effects=[path_effects.Stroke(linewidth=1, foreground='white'),
+                                  path_effects.Normal()])
+            ax.text(lon, lat - 0.7, f"{data2d[y, x]:.0f}", color='blue', fontsize=5, fontweight='bold',
+                    ha='center', va='top', transform=ccrs.PlateCarree(), zorder=3,
+                    path_effects=[path_effects.Stroke(linewidth=0.5, foreground='white'),
+                                  path_effects.Normal()])
             highs_plotted += 1
 
         # Lows
@@ -230,31 +210,17 @@ def plot_lftx_surface(grib_path, step, mslp_grib_path=None):
             lon, lat = Lon2d[y, x], Lat2d[y, x]
             if not in_extent(lon, lat):
                 continue
-            too_close = False
-            for py, px in plotted_low_points:
-                if np.hypot(y - py, x - px) < min_low_distance:
-                    too_close = True
-                    break
+            too_close = any(np.hypot(y - py, x - px) < min_low_distance for py, px in plotted_low_points)
             if too_close:
                 continue
-            ax.text(
-                lon, lat, "L",
-                color='red', fontsize=16, fontweight='bold',
-                ha='center', va='center', transform=ccrs.PlateCarree(),
-                zorder=3, path_effects=[
-                    plt.matplotlib.patheffects.Stroke(linewidth=1, foreground='white'),
-                    plt.matplotlib.patheffects.Normal()
-                ]
-            )
-            ax.text(
-                lon, lat-0.7, f"{data2d[y, x]:.0f}",
-                color='red', fontsize=5, fontweight='bold',
-                ha='center', va='top', transform=ccrs.PlateCarree(),
-                zorder=3, path_effects=[
-                    plt.matplotlib.patheffects.Stroke(linewidth=0.5, foreground='white'),
-                    plt.matplotlib.patheffects.Normal()
-                ]
-            )
+            ax.text(lon, lat, "L", color='red', fontsize=16, fontweight='bold',
+                    ha='center', va='center', transform=ccrs.PlateCarree(), zorder=3,
+                    path_effects=[path_effects.Stroke(linewidth=1, foreground='white'),
+                                  path_effects.Normal()])
+            ax.text(lon, lat - 0.7, f"{data2d[y, x]:.0f}", color='red', fontsize=5, fontweight='bold',
+                    ha='center', va='top', transform=ccrs.PlateCarree(), zorder=3,
+                    path_effects=[path_effects.Stroke(linewidth=0.5, foreground='white'),
+                                  path_effects.Normal()])
             plotted_low_points.append((y, x))
             lows_plotted += 1
 
@@ -270,13 +236,11 @@ def plot_lftx_surface(grib_path, step, mslp_grib_path=None):
         f"Valid: {valid_time_est:%Y-%m-%d %I:%M %p %Z}  |  "
         f"Init: {init_time:%Y-%m-%d %H:%M UTC}  |  Forecast Hour: {step:03d}  |  Run: {run_str}"
     )
-    plt.title(title_str, fontsize=11, fontweight='bold', y=1.01, loc='left')  # Move title closer to plot
+    plt.title(title_str, fontsize=11, fontweight='bold', y=1.01, loc='left')
 
-    # --- Adjust layout to reduce white space and gap ---
-    plt.subplots_adjust(left=0.03, right=0.97, top=0.93, bottom=0.18, hspace=0)  # Tighten layout
+    plt.subplots_adjust(left=0.03, right=0.97, top=0.93, bottom=0.18, hspace=0)
 
-    # --- Colorbar: move closer to plot and reduce white space ---
-    cax = fig.add_axes([0.13, 0.13, 0.74, 0.025])  # [left, bottom, width, height] - move up
+    cax = fig.add_axes([0.13, 0.13, 0.74, 0.025])
     cbar = plt.colorbar(mesh, cax=cax, orientation='horizontal', ticks=lftx_levels)
     cbar.set_label("Surface Lifted Index (°C)", fontsize=8)
     cbar.ax.tick_params(labelsize=7)
@@ -285,7 +249,8 @@ def plot_lftx_surface(grib_path, step, mslp_grib_path=None):
 
     ax.set_axis_off()
     png_path = os.path.join(lftx_dir, f"lftx_surface_gfs_{step:03d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0.05, transparent=False, dpi=600, facecolor='white')
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0.05,
+                transparent=False, dpi=600, facecolor='white')
     plt.close(fig)
     print(f"Generated LFTX Surface PNG: {png_path}")
     return png_path
@@ -299,7 +264,7 @@ def optimize_png(filepath):
     except Exception as e:
         print(f"Failed to optimize {filepath}: {e}")
 
-# Main process
+# --- Main process ---
 for step in forecast_steps:
     lftx_grib = get_lftx_grib(step)
     mslp_grib = get_mslp_grib(step)
