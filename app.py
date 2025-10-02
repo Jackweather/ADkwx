@@ -46,6 +46,7 @@ IMAGE_ROUTE_MAP = {
     'gfs_850mb': ['GFS', 'static', 'gfs_850mb'],
     'vort850_surface': ['GFS', 'static', 'vort850_surface'],
     'DZDT850': ['GFS', 'static', 'DZDT850'],
+    'LFTX': ['GFS', 'static', 'LFTX'],
 }
 
 @app.route('/')
@@ -154,6 +155,7 @@ def run_task1():
             ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
         for script, cwd in scripts:
