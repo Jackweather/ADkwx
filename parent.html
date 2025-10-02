@@ -441,6 +441,11 @@
       // Toggle only northeast dropdown, always keep both region buttons visible
       ndrop.style.display = ndrop.style.display === 'flex' ? 'none' : 'flex';
       udrop.style.display = 'none';
+      // Auto-load the currently selected variable if opening
+      if (ndrop.style.display === 'flex') {
+        var neSelect = document.getElementById('northeast-variable-select');
+        if (neSelect) selectFolder(neSelect.value);
+      }
     };
     document.getElementById('usa-btn').onclick = function() {
       const udrop = document.getElementById('usa-dropdown');
@@ -448,6 +453,11 @@
       // Toggle only usa dropdown, always keep both region buttons visible
       udrop.style.display = udrop.style.display === 'flex' ? 'none' : 'flex';
       ndrop.style.display = 'none';
+      // Auto-load the currently selected variable if opening
+      if (udrop.style.display === 'flex') {
+        var usaSelect = document.getElementById('usa-variable-select');
+        if (usaSelect) selectFolder(usaSelect.value);
+      }
     };
 
     // Add event listener for USA variable dropdown
