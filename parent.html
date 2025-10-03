@@ -340,25 +340,20 @@
         clearTimeout(loadingTimeout);
         loadingTimeout = null;
       }
-      const spinnerFolders = [
-        'PRATEGFS',
-        'tmp_surface',
-        '6hour_precip_total',
-        '12hour_precip_total',
-        '24hour_precip_total',
-        'total_precip',
-        'THICKNESS',
-        'northeast_pngs',
-        'WIND_200',
-        'sunsd_surface',
-        'gfs_850mb',
-        'DZDT850',
-        'LFTX'
-      ];
+      // Determine slider range for the selected folder
+      let min = 0, max = 384, step = 6;
+      if (folder === '12hour_precip_total') {
+        min = 12; step = 12;
+      } else if (folder === '24hour_precip_total') {
+        min = 24; step = 24;
+      }
+      const slider = document.getElementById('hour-slider');
+      slider.min = min;
+      slider.max = max;
+      slider.step = step;
+
       findFirstAvailableHour(folder, function(firstHour) {
-        const slider = document.getElementById('hour-slider');
         slider.value = firstHour;
-        slider.min = firstHour;
         document.getElementById('hour-value').textContent = firstHour;
         document.getElementById('loading-spinner').style.display = 'flex';
         document.getElementById('loading-percent').textContent = '0%';
