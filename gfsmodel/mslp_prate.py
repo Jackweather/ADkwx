@@ -539,13 +539,19 @@ def plot_northeast(mslp_path, prate_path, step, csnow_path=None):
     # --- Add counties ---
     import cartopy.io.shapereader as shapereader
     county_shp = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip"
-    counties = shapereader.Reader(county_shp)
-    ax.add_geometries(counties.geometries(), ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
+    try:
+        counties = shapereader.Reader(county_shp)
+        ax.add_geometries(counties.geometries(), ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
+    except Exception as e:
+        print(f"Could not load counties shapefile: {e}")
 
     # --- Add primary (major) roads ---
     primary_shp = "https://www2.census.gov/geo/tiger/TIGER2018/PRIMARYROADS/tl_2018_us_primaryroads.zip"
-    primary_roads = shapereader.Reader(primary_shp)
-    ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2, label="Primary Roads")
+    try:
+        primary_roads = shapereader.Reader(primary_shp)
+        ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2, label="Primary Roads")
+    except Exception as e:
+        print(f"Could not load primary roads shapefile: {e}")
 
     # --- Title block (match USA style) ---
     run_hour_map = {
