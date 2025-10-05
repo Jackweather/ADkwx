@@ -109,7 +109,7 @@
       </div>
       <!-- USA dropdown -->
       <div id="usa-dropdown" style="display:none;flex-direction:column;width:100%;">
-        <!-- Add Precip/Totals dropdown -->
+        <!-- Precip/Totals dropdown (now includes Tmp) -->
         <label for="usa-precip-select" style="color:#fff;margin-left:18px;margin-top:8px;">Precip/Totals:</label>
         <select id="usa-precip-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
           <option value="PRATEGFS">Prate</option>
@@ -117,19 +117,27 @@
           <option value="12hour_precip_total">12hPrecip</option>
           <option value="24hour_precip_total">24hPrecip</option>
           <option value="total_precip">Total Precip</option>
-        </select>
-        <!-- Keep other USA variables in the original select, minus the ones above -->
-        <label for="usa-variable-select" style="color:#fff;margin-left:18px;margin-top:12px;">Variable:</label>
-        <select id="usa-variable-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
           <option value="tmp_surface">Tmp</option>
-          <option value="total_lcdc">Total Cloud Cover</option>
-          <option value="THICKNESS">Thickness</option>
-          <option value="WIND_200">200mb Wind</option>
-          <option value="sunsd_surface">Sunshine Duration</option>
+        </select>
+        <!-- Lower Level dropdown -->
+        <label for="usa-lowerlevel-select" style="color:#fff;margin-left:18px;margin-top:12px;">Lower Level:</label>
+        <select id="usa-lowerlevel-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
           <option value="gfs_850mb">850mb RH/Height</option>
           <option value="DZDT850">850mb VV</option>
           <option value="vort850_surface">850mb Vorticity</option>
           <option value="LFTX">Lifted Index</option>
+        </select>
+        <!-- Upper Level dropdown (now includes Total Cloud Cover) -->
+        <label for="usa-upperlevel-select" style="color:#fff;margin-left:18px;margin-top:12px;">Upper Level:</label>
+        <select id="usa-upperlevel-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="WIND_200">200mb Wind</option>
+          <option value="THICKNESS">Thickness</option>
+          <option value="total_lcdc">Total Cloud Cover</option>
+        </select>
+        <!-- Mixed dropdown (renamed from Variable, only Sunshine Duration left) -->
+        <label for="usa-variable-select" style="color:#fff;margin-left:18px;margin-top:12px;">Mixed:</label>
+        <select id="usa-variable-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="sunsd_surface">Sunshine Duration</option>
         </select>
       </div>
       <!-- Northeast dropdown -->
@@ -466,6 +474,18 @@
       var usaPrecipSelect = document.getElementById('usa-precip-select');
       if (usaPrecipSelect) {
         usaPrecipSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+      var usaLowerLevelSelect = document.getElementById('usa-lowerlevel-select');
+      if (usaLowerLevelSelect) {
+        usaLowerLevelSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+      var usaUpperLevelSelect = document.getElementById('usa-upperlevel-select');
+      if (usaUpperLevelSelect) {
+        usaUpperLevelSelect.addEventListener('change', function() {
           selectFolder(this.value);
         });
       }
