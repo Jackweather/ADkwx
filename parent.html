@@ -455,10 +455,9 @@
       // Toggle only usa dropdown, always keep both region buttons visible
       udrop.style.display = udrop.style.display === 'flex' ? 'none' : 'flex';
       ndrop.style.display = 'none';
-      // Auto-load the currently selected variable if opening
+      // Auto-load Prate (PRATEGFS) if opening
       if (udrop.style.display === 'flex') {
-        var usaSelect = document.getElementById('usa-variable-select');
-        if (usaSelect) selectFolder(usaSelect.value);
+        selectFolder('PRATEGFS');
       }
     };
 
@@ -487,8 +486,6 @@
     // Show beta popup on first load
     window.addEventListener('DOMContentLoaded', function() {
       document.getElementById('beta-modal').style.display = 'flex';
-      // Show Prate by default
-      selectFolder('PRATEGFS');
     });
   </script>
 </body>
