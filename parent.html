@@ -109,15 +109,19 @@
       </div>
       <!-- USA dropdown -->
       <div id="usa-dropdown" style="display:none;flex-direction:column;width:100%;">
-        <!-- Replace button list with a select dropdown -->
-        <label for="usa-variable-select" style="color:#fff;margin-left:18px;margin-top:8px;">Variable:</label>
-        <select id="usa-variable-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+        <!-- Add Precip/Totals dropdown -->
+        <label for="usa-precip-select" style="color:#fff;margin-left:18px;margin-top:8px;">Precip/Totals:</label>
+        <select id="usa-precip-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
           <option value="PRATEGFS">Prate</option>
-          <option value="tmp_surface">Tmp</option>
           <option value="6hour_precip_total">6hPrecip</option>
           <option value="12hour_precip_total">12hPrecip</option>
           <option value="24hour_precip_total">24hPrecip</option>
           <option value="total_precip">Total Precip</option>
+        </select>
+        <!-- Keep other USA variables in the original select, minus the ones above -->
+        <label for="usa-variable-select" style="color:#fff;margin-left:18px;margin-top:12px;">Variable:</label>
+        <select id="usa-variable-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="tmp_surface">Tmp</option>
           <option value="total_lcdc">Total Cloud Cover</option>
           <option value="THICKNESS">Thickness</option>
           <option value="WIND_200">200mb Wind</option>
@@ -458,8 +462,14 @@
       }
     };
 
-    // Add event listener for USA variable dropdown
+    // Add event listener for USA Precip/Totals dropdown
     document.addEventListener('DOMContentLoaded', function() {
+      var usaPrecipSelect = document.getElementById('usa-precip-select');
+      if (usaPrecipSelect) {
+        usaPrecipSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
       var usaSelect = document.getElementById('usa-variable-select');
       if (usaSelect) {
         usaSelect.addEventListener('change', function() {
