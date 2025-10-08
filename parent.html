@@ -1,346 +1,514 @@
-import os
-import requests
-from datetime import datetime, timedelta
-import xarray as xr
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
-import numpy as np
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import time
-import gc
-from PIL import Image
-
-BASE_DIR = '/var/data'
-
-# --- Clean up old files in grib_files, pngs, and tmp_surface directories ---
-for folder in [
-    os.path.join(BASE_DIR, "GFS", "static", "tmp_surface", "grib_files"),
-    os.path.join(BASE_DIR, "GFS", "static", "pngs"),
-    os.path.join(BASE_DIR, "GFS", "static", "tmp_surface")
-]:
-    if os.path.exists(folder):
-        for f in os.listdir(folder):
-            file_path = os.path.join(folder, f)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-
-# Directories
-output_dir = os.path.join(BASE_DIR, "GFS")
-tmp_surface_dir = os.path.join(output_dir, "static", "tmp_surface")
-grib_dir = os.path.join(tmp_surface_dir, "grib_files")
-png_dir = tmp_surface_dir
-os.makedirs(grib_dir, exist_ok=True)
-os.makedirs(png_dir, exist_ok=True)
-
-# GFS NOMADS URL and variable
-base_url = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
-variable_tmp = "TMP"
-current_utc_time = datetime.utcnow() - timedelta(hours=6)
-date_str = current_utc_time.strftime("%Y%m%d")
-hour_str = str(current_utc_time.hour // 6 * 6).zfill(2)
-
-# Custom colormap and levels for temperature (°F)
-temp_levels = [-20, 0, 10, 20, 32, 40, 50, 60, 70, 80, 90, 100]
-custom_cmap = LinearSegmentedColormap.from_list(
-    "temp_cmap",
-    [
-        "#08306b", "#2171b5", "#6baed6", "#b3cde3", "#ffffff",
-        "#ffffb2", "#fecc5c", "#fd8d3c", "#f03b20", "#bd0026"
-    ],
-    N=256
-)
-
-def download_file(hour_str, step):
-    file_name = f"gfs.t{hour_str}z.pgrb2.0p25.f{step:03d}"
-    file_path = os.path.join(grib_dir, file_name)
-    url_tmp = (
-        f"{base_url}?file={file_name}"
-        f"&lev_2_m_above_ground=on&var_{variable_tmp}=on"
-        f"&subregion=&leftlon=220&rightlon=300&toplat=55&bottomlat=20"
-        f"&dir=%2Fgfs.{date_str}%2F{hour_str}%2Fatmos"
-    )
-    response = requests.get(url_tmp, stream=True)
-    if response.status_code == 200:
-        with open(file_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
-        print(f"Downloaded {file_name}")
-        return file_path
-    else:
-        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
-        return None
-
-def generate_clean_png(file_path, step):
-    ds = xr.open_dataset(file_path, engine="cfgrib")
-    data = ds['t2m'].values - 273.15  # Kelvin to Celsius
-
-    fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
-    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
-    extent = [-130, -65, 20, 54]
-    ax.set_extent(extent, crs=ccrs.PlateCarree())
-
-    # --- Add map features as in mslp_prate.py ---
-    ax.add_feature(cfeature.LAND, facecolor='lightgray')
-    ax.add_feature(cfeature.OCEAN, facecolor='white')
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
-    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
-    ax.add_feature(cfeature.STATES, linewidth=0.3)
-    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
-    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
-    # --- End map features ---
-
-    # --- Title block (same logic as mslp_prate.py) ---
-    run_hour_map = {
-        "00": 20,  # 00z run: f000 = 8pm previous day
-        "06": 2,   # 06z run: f000 = 2am
-        "12": 8,   # 12z run: f000 = 8am
-        "18": 14   # 18z run: f000 = 2pm
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parent Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      display: flex;
     }
-    base_hour = run_hour_map.get(hour_str, 8)
-    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
-    valid_time = base_time + timedelta(hours=step)
-    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
-    day_of_week = valid_time.strftime('%A')
-    run_str = f"{hour_str}z"
-    title_str = (
-        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
-        f"2m Temperature (°F)"
-    )
-    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
-
-    # --- Plot temperature ---
-    if 'latitude' in ds and 'longitude' in ds:
-        lats = ds['latitude'].values
-        lons = ds['longitude'].values
-        lons_plot = np.where(lons > 180, lons - 360, lons)
-        if lats.ndim == 1 and lons.ndim == 1:
-            Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
-            data2d = data.squeeze()
-        else:
-            Lon2d, Lat2d = lons_plot, lats
-            data2d = data.squeeze()
-        mesh = ax.contourf(
-            Lon2d, Lat2d, data2d * 9/5 + 32,
-            levels=temp_levels,
-            cmap=custom_cmap,
-            extend='both',
-            transform=ccrs.PlateCarree()
-        )
-
-        # --- Add 1-degree grid with temperature numbers ---
-        # Only plot for integer lat/lon within extent
-        for lat in range(int(extent[2]), int(extent[3]) + 1):
-            for lon in range(int(extent[0]), int(extent[1]) + 1):
-                # Find nearest grid point
-                iy = np.abs(lats - lat).argmin() if lats.ndim == 1 else np.abs(lats[:,0] - lat).argmin()
-                ix = np.abs(lons_plot - lon).argmin() if lons_plot.ndim == 1 else np.abs(lons_plot[0,:] - lon).argmin()
-                temp_c = data2d[iy, ix]
-                temp_f = temp_c * 9/5 + 32
-                ax.text(
-                    lon, lat, f"{int(round(temp_f))}",
-                    color='black', fontsize=4, fontweight='bold',
-                    ha='center', va='center', transform=ccrs.PlateCarree(),
-                    zorder=10
-                    # removed bbox for transparent background
-                )
-    else:
-        leaflet_extent = extent
-        mesh = ax.imshow(
-            data.squeeze() * 9/5 + 32,
-            cmap=custom_cmap,
-            extent=leaflet_extent,
-            origin='lower',
-            interpolation='bilinear',
-            aspect='auto',
-            transform=ccrs.PlateCarree()
-        )
-        # No grid overlay for imshow fallback
-
-    # --- Add colorbar below plot, styled like mslp_prate.py ---
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
-    cbar = plt.colorbar(
-        mesh, ax=ax, orientation='horizontal',
-        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,
-        anchor=(0.5, 0.0), location='bottom'
-    )
-    cbar.set_label("2m Temperature (°F)", fontsize=8)
-    cbar.ax.tick_params(labelsize=7)
-    cbar.ax.set_facecolor('white')
-    cbar.outline.set_edgecolor('black')
-
-    # Add ADKWX.com to bottom right
-    fig.text(
-        0.99, 0.01, "adkwx.com",
-        fontsize=10, color="black", ha="right", va="bottom",
-        alpha=0.7, fontweight="bold"
-    )
-
-    ax.set_axis_off()
-    png_path = os.path.join(png_dir, f"2mtemp_{step:03d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
-    plt.close(fig)
-    print(f"Generated clean PNG: {png_path}")
-    return png_path
-
-# Add Northeast TMP PNG output directory (matches frontend)
-northeast_tmp_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_tmp_pngs")
-os.makedirs(northeast_tmp_dir, exist_ok=True)
-
-def generate_northeast_tmp_png(file_path, step):
-    ds = xr.open_dataset(file_path, engine="cfgrib")
-    data = ds['t2m'].values - 273.15  # Kelvin to Celsius
-
-    fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
-    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
-    extent = [-82, -66, 38, 48]  # Northeast US
-    ax.set_extent(extent, crs=ccrs.PlateCarree())
-
-    # Add counties
-    import cartopy.io.shapereader as shapereader
-    county_shp = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip"
-    try:
-        counties = shapereader.Reader(county_shp)
-        ax.add_geometries(counties.geometries(), ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
-    except Exception as e:
-        print(f"Could not load counties shapefile: {e}")
-
-    # Add primary roads
-    primary_shp = "https://www2.census.gov/geo/tiger/TIGER2018/PRIMARYROADS/tl_2018_us_primaryroads.zip"
-    try:
-        primary_roads = shapereader.Reader(primary_shp)
-        ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2)
-    except Exception as e:
-        print(f"Could not load primary roads shapefile: {e}")
-
-    # Basemap features
-    ax.add_feature(cfeature.LAND, facecolor='lightgray')
-    ax.add_feature(cfeature.OCEAN, facecolor='white')
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
-    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
-    ax.add_feature(cfeature.STATES, linewidth=0.3)
-    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
-    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
-
-    # Title block (same logic as USA)
-    run_hour_map = {
-        "00": 20,
-        "06": 2,
-        "12": 8,
-        "18": 14
+    #sidebar {
+      width: 180px;
+      background: #263159;
+      padding: 20px 0;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-height: 100vh;
     }
-    base_hour = run_hour_map.get(hour_str, 8)
-    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
-    valid_time = base_time + timedelta(hours=step)
-    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
-    day_of_week = valid_time.strftime('%A')
-    run_str = f"{hour_str}z"
-    title_str = (
-        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
-        f"2m Temperature (°F)"
-    )
-    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
+    .nav-btn {
+      background: #41507a;
+      color: #fff;
+      border: none;
+      border-radius: 18px;
+      padding: 10px 22px;
+      font-size: 1em;
+      cursor: pointer;
+      margin: 8px 0 0 18px;
+      transition: background 0.18s;
+      width: 140px;
+      text-align: left;
+    }
+    .nav-btn:hover {
+      background: #263159;
+    }
+    #main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 100px 0 0 0;
+    }
+    #image-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      min-height: 300px;
+    }
+    .image-item {
+      width: 100%;
+      max-width: 100vw;
+      max-height: 80vh;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      object-fit: contain;
+      display: block;
+    }
+    #slider-container {
+      margin-top: 24px;
+      width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #hour-label {
+      margin-bottom: 8px;
+      font-size: 1.1em;
+      color: #263159;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Beta popup modal -->
+  <div id="beta-modal" style="display:none;position:fixed;z-index:4000;top:0;left:0;width:100vw;height:100vh;background:rgba(30,40,60,0.75);align-items:center;justify-content:center;">
+    <div style="background:#fff;color:#263159;padding:32px 28px 24px 28px;border-radius:12px;box-shadow:0 4px 32px #0004;max-width:90vw;text-align:center;">
+      <div style="font-size:1.3em;font-weight:bold;margin-bottom:12px;">Notice</div>
+      <div style="font-size:1.1em;margin-bottom:18px;">This page is still in beta.</div>
+      <button onclick="document.getElementById('beta-modal').style.display='none';" style="background:#263159;color:#fff;border:none;border-radius:8px;padding:8px 28px;font-size:1em;cursor:pointer;">OK</button>
+    </div>
+  </div>
+  <div style="width:100vw;display:flex;align-items:center;justify-content:flex-start;background:#263159;color:#fff;padding:10px 24px 10px 24px;position:fixed;top:0;left:0;z-index:10;gap:18px;">
+    <span style="font-size:1.3em;font-weight:bold;letter-spacing:1px;">adkwx.com</span>
+    <button onclick="window.location.href='community.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:18px;">Community</button>
+    <button onclick="window.location.href='updates.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:8px;">Updates</button>
+    <button onclick="window.location.href='gifs.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:8px;">GIFs</button>
+  </div>
+  <div id="sidebar" style="margin-top:54px;">
+    <!-- Move Switch to Snow above Region -->
+    <button class="nav-btn" style="background:#e6b800;color:#263159;font-weight:bold;" onclick="window.location.href='snowparent.html'">Switch to Snow</button>
+    <!-- Region dropdown -->
+    <button class="nav-btn" id="region-btn" style="background:#e6b800;color:#263159;font-weight:bold;">Region ▼</button>
+    <div id="region-dropdown" style="display:none;flex-direction:column;width:100%;margin-left:18px;">
+      <!-- Keep both region buttons always at the top -->
+      <div style="display:flex;flex-direction:column;width:100%;">
+        <button class="nav-btn" id="usa-btn" style="background:#e6b800;color:#263159;font-weight:bold;width:120px;">USA</button>
+        <button class="nav-btn" id="northeast-btn" style="background:#e6b800;color:#263159;font-weight:bold;width:120px;">Northeast</button>
+      </div>
+      <!-- USA dropdown -->
+      <div id="usa-dropdown" style="display:none;flex-direction:column;width:100%;">
+        <!-- Precip/Totals dropdown (now includes Tmp) -->
+        <label for="usa-precip-select" style="color:#fff;margin-left:18px;margin-top:8px;">Precip/Totals:</label>
+        <select id="usa-precip-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="PRATEGFS">Prate</option>
+          <option value="6hour_precip_total">6hPrecip</option>
+          <option value="12hour_precip_total">12hPrecip</option>
+          <option value="24hour_precip_total">24hPrecip</option>
+          <option value="total_precip">Total Precip</option>
+          <option value="tmp_surface">Tmp</option>
+        </select>
+        <!-- Lower Level dropdown -->
+        <label for="usa-lowerlevel-select" style="color:#fff;margin-left:18px;margin-top:12px;">Lower Level:</label>
+        <select id="usa-lowerlevel-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="gfs_850mb">850mb RH/Height</option>
+          <option value="DZDT850">850mb VV</option>
+          <option value="vort850_surface">850mb Vorticity</option>
+          <option value="LFTX">Lifted Index</option>
+        </select>
+        <!-- Upper Level dropdown (now includes Total Cloud Cover) -->
+        <label for="usa-upperlevel-select" style="color:#fff;margin-left:18px;margin-top:12px;">Upper Level:</label>
+        <select id="usa-upperlevel-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="WIND_200">200mb Wind</option>
+          <option value="THICKNESS">Thickness</option>
+          <option value="total_lcdc">Total Cloud Cover</option>
+        </select>
+        <!-- Mixed dropdown (renamed from Variable, only Sunshine Duration left) -->
+        <label for="usa-variable-select" style="color:#fff;margin-left:18px;margin-top:12px;">Mixed:</label>
+        <select id="usa-variable-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="sunsd_surface">Sunshine Duration</option>
+        </select>
+      </div>
+      <!-- Northeast dropdown -->
+      <div id="northeast-dropdown" style="display:none;flex-direction:column;width:100%;">
+        <label for="northeast-variable-select" style="color:#fff;margin-left:18px;margin-top:8px;">Variable:</label>
+        <select id="northeast-variable-select" style="margin:8px 0 0 18px;width:120px;padding:6px 8px;border-radius:8px;font-size:1em;">
+          <option value="northeast_pngs">Prate</option>
+          <option value="northeast_tmp_pngs">Tmp</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="main-content">
+    <div id="image-container"></div>
+    <div id="loading-spinner" style="display:none;align-items:center;justify-content:center;height:300px;width:100%;flex-direction:column;">
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+        <div style="border:8px solid #f3f3f3;border-top:8px solid #263159;border-radius:50%;width:60px;height:60px;animation:spin 1s linear infinite;position:relative;"></div>
+        <div id="loading-estimate" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.1em;color:#263159;font-weight:bold;pointer-events:none;"></div>
+      </div>
+      <div id="loading-percent" style="margin-top:10px;font-size:1.2em;color:#263159;font-weight:bold;">0%</div>
+      <div id="loading-note" style="margin-top:6px;font-size:1em;color:#263159;opacity:0.85;">
+        You can still move the slider to help load speed.
+      </div>
+    </div>
+    <div id="slider-container" style="display:none;">
+      <div id="hour-label">Hour: <span id="hour-value">0</span></div>
+      <input type="range" id="hour-slider" min="0" max="384" step="6" value="0" oninput="updateImage()">
+    </div>
+  </div>
+  <script>
+    let currentFolder = null;
+    let loadingTimeout = null;
+    const imageCache = {};
 
-    # Plot temperature
-    if 'latitude' in ds and 'longitude' in ds:
-        lats = ds['latitude'].values
-        lons = ds['longitude'].values
-        lons_plot = np.where(lons > 180, lons - 360, lons)
-        if lats.ndim == 1 and lons.ndim == 1:
-            Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
-            data2d = data.squeeze()
-        else:
-            Lon2d, Lat2d = lons_plot, lats
-            data2d = data.squeeze()
-        mesh = ax.contourf(
-            Lon2d, Lat2d, data2d * 9/5 + 32,
-            levels=temp_levels,
-            cmap=custom_cmap,
-            extend='both',
-            transform=ccrs.PlateCarree()
-        )
+    function getImageName(folder, hour) {
+      const paddedHour = hour.toString().padStart(3, '0');
+      let prefix = '';
+      if (folder === 'PRATEGFS') prefix = 'usa_gfs';
+      else if (folder === 'tmp_surface') prefix = '2mtemp';
+      else if (folder === '6hour_precip_total') prefix = 'precip6';
+      else if (folder === '12hour_precip_total') prefix = 'precip12';
+      else if (folder === '24hour_precip_total') prefix = 'precip24';
+      else if (folder === 'total_precip') prefix = 'totalprecip';
+      else if (folder === 'total_lcdc') prefix = 'total_lcdc';
+      else if (folder === 'THICKNESS') prefix = 'thickness';
+      else if (folder === 'northeast_pngs') prefix = 'northeast_gfs';
+      else if (folder === 'northeast_tmp_pngs') prefix = 'northeast_tmp';
+      else if (folder === 'WIND_200') prefix = 'wind200';
+      else if (folder === 'sunsd_surface') prefix = 'sunsd';
+      else if (folder === 'gfs_850mb') prefix = 'gfs_850mb';
+      else if (folder === 'DZDT850') prefix = 'dzdt850_gfs';
+      else if (folder === 'vort850_surface') prefix = 'vort850pva';
+      else if (folder === 'LFTX') prefix = 'lftx_surface_gfs';
+      return `/${folder}/${prefix}_${paddedHour}.png`;
+    }
 
-        # Add 0.5-degree grid with temperature numbers
-        for lat in np.arange(extent[2], extent[3]+0.01, 0.5):
-            for lon in np.arange(extent[0], extent[1]+0.01, 0.5):
-                iy = np.abs(lats - lat).argmin() if lats.ndim == 1 else np.abs(lats[:,0] - lat).argmin()
-                ix = np.abs(lons_plot - lon).argmin() if lons_plot.ndim == 1 else np.abs(lons_plot[0,:] - lon).argmin()
-                temp_c = data2d[iy, ix]
-                temp_f = temp_c * 9/5 + 32
-                ax.text(
-                    lon, lat, f"{int(round(temp_f))}",
-                    color='black', fontsize=4, fontweight='bold',
-                    ha='center', va='center', transform=ccrs.PlateCarree(),
-                    zorder=10
-                )
-    else:
-        leaflet_extent = extent
-        mesh = ax.imshow(
-            data.squeeze() * 9/5 + 32,
-            cmap=custom_cmap,
-            extent=leaflet_extent,
-            origin='lower',
-            interpolation='bilinear',
-            aspect='auto',
-            transform=ccrs.PlateCarree()
-        )
+    function preloadImages(folder, callback) {
+      imageCache[folder] = {};
+      let hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h = 12; h <= 384; h += 12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h = 24; h <= 384; h += 24) hours.push(h);
+      } else {
+        for (let h = 0; h <= 384; h += 6) hours.push(h);
+      }
+      let loaded = 0;
+      let total = hours.length;
+      let startTime = Date.now();
+      if (total === 0) {
+        document.getElementById('loading-percent').textContent = '100%';
+        document.getElementById('loading-estimate').textContent = '';
+        if (callback) callback();
+        return;
+      }
+      function updatePercent() {
+        const percent = Math.round((loaded / total) * 100);
+        document.getElementById('loading-percent').textContent = percent + '%';
+        // Estimate seconds remaining
+        if (loaded > 0) {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const rate = loaded / elapsed;
+          const remaining = total - loaded;
+          const est = Math.ceil(remaining / rate);
+          document.getElementById('loading-estimate').textContent = est > 0 ? est + 's' : '';
+        } else {
+          document.getElementById('loading-estimate').textContent = '';
+        }
+      }
+      updatePercent();
+      hours.forEach(hour => {
+        const img = new Image();
+        img.src = getImageName(folder, hour);
+        img.onload = () => {
+          imageCache[folder][hour] = img;
+          loaded++;
+          updatePercent();
+          if (loaded === total && callback) {
+            document.getElementById('loading-estimate').textContent = '';
+            callback();
+          }
+        };
+        img.onerror = () => {
+          loaded++;
+          updatePercent();
+          if (loaded === total && callback) {
+            document.getElementById('loading-estimate').textContent = '';
+            callback();
+          }
+        };
+      });
+    }
 
-    # Colorbar
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
-    cbar = plt.colorbar(
-        mesh, ax=ax, orientation='horizontal',
-        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,
-        anchor=(0.5, 0.0), location='bottom'
-    )
-    cbar.set_label("2m Temperature (°F)", fontsize=8)
-    cbar.ax.tick_params(labelsize=7)
-    cbar.ax.set_facecolor('white')
-    cbar.outline.set_edgecolor('black')
+    function findFirstAvailableHour(folder, callback) {
+      let hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h = 12; h <= 384; h += 12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h = 24; h <= 384; h += 24) hours.push(h);
+      } else {
+        for (let h = 0; h <= 384; h += 6) hours.push(h);
+      }
+      let idx = 0;
+      function checkNext() {
+        if (idx >= hours.length) {
+          callback(hours[0]); // fallback to first
+          return;
+        }
+        const img = new Image();
+        img.onload = function() { callback(hours[idx]); };
+        img.onerror = function() { idx++; checkNext(); };
+        img.src = getImageName(folder, hours[idx]);
+      }
+      checkNext();
+    }
 
-    # Add ADKWX.com to bottom right
-    fig.text(
-        0.99, 0.01, "adkwx.com",
-        fontsize=10, color="black", ha="right", va="bottom",
-        alpha=0.7, fontweight="bold"
-    )
+    // Background slider animation to help browser cache images
+    function backgroundPreloadSlider(folder) {
+      let hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h = 12; h <= 384; h += 12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h = 24; h <= 384; h += 24) hours.push(h);
+      } else {
+        for (let h = 0; h <= 384; h += 6) hours.push(h);
+      }
+      let idx = 0;
+      let startTime = Date.now();
+      let duration = 3000; // 3 seconds for one sweep
+      let repeat = 2; // repeat for 6 seconds total
+      let totalFrames = hours.length;
+      function animateSweep(sweepNum) {
+        if (sweepNum > repeat) return;
+        let sweepStart = Date.now();
+        function step() {
+          let elapsed = Date.now() - sweepStart;
+          let progress = Math.min(elapsed / duration, 1);
+          let frame = Math.floor(progress * (totalFrames - 1));
+          let hour = hours[frame];
+          // Touch the image in cache or trigger browser to load it
+          if (hour !== undefined) {
+            if (!imageCache[folder] || !imageCache[folder][hour]) {
+              const img = new Image();
+              img.src = getImageName(folder, hour);
+              // Don't attach to DOM, just let browser cache it
+            }
+          }
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            animateSweep(sweepNum + 1);
+          }
+        }
+        step();
+      }
+      animateSweep(1);
+    }
 
-    ax.set_axis_off()
-    png_path = os.path.join(northeast_tmp_dir, f"northeast_tmp_{step:03d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
-    plt.close(fig)
-    print(f"Generated Northeast TMP PNG: {png_path}")
-    return png_path
+    // Background random hour preloader to help browser cache images
+    function backgroundRandomPreload(folder) {
+      let hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h = 12; h <= 384; h += 12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h = 24; h <= 384; h += 24) hours.push(h);
+      } else {
+        for (let h = 0; h <= 384; h += 6) hours.push(h);
+      }
+      let preloaded = new Set();
+      let start = Date.now();
+      let duration = 6000; // 6 seconds
+      function preloadRandom() {
+        if (Date.now() - start > duration) return;
+        // Pick a random hour not yet preloaded
+        let remaining = hours.filter(h => !preloaded.has(h));
+        if (remaining.length === 0) return;
+        let hour = remaining[Math.floor(Math.random() * remaining.length)];
+        preloaded.add(hour);
+        if (!imageCache[folder] || !imageCache[folder][hour]) {
+          const img = new Image();
+          img.src = getImageName(folder, hour);
+          // Don't attach to DOM, just let browser cache it
+        }
+        setTimeout(preloadRandom, 60); // ~16 per second
+      }
+      preloadRandom();
+    }
 
-# Main process: Download and plot
-forecast_steps = list(range(6, 385, 6))
-if 264 not in forecast_steps:
-    forecast_steps.append(264)
-for step in forecast_steps:
-    grib_file = download_file(hour_str, step)
-    if grib_file:
-        generate_clean_png(grib_file, step)
-        generate_northeast_tmp_png(grib_file, step)
-        gc.collect()
-        time.sleep(3)
+    function selectFolder(folder) {
+      currentFolder = folder;
+      document.getElementById('slider-container').style.display = 'flex';
+      document.getElementById('image-container').innerHTML = '';
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+      }
+      // Determine slider range for the selected folder
+      let min = 0, max = 384, step = 6;
+      if (folder === '12hour_precip_total') {
+        min = 12; step = 12;
+      } else if (folder === '24hour_precip_total') {
+        min = 24; step = 24;
+      }
+      const slider = document.getElementById('hour-slider');
+      slider.min = min;
+      slider.max = max;
+      slider.step = step;
 
-print("All GRIB file download and PNG creation tasks complete!")
+      findFirstAvailableHour(folder, function(firstHour) {
+        slider.value = firstHour;
+        document.getElementById('hour-value').textContent = firstHour;
+        document.getElementById('loading-spinner').style.display = 'flex';
+        document.getElementById('loading-percent').textContent = '0%';
+        preloadImages(folder, function() {
+          document.getElementById('loading-spinner').style.display = 'none';
+          showImage(firstHour, true);
+        });
+        // Start background random hour preloading to help browser cache images
+        backgroundRandomPreload(folder);
+      });
+    }
 
-# --- Delete all GRIB files in grib_dir after PNGs are made ---
-for f in os.listdir(grib_dir):
-    file_path = os.path.join(grib_dir, f)
-    if os.path.isfile(file_path):
-        os.remove(file_path)
-print("All GRIB files deleted from grib_dir.")
+    // Show image from cache if available, fallback to loading if not
+    // If fallback, keep previous image visible (no white flash)
+    function showImage(hour, force) {
+      const container = document.getElementById('image-container');
+      // Only clear if force or switching folder
+      if (force) container.innerHTML = '';
+      if (!currentFolder) return;
+      const cached = imageCache[currentFolder] && imageCache[currentFolder][hour];
+      if (cached) {
+        container.innerHTML = '';
+        // Clone to avoid DOM issues if reused
+        const img = cached.cloneNode();
+        img.className = 'image-item';
+        img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
+        container.appendChild(img);
+      } else {
+        // If not preloaded, try to load, but don't clear previous image
+        const img = new Image();
+        img.src = getImageName(currentFolder, hour);
+        img.className = 'image-item';
+        img.alt = `${currentFolder}_${hour.toString().padStart(3, '0')}`;
+        img.onload = () => {
+          imageCache[currentFolder] = imageCache[currentFolder] || {};
+          imageCache[currentFolder][hour] = img;
+          container.innerHTML = '';
+          container.appendChild(img.cloneNode());
+        };
+        // Don't clear container on error, so previous image stays
+      }
+    }
 
-# --- Optimize all PNGs in the output directories ---
-for f in os.listdir(png_dir):
-    if f.lower().endswith('.png'):
-        optimize_png(os.path.join(png_dir, f))
-for f in os.listdir(northeast_tmp_dir):
-    if f.lower().endswith('.png'):
-        optimize_png(os.path.join(northeast_tmp_dir, f))
+    function updateImage() {
+      const hour = parseInt(document.getElementById('hour-slider').value);
+      document.getElementById('hour-value').textContent = hour;
+      showImage(hour, false);
+    }
+    document.addEventListener('keydown', function(e) {
+      const slider = document.getElementById('hour-slider');
+      let min = parseInt(slider.min, 10);
+      let max = parseInt(slider.max, 10);
+      let step = parseInt(slider.step, 10);
+      let val = parseInt(slider.value, 10);
+      if (e.key === 'ArrowLeft') {
+        let next = val - step;
+        if (next < min) next = min;
+        slider.value = next;
+        document.getElementById('hour-value').textContent = next;
+        showImage(next);
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        let next = val + step;
+        if (next > max) next = max;
+        slider.value = next;
+        document.getElementById('hour-value').textContent = next;
+        showImage(next);
+        e.preventDefault();
+      }
+    });
 
-print("All PNGs optimized.")
+    // Dropdown logic
+    document.getElementById('region-btn').onclick = function() {
+      const dropdown = document.getElementById('region-dropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+      // Always keep both region buttons at the top, only toggle their dropdowns
+      document.getElementById('northeast-dropdown').style.display = 'none';
+      document.getElementById('usa-dropdown').style.display = 'none';
+    };
+    document.getElementById('northeast-btn').onclick = function() {
+      const ndrop = document.getElementById('northeast-dropdown');
+      const udrop = document.getElementById('usa-dropdown');
+      // Toggle only northeast dropdown, always keep both region buttons visible
+      ndrop.style.display = ndrop.style.display === 'flex' ? 'none' : 'flex';
+      udrop.style.display = 'none';
+      // Auto-load the currently selected variable if opening
+      if (ndrop.style.display === 'flex') {
+        var neSelect = document.getElementById('northeast-variable-select');
+        if (neSelect) selectFolder(neSelect.value);
+      }
+    };
+    document.getElementById('usa-btn').onclick = function() {
+      const udrop = document.getElementById('usa-dropdown');
+      const ndrop = document.getElementById('northeast-dropdown');
+      // Toggle only usa dropdown, always keep both region buttons visible
+      udrop.style.display = udrop.style.display === 'flex' ? 'none' : 'flex';
+      ndrop.style.display = 'none';
+      // Auto-load Prate (PRATEGFS) if opening
+      if (udrop.style.display === 'flex') {
+        selectFolder('PRATEGFS');
+      }
+    };
+
+    // Add event listener for USA Precip/Totals dropdown
+    document.addEventListener('DOMContentLoaded', function() {
+      var usaPrecipSelect = document.getElementById('usa-precip-select');
+      if (usaPrecipSelect) {
+        usaPrecipSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+      var usaLowerLevelSelect = document.getElementById('usa-lowerlevel-select');
+      if (usaLowerLevelSelect) {
+        usaLowerLevelSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+      var usaUpperLevelSelect = document.getElementById('usa-upperlevel-select');
+      if (usaUpperLevelSelect) {
+        usaUpperLevelSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+      var usaSelect = document.getElementById('usa-variable-select');
+      if (usaSelect) {
+        usaSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+      var neSelect = document.getElementById('northeast-variable-select');
+      if (neSelect) {
+        neSelect.addEventListener('change', function() {
+          selectFolder(this.value);
+        });
+      }
+    });
+
+    // Show beta popup on first load
+    window.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('beta-modal').style.display = 'flex';
+    });
+  </script>
+</body>
+</html>
