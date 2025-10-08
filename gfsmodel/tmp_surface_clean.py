@@ -186,11 +186,11 @@ def generate_clean_png(file_path, step):
     print(f"Generated clean PNG: {png_path}")
     return png_path
 
-# Add Northeast PNG output directory
-northeast_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_tmp_pngs")
-os.makedirs(northeast_dir, exist_ok=True)
+# Add Northeast TMP PNG output directory (matches frontend)
+northeast_tmp_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_tmp_pngs")
+os.makedirs(northeast_tmp_dir, exist_ok=True)
 
-def generate_northeast_png(file_path, step):
+def generate_northeast_tmp_png(file_path, step):
     ds = xr.open_dataset(file_path, engine="cfgrib")
     data = ds['t2m'].values - 273.15  # Kelvin to Celsius
 
@@ -308,10 +308,10 @@ def generate_northeast_png(file_path, step):
     )
 
     ax.set_axis_off()
-    png_path = os.path.join(northeast_dir, f"northeast_tmp_{step:03d}.png")
+    png_path = os.path.join(northeast_tmp_dir, f"northeast_tmp_{step:03d}.png")
     plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
     plt.close(fig)
-    print(f"Generated Northeast PNG: {png_path}")
+    print(f"Generated Northeast TMP PNG: {png_path}")
     return png_path
 
 # Main process: Download and plot
@@ -322,7 +322,7 @@ for step in forecast_steps:
     grib_file = download_file(hour_str, step)
     if grib_file:
         generate_clean_png(grib_file, step)
-        generate_northeast_png(grib_file, step)
+        generate_northeast_tmp_png(grib_file, step)
         gc.collect()
         time.sleep(3)
 
@@ -335,18 +335,12 @@ for f in os.listdir(grib_dir):
         os.remove(file_path)
 print("All GRIB files deleted from grib_dir.")
 
-# --- Optimize all PNGs in the output directory ---
-def optimize_png(filepath):
-    try:
-        with Image.open(filepath) as img:
-            img = img.convert('P', palette=Image.ADAPTIVE, colors=256)
-            img.save(filepath, optimize=True)
-            print(f"Optimized PNG: {filepath}")
-    except Exception as e:
-        print(f"Failed to optimize {filepath}: {e}")
-
+# --- Optimize all PNGs in the output directories ---
 for f in os.listdir(png_dir):
     if f.lower().endswith('.png'):
         optimize_png(os.path.join(png_dir, f))
+for f in os.listdir(northeast_tmp_dir):
+    if f.lower().endswith('.png'):
+        optimize_png(os.path.join(northeast_tmp_dir, f))
 
 print("All PNGs optimized.")
