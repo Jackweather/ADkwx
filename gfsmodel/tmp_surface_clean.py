@@ -272,7 +272,7 @@ def generate_northeast_tmp_png(file_path, step):
                 temp_f = temp_c * 9/5 + 32
                 ax.text(
                     lon, lat, f"{int(round(temp_f))}",
-                    color='black', fontsize=4, fontweight='bold',
+                    color='black', fontsize=7, fontweight='bold',
                     ha='center', va='center', transform=ccrs.PlateCarree(),
                     zorder=10
                 )
@@ -344,3 +344,4 @@ for f in os.listdir(northeast_tmp_dir):
         optimize_png(os.path.join(northeast_tmp_dir, f))
 
 print("All PNGs optimized.")
+
