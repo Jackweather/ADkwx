@@ -187,7 +187,7 @@ def generate_clean_png(file_path, step):
     return png_path
 
 # Add Northeast PNG output directory
-northeast_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_pngs")
+northeast_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_tmp_pngs")
 os.makedirs(northeast_dir, exist_ok=True)
 
 def generate_northeast_png(file_path, step):
@@ -208,15 +208,15 @@ def generate_northeast_png(file_path, step):
     except Exception as e:
         print(f"Could not load counties shapefile: {e}")
 
-    # Add primary (major) roads
+    # Add primary roads
     primary_shp = "https://www2.census.gov/geo/tiger/TIGER2018/PRIMARYROADS/tl_2018_us_primaryroads.zip"
     try:
         primary_roads = shapereader.Reader(primary_shp)
-        ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2, label="Primary Roads")
+        ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2)
     except Exception as e:
         print(f"Could not load primary roads shapefile: {e}")
 
-    # Map features
+    # Basemap features
     ax.add_feature(cfeature.LAND, facecolor='lightgray')
     ax.add_feature(cfeature.OCEAN, facecolor='white')
     ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
@@ -262,15 +262,10 @@ def generate_northeast_png(file_path, step):
             extend='both',
             transform=ccrs.PlateCarree()
         )
+
         # Add 0.5-degree grid with temperature numbers
-        lat_start = extent[2]
-        lat_end = extent[3]
-        lon_start = extent[0]
-        lon_end = extent[1]
-        lat_points = np.arange(lat_start, lat_end + 0.01, 0.5)
-        lon_points = np.arange(lon_start, lon_end + 0.01, 0.5)
-        for lat in lat_points:
-            for lon in lon_points:
+        for lat in np.arange(extent[2], extent[3]+0.01, 0.5):
+            for lon in np.arange(extent[0], extent[1]+0.01, 0.5):
                 iy = np.abs(lats - lat).argmin() if lats.ndim == 1 else np.abs(lats[:,0] - lat).argmin()
                 ix = np.abs(lons_plot - lon).argmin() if lons_plot.ndim == 1 else np.abs(lons_plot[0,:] - lon).argmin()
                 temp_c = data2d[iy, ix]
@@ -313,143 +308,10 @@ def generate_northeast_png(file_path, step):
     )
 
     ax.set_axis_off()
-    png_path = os.path.join(northeast_dir, f"northeast_gfs_{step:03d}.png")
+    png_path = os.path.join(northeast_dir, f"northeast_tmp_{step:03d}.png")
     plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
     plt.close(fig)
     print(f"Generated Northeast PNG: {png_path}")
-    return png_path
-
-# Add Northeast TMP output directory
-northeast_tmp_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_tmp")
-os.makedirs(northeast_tmp_dir, exist_ok=True)
-
-def generate_northeast_tmp_png(file_path, step):
-    ds = xr.open_dataset(file_path, engine="cfgrib")
-    data = ds['t2m'].values - 273.15  # Kelvin to Celsius
-
-    fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
-    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
-    extent = [-82, -66, 38, 48]  # Northeast US
-    ax.set_extent(extent, crs=ccrs.PlateCarree())
-
-    # Add counties
-    import cartopy.io.shapereader as shapereader
-    county_shp = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip"
-    try:
-        counties = shapereader.Reader(county_shp)
-        ax.add_geometries(counties.geometries(), ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
-    except Exception as e:
-        print(f"Could not load counties shapefile: {e}")
-
-    # Add primary (major) roads
-    primary_shp = "https://www2.census.gov/geo/tiger/TIGER2018/PRIMARYROADS/tl_2018_us_primaryroads.zip"
-    try:
-        primary_roads = shapereader.Reader(primary_shp)
-        ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2, label="Primary Roads")
-    except Exception as e:
-        print(f"Could not load primary roads shapefile: {e}")
-
-    # Map features
-    ax.add_feature(cfeature.LAND, facecolor='lightgray')
-    ax.add_feature(cfeature.OCEAN, facecolor='white')
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
-    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
-    ax.add_feature(cfeature.STATES, linewidth=0.3)
-    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
-    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
-
-    # Title block (same logic as USA)
-    run_hour_map = {
-        "00": 20,
-        "06": 2,
-        "12": 8,
-        "18": 14
-    }
-    base_hour = run_hour_map.get(hour_str, 8)
-    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
-    valid_time = base_time + timedelta(hours=step)
-    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
-    day_of_week = valid_time.strftime('%A')
-    run_str = f"{hour_str}z"
-    title_str = (
-        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
-        f"2m Temperature (°F)"
-    )
-    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
-
-    # Plot temperature
-    if 'latitude' in ds and 'longitude' in ds:
-        lats = ds['latitude'].values
-        lons = ds['longitude'].values
-        lons_plot = np.where(lons > 180, lons - 360, lons)
-        if lats.ndim == 1 and lons.ndim == 1:
-            Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
-            data2d = data.squeeze()
-        else:
-            Lon2d, Lat2d = lons_plot, lats
-            data2d = data.squeeze()
-        mesh = ax.contourf(
-            Lon2d, Lat2d, data2d * 9/5 + 32,
-            levels=temp_levels,
-            cmap=custom_cmap,
-            extend='both',
-            transform=ccrs.PlateCarree()
-        )
-        # Add 0.5-degree grid with temperature numbers
-        lat_start = extent[2]
-        lat_end = extent[3]
-        lon_start = extent[0]
-        lon_end = extent[1]
-        lat_points = np.arange(lat_start, lat_end + 0.01, 0.5)
-        lon_points = np.arange(lon_start, lon_end + 0.01, 0.5)
-        for lat in lat_points:
-            for lon in lon_points:
-                iy = np.abs(lats - lat).argmin() if lats.ndim == 1 else np.abs(lats[:,0] - lat).argmin()
-                ix = np.abs(lons_plot - lon).argmin() if lons_plot.ndim == 1 else np.abs(lons_plot[0,:] - lon).argmin()
-                temp_c = data2d[iy, ix]
-                temp_f = temp_c * 9/5 + 32
-                ax.text(
-                    lon, lat, f"{int(round(temp_f))}",
-                    color='black', fontsize=4, fontweight='bold',
-                    ha='center', va='center', transform=ccrs.PlateCarree(),
-                    zorder=10
-                )
-    else:
-        leaflet_extent = extent
-        mesh = ax.imshow(
-            data.squeeze() * 9/5 + 32,
-            cmap=custom_cmap,
-            extent=leaflet_extent,
-            origin='lower',
-            interpolation='bilinear',
-            aspect='auto',
-            transform=ccrs.PlateCarree()
-        )
-
-    # Colorbar
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
-    cbar = plt.colorbar(
-        mesh, ax=ax, orientation='horizontal',
-        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,
-        anchor=(0.5, 0.0), location='bottom'
-    )
-    cbar.set_label("2m Temperature (°F)", fontsize=8)
-    cbar.ax.tick_params(labelsize=7)
-    cbar.ax.set_facecolor('white')
-    cbar.outline.set_edgecolor('black')
-
-    # Add ADKWX.com to bottom right
-    fig.text(
-        0.99, 0.01, "adkwx.com",
-        fontsize=10, color="black", ha="right", va="bottom",
-        alpha=0.7, fontweight="bold"
-    )
-
-    ax.set_axis_off()
-    png_path = os.path.join(northeast_tmp_dir, f"northeast_tmp_{step:03d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
-    plt.close(fig)
-    print(f"Generated Northeast TMP PNG: {png_path}")
     return png_path
 
 # Main process: Download and plot
@@ -460,8 +322,7 @@ for step in forecast_steps:
     grib_file = download_file(hour_str, step)
     if grib_file:
         generate_clean_png(grib_file, step)
-        
-        generate_northeast_tmp_png(grib_file, step)
+        generate_northeast_png(grib_file, step)
         gc.collect()
         time.sleep(3)
 
