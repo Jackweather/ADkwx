@@ -47,6 +47,7 @@ IMAGE_ROUTE_MAP = {
     'vort850_surface': ['GFS', 'static', 'vort850_surface'],
     'DZDT850': ['GFS', 'static', 'DZDT850'],
     'LFTX': ['GFS', 'static', 'LFTX'],
+    'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
 }
 
 @app.route('/')
