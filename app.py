@@ -52,6 +52,7 @@ IMAGE_ROUTE_MAP = {
     'northeast_12hour_precip_pngs': ['GFS', 'static', 'northeast_12hour_precip_pngs'],
     'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngs'],
     'northeast_total_precip_pngs': ['GFS', 'static', 'northeast_total_precip_pngs'],
+    'northeast_gust_pngs': ['GDAS', 'static', 'GUST_NE'],
 }
 
 @app.route('/')
@@ -125,6 +126,7 @@ def serve_snowparent_html():
     return send_from_directory(os.path.dirname(__file__), 'snowparent.html')
 
 
+
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
     directory = '/var/data'  # GIFs are saved here
@@ -161,6 +163,7 @@ def run_task1():
             ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
         for script, cwd in scripts:
