@@ -50,6 +50,7 @@ IMAGE_ROUTE_MAP = {
     'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
     'northeast_precip_pngs': ['GFS', 'static', 'northeast_precip_pngs'],
     'northeast_12hour_precip_pngs': ['GFS', 'static', 'northeast_12hour_precip_pngs'],
+    'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngs'],
 }
 
 @app.route('/')
