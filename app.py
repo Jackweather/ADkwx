@@ -49,6 +49,7 @@ IMAGE_ROUTE_MAP = {
     'LFTX': ['GFS', 'static', 'LFTX'],
     'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
     'northeast_precip_pngs': ['GFS', 'static', 'northeast_precip_pngs'],
+    'northeast_12hour_precip_pngs': ['GFS', 'static', 'northeast_12hour_precip_pngs'],
 }
 
 @app.route('/')
