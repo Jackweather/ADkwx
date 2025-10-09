@@ -229,6 +229,157 @@ def generate_clean_png(file_path, step):
     print(f"Generated clean PNG: {png_path}")
     return png_path
 
+# Add Northeast precip PNG output directory (matches frontend)
+northeast_precip_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_precip_pngs")
+os.makedirs(northeast_precip_dir, exist_ok=True)
+
+def generate_northeast_precip_png(file_path, step):
+    ds = xr.open_dataset(file_path, engine="cfgrib")
+    apcp_mm = ds['tp'].values
+    apcp_in = apcp_mm / 25.4
+    apcp_in = np.where(
+        (np.isnan(apcp_in)) | (apcp_in < 0) | (apcp_in > 50),
+        np.nan,
+        apcp_in
+    )
+    fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
+    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
+    extent = [-82, -66, 38, 48]  # Northeast US
+    ax.set_extent(extent, crs=ccrs.PlateCarree())
+
+    # Always try to plot counties in the Northeast
+    import cartopy.io.shapereader as shapereader
+    county_shp = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip"
+    try:
+        counties = shapereader.Reader(county_shp)
+        ax.add_geometries(counties.geometries(), ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
+    except Exception as e:
+        print(f"Warning: Could not plot counties: {e}")
+
+    # Add primary roads
+    primary_shp = "https://www2.census.gov/geo/tiger/TIGER2018/PRIMARYROADS/tl_2018_us_primaryroads.zip"
+    try:
+        primary_roads = shapereader.Reader(primary_shp)
+        ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2)
+    except Exception as e:
+        print(f"Could not load primary roads shapefile: {e}")
+
+    # Basemap features
+    ax.add_feature(cfeature.LAND, facecolor='lightgray')
+    ax.add_feature(cfeature.OCEAN, facecolor='white')
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
+    ax.add_feature(cfeature.STATES, linewidth=0.3)
+    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
+    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
+
+    # Title block (same logic as USA)
+    run_hour_map = {
+        "00": 20,
+        "06": 2,
+        "12": 8,
+        "18": 14
+    }
+    base_hour = run_hour_map.get(hour_str, 8)
+    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
+    valid_time = base_time + timedelta(hours=step)
+    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
+    day_of_week = valid_time.strftime('%A')
+    run_str = f"{hour_str}z"
+    title_str = (
+        f"6 Hour Maximum Total Precipitation\n"
+        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}"
+    )
+    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
+
+    # Plot precipitation
+    if 'latitude' in ds and 'longitude' in ds:
+        lats = ds['latitude'].values
+        lons = ds['longitude'].values
+        lons_plot = np.where(lons > 180, lons - 360, lons)
+        if lats.ndim == 1 and lons.ndim == 1:
+            Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
+            data2d = apcp_in.squeeze()
+        else:
+            Lon2d, Lat2d = lons_plot, lats
+            data2d = apcp_in.squeeze()
+        mask_extent = (
+            (Lat2d >= extent[2]) & (Lat2d <= extent[3]) &
+            (Lon2d >= extent[0]) & (Lon2d <= extent[1])
+        )
+        data2d = np.where(mask_extent, data2d, np.nan)
+        mesh = ax.contourf(
+            Lon2d, Lat2d, data2d,
+            levels=precip_breaks,
+            cmap=precip_cmap,
+            norm=precip_norm,
+            extend='max',
+            transform=ccrs.PlateCarree()
+        )
+        # Add 0.5-degree grid with precip numbers
+        for lat in np.arange(extent[2], extent[3] + 0.01, 0.5):
+            for lon in np.arange(extent[0], extent[1] + 0.01, 0.5):
+                iy = np.abs(lats - lat).argmin() if lats.ndim == 1 else np.abs(lats[:,0] - lat).argmin()
+                ix = np.abs(lons_plot - lon).argmin() if lons_plot.ndim == 1 else np.abs(lons_plot[0,:] - lon).argmin()
+                precip_val = data2d[iy, ix]
+                if not np.isnan(precip_val):
+                    if precip_val == 0:
+                        label = "0"
+                    elif precip_val < 1:
+                        label = f".{int(round(precip_val * 100)):02d}"
+                    else:
+                        label = f"{precip_val:.2f}"
+                    ax.text(
+                        lon, lat, label,
+                        color='black', fontsize=6, fontweight='bold',
+                        ha='center', va='center', transform=ccrs.PlateCarree(),
+                        zorder=10
+                    )
+    else:
+        leaflet_extent = extent
+        mesh = ax.imshow(
+            apcp_in.squeeze(),
+            cmap=precip_cmap,
+            norm=precip_norm,
+            extent=leaflet_extent,
+            origin='lower',
+            interpolation='bilinear',
+            aspect='auto',
+            transform=ccrs.PlateCarree()
+        )
+
+    # Colorbar
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
+    tick_indices = list(range(0, len(precip_breaks), 2))
+    ticks_to_show = [precip_breaks[i] for i in tick_indices]
+    cbar = plt.colorbar(
+        mesh, ax=ax, orientation='horizontal',
+        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,
+        anchor=(0.5, 0.0), location='bottom',
+        ticks=ticks_to_show, boundaries=precip_breaks
+    )
+    cbar.set_label("Precipitation (inches)", fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+    cbar.ax.set_facecolor('white')
+    cbar.outline.set_edgecolor('black')
+    for label in cbar.ax.get_xticklabels():
+        label.set_rotation(45)
+        label.set_ha('right')
+
+    # Add ADKWX.com to bottom right
+    fig.text(
+        0.99, 0.01, "adkwx.com",
+        fontsize=10, color="black", ha="right", va="bottom",
+        alpha=0.7, fontweight="bold"
+    )
+
+    ax.set_axis_off()
+    png_path = os.path.join(northeast_precip_dir, f"northeast_precip_{step:03d}.png")
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=600, facecolor='white')
+    plt.close(fig)
+    print(f"Generated Northeast Precip PNG: {png_path}")
+    return png_path
+
 # Main process: Download and plot
 forecast_steps = list(range(6, 385, 6))
 if 264 not in forecast_steps:
@@ -237,6 +388,7 @@ for step in forecast_steps:
     grib_file = download_file(hour_str, step)
     if grib_file:
         generate_clean_png(grib_file, step)
+        generate_northeast_precip_png(grib_file, step)
         gc.collect()
         time.sleep(3)
 
@@ -262,6 +414,11 @@ def optimize_png(filepath):
 for f in os.listdir(png_dir):
     if f.lower().endswith('.png'):
         optimize_png(os.path.join(png_dir, f))
+for f in os.listdir(northeast_precip_dir):
+    if f.lower().endswith('.png'):
+        optimize_png(os.path.join(northeast_precip_dir, f))
+
+print("All PNGs optimized.")
 
 print("All PNGs optimized.")
 
