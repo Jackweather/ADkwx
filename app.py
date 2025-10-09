@@ -48,6 +48,7 @@ IMAGE_ROUTE_MAP = {
     'DZDT850': ['GFS', 'static', 'DZDT850'],
     'LFTX': ['GFS', 'static', 'LFTX'],
     'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
+    'northeast_precip_pngs': ['GFS', 'static', 'northeast_precip_pngs'],
 }
 
 @app.route('/')
