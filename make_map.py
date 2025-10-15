@@ -15,20 +15,25 @@ def main():
     max_lon = float(sys.argv[4])
     out_path = sys.argv[5]
 
-    fig = plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(10, 7), dpi=850)
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent([min_lon, max_lon, min_lat, max_lat], crs=ccrs.PlateCarree())
-    ax.add_feature(cfeature.LAND, facecolor='#f0eada')
-    ax.add_feature(cfeature.OCEAN, facecolor='#b3d1ff')
-    ax.add_feature(cfeature.BORDERS, linewidth=0.7)
-    ax.add_feature(cfeature.LAKES, facecolor='#b3d1ff', edgecolor='k', linewidth=0.5)
+
+    # Base map
+    ax.add_feature(cfeature.LAND, facecolor='lightgray')
+    ax.add_feature(cfeature.OCEAN, facecolor='white')
     ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
-    ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5)
-    ax.set_title("Custom Map Extent", fontsize=14, pad=12)
-    plt.tight_layout()
-    plt.savefig(out_path, bbox_inches='tight')
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
+    ax.add_feature(cfeature.STATES, linewidth=0.3)
+    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
+    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
+
+    # Final touches
+    ax.set_axis_off()
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    plt.savefig(out_path, bbox_inches='tight', pad_inches=0, transparent=True)
     plt.close(fig)
-    print(f"Map saved to {out_path}")
+    print(f"{out_path} generated.")
 
 if __name__ == "__main__":
     main()
