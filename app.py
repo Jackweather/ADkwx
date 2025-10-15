@@ -126,6 +126,10 @@ def serve_parent_html():
 def serve_snowparent_html():
     return send_from_directory(os.path.dirname(__file__), 'snowparent.html')
 
+@app.route('/plotter/<path:filename>')
+def serve_plotter_image(filename):
+    return send_from_directory('plotter', filename)
+
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
     directory = '/var/data'  # GIFs are saved here
