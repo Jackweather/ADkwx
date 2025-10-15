@@ -9,6 +9,7 @@ import json
 from datetime import datetime
 import pytz
 import time
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -125,8 +126,6 @@ def serve_parent_html():
 def serve_snowparent_html():
     return send_from_directory(os.path.dirname(__file__), 'snowparent.html')
 
-
-
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
     directory = '/var/data'  # GIFs are saved here
@@ -134,7 +133,6 @@ def serve_gif(filename):
     if not os.path.isfile(abs_path):
         abort(404)
     return send_from_directory(directory, filename)
-
 
 @app.route("/run-task1")
 def run_task1():
@@ -215,6 +213,39 @@ def get_chats():
                     # fallback for old format
                     messages.append({'text': line, 'timestamp': ''})
     return jsonify({'messages': messages})
+
+@app.route('/make-map', methods=['POST'])
+def make_map():
+    data = request.get_json()
+    min_lat = data.get('min_lat')
+    max_lat = data.get('max_lat')
+    min_lon = data.get('min_lon')
+    max_lon = data.get('max_lon')
+    # Validate input
+    try:
+        min_lat = float(min_lat)
+        max_lat = float(max_lat)
+        min_lon = float(min_lon)
+        max_lon = float(max_lon)
+    except Exception:
+        return jsonify({'error': 'Invalid coordinates'}), 400
+    # Output file path
+    out_path = os.path.join('plotter', 'world_map.png')
+    # Call the map generator script
+    try:
+        result = subprocess.run(
+            ["python", "make_map.py", str(min_lat), str(max_lat), str(min_lon), str(max_lon), out_path],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        print("Map generated:", result.stdout)
+    except Exception as e:
+        print("Map generation error:", e)
+        return jsonify({'error': 'Map generation failed'}), 500
+    # Return the URL for the new map image
+    return jsonify({'url': '/plotter/world_map.png'})
 
 if __name__ == '__main__':
     app.run(debug=True)
