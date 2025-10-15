@@ -20,31 +20,25 @@
       min-height: 100vh;
       background: #f5f7fa;
     }
-    #static-map-container {
-      position: absolute;
-      top: 32px;
-      right: 32px;
-      z-index: 10;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
-      border: 1px solid #e6e6e6;
-      padding: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
     #map-container {
-      margin-top: 32px;
-      margin-bottom: 24px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
       display: flex;
       justify-content: center;
       align-items: center;
-      width: 100%;
+      width: auto;
+      height: auto;
+      z-index: 10;
     }
     #map-img {
-      max-width: 540px;
-      max-height: 360px;
+      position: fixed;
+      top: 70px;
+      right: 32px;
+      max-width: 340px;
+      max-height: 220px;
       border-radius: 12px;
       box-shadow: 0 2px 16px rgba(0,0,0,0.18);
       cursor: pointer;
@@ -52,12 +46,28 @@
       background: #fff;
       border: 1px solid #e6e6e6;
       padding: 8px;
+      z-index: 100;
+      /* Always visible */
     }
     #map-img:hover {
       box-shadow: 0 6px 32px rgba(0,0,0,0.28);
     }
+    #custom-map-img {
+      max-width: 540px;
+      max-height: 360px;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+      background: #fff;
+      border: 1px solid #e6e6e6;
+      padding: 8px;
+      display: none;
+    }
     #plot-form-container {
-      margin-bottom: 18px;
+      position: fixed;
+      left: 50%;
+      bottom: 32px;
+      transform: translateX(-50%);
+      margin-bottom: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -67,6 +77,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       min-width: 320px;
       max-width: 90vw;
+      z-index: 20;
     }
     #plot-form-container h3 {
       margin: 0 0 8px 0;
@@ -143,13 +154,10 @@
     <button class="nav-btn" onclick="window.location.href='plotter.html'">Plotter</button>
   </div>
   <div id="main-content">
-    <div id="static-map-container">
-      <img id="static-map-img" src="plotter/world_map.png" alt="World Map (static)">
-    </div>
     <div id="plot-form-container">
       <h3>Custom Map Extent</h3>
       <div class="tips">
-        Choose a preset or enter your own latitude/longitude bounds.<br>
+        Enter the latitude and longitude bounds for your map.<br>
         <b>Tips:</b>
         <ul style="margin:4px 0 0 18px;padding:0;">
           <li>Latitude: -90 (South Pole) to 90 (North Pole)</li>
@@ -158,23 +166,6 @@
           <li>Smaller ranges = zoomed-in maps</li>
         </ul>
       </div>
-      <label for="preset-select" style="margin-bottom:10px;font-weight:bold;color:#263159;">
-        Preset Extents:
-        <select id="preset-select" style="margin-left:8px;padding:4px 8px;border-radius:5px;">
-          <option value="">-- Select a preset --</option>
-          <option value="world">World</option>
-          <option value="north_america">North America</option>
-          <option value="usa">USA</option>
-          <option value="europe">Europe</option>
-          <option value="asia">Asia</option>
-          <option value="australia">Australia</option>
-          <option value="africa">Africa</option>
-          <option value="south_america">South America</option>
-          <option value="arctic">Arctic</option>
-          <option value="antarctica">Antarctica</option>
-          <option value="mediterranean">Mediterranean</option>
-        </select>
-      </label>
       <form id="extent-form" style="display:flex;flex-direction:column;gap:8px;">
         <label>Min Latitude: <input type="number" step="any" name="min_lat" required placeholder="e.g. 24"></label>
         <label>Max Latitude: <input type="number" step="any" name="max_lat" required placeholder="e.g. 50"></label>
@@ -184,8 +175,9 @@
       </form>
     </div>
     <div id="map-container">
-      <img id="map-img" src="plotter/world_map.png" alt="Generated Map" tabindex="0">
+      <img id="custom-map-img" src="" alt="Custom Map">
     </div>
+    <img id="map-img" src="plotter/world_map.png" alt="World Map" tabindex="0">
     <div id="fullscreen-modal" onclick="closeModal()" tabindex="-1">
       <img src="plotter/world_map.png" alt="World Map">
     </div>
@@ -194,9 +186,11 @@
     // filepath: c:\Users\jacfo\Downloads\weathermodelwebpage3.0\plotter.html
     const mapImg = document.getElementById('map-img');
     const modal = document.getElementById('fullscreen-modal');
+    const customMapImg = document.getElementById('custom-map-img');
     mapImg.onclick = function() {
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
+      modal.querySelector('img').src = mapImg.src;
     };
     function closeModal() {
       modal.style.display = 'none';
@@ -204,29 +198,6 @@
     }
     modal.onkeydown = function(e) {
       if (e.key === "Escape") closeModal();
-    };
-    const presets = {
-      world:      {min_lat: -90, max_lat: 90, min_lon: -180, max_lon: 180},
-      north_america: {min_lat: 7, max_lat: 84, min_lon: -168, max_lon: -52},
-      usa:       {min_lat: 24, max_lat: 50, min_lon: -125, max_lon: -66},
-      europe:    {min_lat: 35, max_lat: 71, min_lon: -25, max_lon: 45},
-      asia:      {min_lat: -10, max_lat: 81, min_lon: 25, max_lon: 180},
-      australia: {min_lat: -45, max_lat: -10, min_lon: 112, max_lon: 154},
-      africa:    {min_lat: -35, max_lat: 38, min_lon: -18, max_lon: 52},
-      south_america: {min_lat: -56, max_lat: 13, min_lon: -81, max_lon: -34},
-      arctic:    {min_lat: 66, max_lat: 90, min_lon: -180, max_lon: 180},
-      antarctica:{min_lat: -90, max_lat: -60, min_lon: -180, max_lon: 180},
-      mediterranean: {min_lat: 30, max_lat: 46, min_lon: -6, max_lon: 36}
-    };
-    document.getElementById('preset-select').onchange = function() {
-      const val = this.value;
-      if (presets[val]) {
-        const form = document.getElementById('extent-form');
-        form.min_lat.value = presets[val].min_lat;
-        form.max_lat.value = presets[val].max_lat;
-        form.min_lon.value = presets[val].min_lon;
-        form.max_lon.value = presets[val].max_lon;
-      }
     };
     document.getElementById('extent-form').onsubmit = async function(e) {
       e.preventDefault();
@@ -244,8 +215,14 @@
       });
       if (res.ok) {
         const result = await res.json();
-        document.getElementById('map-img').src = result.url + '?t=' + Date.now();
-        document.querySelector('#fullscreen-modal img').src = result.url + '?t=' + Date.now();
+        customMapImg.src = result.url + '?t=' + Date.now();
+        customMapImg.style.display = 'block';
+        // Also update fullscreen modal to show custom map if opened from custom map
+        customMapImg.onclick = function() {
+          modal.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+          modal.querySelector('img').src = customMapImg.src;
+        };
       } else {
         alert('Error creating map');
       }
