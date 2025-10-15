@@ -6,9 +6,106 @@
   <title>Plotter Page</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; display: flex; }
-    #sidebar { width: 180px; background: #263159; padding: 20px 0; box-shadow: 2px 0 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: flex-start; min-height: 100vh; }
+    #sidebar {
+      width: 180px;
+      background: #263159;
+      padding: 0;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-height: 100vh;
+      align-items: stretch;
+      background: #263159;
+      padding: 0;
+    }
     .nav-btn { background: #41507a; color: #fff; border: none; border-radius: 18px; padding: 10px 22px; font-size: 1em; cursor: pointer; margin: 8px 0 0 18px; transition: background 0.18s; width: 140px; text-align: left; }
     .nav-btn:hover { background: #263159; }
+    .sidebar-header {
+      font-size: 1.18em;
+      font-weight: bold;
+      color: #e6b800;
+      padding: 22px 0 8px 24px;
+      letter-spacing: 1px;
+      border-bottom: 1px solid #41507a;
+      margin-bottom: 8px;
+    }
+    #plot-form-container {
+      background: none;
+      border-radius: 0;
+      box-shadow: none;
+      margin: 10px 0 0 0;
+      padding: 0 0 0 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #plot-form-container h3 {
+      margin: 0 0 8px 0;
+      font-size: 1em;
+      color: #e6b800;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      text-align: left;
+      padding: 0;
+    }
+    #plot-form-container .tips {
+      font-size: 0.95em;
+      color: #bfc8e2;
+      margin-bottom: 8px;
+      background: none;
+      padding: 0;
+      border-radius: 0;
+      line-height: 1.5;
+    }
+    #extent-form {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    #extent-form label {
+      font-size: 0.97em;
+      color: #fff;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0;
+      padding: 0;
+    }
+    #extent-form input {
+      padding: 4px 8px;
+      border-radius: 5px;
+      border: 1px solid #41507a;
+      width: 70px;
+      font-size: 0.97em;
+      margin-left: 8px;
+      background: #263159;
+      color: #fff;
+    }
+    #extent-form input::placeholder {
+      color: #bfc8e2;
+      opacity: 1;
+    }
+    #extent-form button {
+      background: #e6b800;
+      color: #263159;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 0;
+      font-size: 1em;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+      width: 100%;
+      transition: background 0.18s;
+    }
+    #extent-form button:hover {
+      background: #ffd700;
+    }
     #main-content {
       flex: 1;
       display: flex;
@@ -53,71 +150,18 @@
       box-shadow: 0 6px 32px rgba(0,0,0,0.28);
     }
     #custom-map-img {
-      max-width: 540px;
-      max-height: 360px;
+      /* Make it take up ~70% of main content area */
+      width: 70vw;
+      height: auto;
+      max-width: 70vw;
+      max-height: 70vh;
       border-radius: 12px;
       box-shadow: 0 2px 16px rgba(0,0,0,0.18);
       background: #fff;
       border: 1px solid #e6e6e6;
       padding: 8px;
       display: none;
-    }
-    #plot-form-container {
-      position: fixed;
-      left: 50%;
-      bottom: 32px;
-      transform: translateX(-50%);
-      margin-bottom: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background: #fff;
-      padding: 18px 22px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      min-width: 320px;
-      max-width: 90vw;
-      z-index: 20;
-    }
-    #plot-form-container h3 {
-      margin: 0 0 8px 0;
-      font-size: 1.15em;
-      color: #263159;
-    }
-    #plot-form-container .tips {
-      font-size: 0.98em;
-      color: #41507a;
-      margin-bottom: 10px;
-      background: #f5f7fa;
-      padding: 7px 10px;
-      border-radius: 6px;
-    }
-    #extent-form label {
-      margin-bottom: 6px;
-      font-size: 1em;
-      color: #263159;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 6px;
-    }
-    #extent-form input {
-      padding: 4px 8px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      width: 90px;
-      font-size: 1em;
-    }
-    #extent-form button {
-      background: #e6b800;
-      color: #263159;
-      border: none;
-      border-radius: 8px;
-      padding: 7px 18px;
-      font-size: 1em;
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: 8px;
+      /* Centered by #map-container */
     }
     #fullscreen-modal {
       display: none;
@@ -149,31 +193,46 @@
     <button onclick="window.location.href='gifs.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:8px;">GIFs</button>
   </div>
   <div id="sidebar" style="margin-top:54px;">
+    <div class="sidebar-header">Plotter</div>
     <button class="nav-btn" style="background:#e6b800;color:#263159;font-weight:bold;" onclick="window.location.href='parent.html'">Switch to Model</button>
     <!-- Add more navigation buttons here as needed -->
     <button class="nav-btn" onclick="window.location.href='plotter.html'">Plotter</button>
-  </div>
-  <div id="main-content">
+    <!-- Preset Extents Section -->
+    <div style="padding: 0 0 0 24px; margin-top: 18px;">
+      <div style="color:#e6b800;font-weight:bold;font-size:1em;margin-bottom:6px;">Preset Extents</div>
+      <div id="preset-extents" style="display:flex;flex-direction:column;gap:4px;">
+        <button type="button" class="preset-btn" data-min-lat="24" data-max-lat="50" data-min-lon="-125" data-max-lon="-66">USA</button>
+        <button type="button" class="preset-btn" data-min-lat="40" data-max-lat="47" data-min-lon="-80" data-max-lon="-70">Northeast</button>
+        <button type="button" class="preset-btn" data-min-lat="-35" data-max-lat="-10" data-min-lon="110" data-max-lon="155">Australia</button>
+        <button type="button" class="preset-btn" data-min-lat="35" data-max-lat="55" data-min-lon="5" data-max-lon="40">Europe</button>
+        <button type="button" class="preset-btn" data-min-lat="10" data-max-lat="55" data-min-lon="60" data-max-lon="150">Asia</button>
+        <button type="button" class="preset-btn" data-min-lat="-55" data-max-lat="-20" data-min-lon="-75" data-max-lon="-35">South America</button>
+        <button type="button" class="preset-btn" data-min-lat="-35" data-max-lat="37" data-min-lon="-20" data-max-lon="55">Africa</button>
+        <button type="button" class="preset-btn" data-min-lat="60" data-max-lat="85" data-min-lon="-180" data-max-lon="180">Arctic</button>
+        <button type="button" class="preset-btn" data-min-lat="-85" data-max-lat="-60" data-min-lon="-180" data-max-lon="180">Antarctica</button>
+        <button type="button" class="preset-btn" data-min-lat="-90" data-max-lat="90" data-min-lon="-180" data-max-lon="180">World</button>
+      </div>
+    </div>
     <div id="plot-form-container">
       <h3>Custom Map Extent</h3>
       <div class="tips">
-        Enter the latitude and longitude bounds for your map.<br>
         <b>Tips:</b>
         <ul style="margin:4px 0 0 18px;padding:0;">
-          <li>Latitude: -90 (South Pole) to 90 (North Pole)</li>
-          <li>Longitude: -180 (West) to 180 (East)</li>
-          <li>Example (USA): min_lat: 24, max_lat: 50, min_lon: -125, max_lon: -66</li>
-          <li>Smaller ranges = zoomed-in maps</li>
+          <li>Latitude: -90 to 90</li>
+          <li>Longitude: -180 to 180</li>
+          <li>Example: min_lat 24, max_lat 50, min_lon -125, max_lon -66</li>
         </ul>
       </div>
-      <form id="extent-form" style="display:flex;flex-direction:column;gap:8px;">
-        <label>Min Latitude: <input type="number" step="any" name="min_lat" required placeholder="e.g. 24"></label>
-        <label>Max Latitude: <input type="number" step="any" name="max_lat" required placeholder="e.g. 50"></label>
-        <label>Min Longitude: <input type="number" step="any" name="min_lon" required placeholder="e.g. -125"></label>
-        <label>Max Longitude: <input type="number" step="any" name="max_lon" required placeholder="e.g. -66"></label>
+      <form id="extent-form">
+        <label>Min Latitude <input type="number" step="any" name="min_lat" required placeholder="24"></label>
+        <label>Max Latitude <input type="number" step="any" name="max_lat" required placeholder="50"></label>
+        <label>Min Longitude <input type="number" step="any" name="min_lon" required placeholder="-125"></label>
+        <label>Max Longitude <input type="number" step="any" name="max_lon" required placeholder="-66"></label>
         <button type="submit">Create Map</button>
       </form>
     </div>
+  </div>
+  <div id="main-content">
     <div id="map-container">
       <img id="custom-map-img" src="" alt="Custom Map">
     </div>
@@ -227,6 +286,16 @@
         alert('Error creating map');
       }
     };
+    // Preset extent button logic
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.onclick = function() {
+        const form = document.getElementById('extent-form');
+        form.min_lat.value = btn.getAttribute('data-min-lat');
+        form.max_lat.value = btn.getAttribute('data-max-lat');
+        form.min_lon.value = btn.getAttribute('data-min-lon');
+        form.max_lon.value = btn.getAttribute('data-max-lon');
+      };
+    });
   </script>
 </body>
 </html>
