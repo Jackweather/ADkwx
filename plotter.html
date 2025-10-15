@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plotter Page</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; display: flex; }
+    #sidebar { width: 180px; background: #263159; padding: 20px 0; box-shadow: 2px 0 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: flex-start; min-height: 100vh; }
+    .nav-btn { background: #41507a; color: #fff; border: none; border-radius: 18px; padding: 10px 22px; font-size: 1em; cursor: pointer; margin: 8px 0 0 18px; transition: background 0.18s; width: 140px; text-align: left; }
+    .nav-btn:hover { background: #263159; }
+    #main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 100px 0 0 0;
+      position: relative;
+      min-height: 100vh;
+    }
+    #map-container {
+      margin-top: 24px;
+      margin-right: 32px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-start;
+      width: 100%;
+    }
+    #map-img {
+      max-width: 520px;
+      max-height: 340px;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: box-shadow 0.18s;
+    }
+    #map-img:hover {
+      box-shadow: 0 4px 24px rgba(0,0,0,0.28);
+    }
+    #fullscreen-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85);
+      align-items: center;
+      justify-content: center;
+    }
+    #fullscreen-modal img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+      background: #fff;
+    }
+    #fullscreen-modal:active, #fullscreen-modal:focus {
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div style="width:100vw;display:flex;align-items:center;justify-content:flex-start;background:#263159;color:#fff;padding:10px 24px 10px 24px;position:fixed;top:0;left:0;z-index:10;gap:18px;">
+    <span style="font-size:1.3em;font-weight:bold;letter-spacing:1px;">adkwx.com</span>
+    <button onclick="window.location.href='community.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:18px;">Community</button>
+    <button onclick="window.location.href='updates.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:8px;">Updates</button>
+    <button onclick="window.location.href='gifs.html'" style="background:#e6b800;color:#263159;border:none;border-radius:14px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-left:8px;">GIFs</button>
+  </div>
+  <div id="sidebar" style="margin-top:54px;">
+    <button class="nav-btn" style="background:#e6b800;color:#263159;font-weight:bold;" onclick="window.location.href='parent.html'">Switch to Model</button>
+    <!-- Add more navigation buttons here as needed -->
+    <button class="nav-btn" onclick="window.location.href='plotter.html'">Plotter</button>
+  </div>
+  <div id="main-content">
+    <div style="position:absolute;top:24px;right:32px;z-index:2;">
+      <form id="extent-form" style="background:#fff;padding:18px 22px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);display:flex;flex-direction:column;gap:8px;">
+        <label>Min Latitude: <input type="number" step="any" name="min_lat" required></label>
+        <label>Max Latitude: <input type="number" step="any" name="max_lat" required></label>
+        <label>Min Longitude: <input type="number" step="any" name="min_lon" required></label>
+        <label>Max Longitude: <input type="number" step="any" name="max_lon" required></label>
+        <button type="submit" style="background:#e6b800;color:#263159;border:none;border-radius:8px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-top:8px;">Send</button>
+      </form>
+    </div>
+    <div id="map-container">
+      <img id="map-img" src="plotter/world_map.png" alt="World Map" tabindex="0">
+    </div>
+    <div id="fullscreen-modal" onclick="closeModal()" tabindex="-1">
+      <img src="plotter/world_map.png" alt="World Map">
+    </div>
+  </div>
+  <script>
+    // filepath: c:\Users\jacfo\Downloads\weathermodelwebpage3.0\plotter.html
+    const mapImg = document.getElementById('map-img');
+    const modal = document.getElementById('fullscreen-modal');
+    mapImg.onclick = function() {
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    };
+    function closeModal() {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    modal.onkeydown = function(e) {
+      if (e.key === "Escape") closeModal();
+    };
+    document.getElementById('extent-form').onsubmit = async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        min_lat: parseFloat(form.min_lat.value),
+        max_lat: parseFloat(form.max_lat.value),
+        min_lon: parseFloat(form.min_lon.value),
+        max_lon: parseFloat(form.max_lon.value)
+      };
+      const res = await fetch('/make-map', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        const result = await res.json();
+        document.getElementById('map-img').src = result.url + '?t=' + Date.now();
+        document.querySelector('#fullscreen-modal img').src = result.url + '?t=' + Date.now();
+      } else {
+        alert('Error creating map');
+      }
+    };
+  </script>
+</body>
+</html>
