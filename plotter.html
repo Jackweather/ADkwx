@@ -12,24 +12,26 @@
     #main-content {
       flex: 1;
       display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      justify-content: flex-end;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
       padding: 100px 0 0 0;
       position: relative;
       min-height: 100vh;
     }
     #map-container {
-      margin-top: 24px;
-      margin-right: 32px;
+      position: absolute;
+      top: 32px;
+      right: 32px;
+      z-index: 2;
       display: flex;
       justify-content: flex-end;
       align-items: flex-start;
-      width: 100%;
+      width: auto;
     }
     #map-img {
-      max-width: 520px;
-      max-height: 340px;
+      max-width: 420px;
+      max-height: 280px;
       border-radius: 8px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.2);
       cursor: pointer;
@@ -37,6 +39,62 @@
     }
     #map-img:hover {
       box-shadow: 0 4px 24px rgba(0,0,0,0.28);
+    }
+    #plot-form-container {
+      position: absolute;
+      left: 50%;
+      bottom: 38px;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #fff;
+      padding: 18px 22px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      min-width: 320px;
+      max-width: 90vw;
+    }
+    #plot-form-container h3 {
+      margin: 0 0 8px 0;
+      font-size: 1.15em;
+      color: #263159;
+    }
+    #plot-form-container .tips {
+      font-size: 0.98em;
+      color: #41507a;
+      margin-bottom: 10px;
+      background: #f5f7fa;
+      padding: 7px 10px;
+      border-radius: 6px;
+    }
+    #extent-form label {
+      margin-bottom: 6px;
+      font-size: 1em;
+      color: #263159;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+    }
+    #extent-form input {
+      padding: 4px 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 90px;
+      font-size: 1em;
+    }
+    #extent-form button {
+      background: #e6b800;
+      color: #263159;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 18px;
+      font-size: 1em;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 8px;
     }
     #fullscreen-modal {
       display: none;
@@ -73,17 +131,28 @@
     <button class="nav-btn" onclick="window.location.href='plotter.html'">Plotter</button>
   </div>
   <div id="main-content">
-    <div style="position:absolute;top:24px;right:32px;z-index:2;">
-      <form id="extent-form" style="background:#fff;padding:18px 22px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);display:flex;flex-direction:column;gap:8px;">
-        <label>Min Latitude: <input type="number" step="any" name="min_lat" required></label>
-        <label>Max Latitude: <input type="number" step="any" name="max_lat" required></label>
-        <label>Min Longitude: <input type="number" step="any" name="min_lon" required></label>
-        <label>Max Longitude: <input type="number" step="any" name="max_lon" required></label>
-        <button type="submit" style="background:#e6b800;color:#263159;border:none;border-radius:8px;padding:7px 18px;font-size:1em;cursor:pointer;font-weight:bold;margin-top:8px;">Send</button>
-      </form>
-    </div>
     <div id="map-container">
       <img id="map-img" src="plotter/world_map.png" alt="World Map" tabindex="0">
+    </div>
+    <div id="plot-form-container">
+      <h3>Custom Map Extent</h3>
+      <div class="tips">
+        Enter the latitude and longitude bounds for your map.<br>
+        <b>Tips:</b>
+        <ul style="margin:4px 0 0 18px;padding:0;">
+          <li>Latitude goes from -90 (South Pole) to 90 (North Pole).</li>
+          <li>Longitude goes from -180 (West) to 180 (East).</li>
+          <li>Example: USA ≈ min_lat: 24, max_lat: 50, min_lon: -125, max_lon: -66</li>
+          <li>Try small ranges for zoomed-in maps!</li>
+        </ul>
+      </div>
+      <form id="extent-form" style="display:flex;flex-direction:column;gap:8px;">
+        <label>Min Latitude: <input type="number" step="any" name="min_lat" required placeholder="e.g. 24"></label>
+        <label>Max Latitude: <input type="number" step="any" name="max_lat" required placeholder="e.g. 50"></label>
+        <label>Min Longitude: <input type="number" step="any" name="min_lon" required placeholder="e.g. -125"></label>
+        <label>Max Longitude: <input type="number" step="any" name="max_lon" required placeholder="e.g. -66"></label>
+        <button type="submit">Create Map</button>
+      </form>
     </div>
     <div id="fullscreen-modal" onclick="closeModal()" tabindex="-1">
       <img src="plotter/world_map.png" alt="World Map">
