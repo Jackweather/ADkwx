@@ -126,9 +126,9 @@ def serve_parent_html():
 def serve_snowparent_html():
     return send_from_directory(os.path.dirname(__file__), 'snowparent.html')
 
-@app.route('/plotter/<path:filename>')
-def serve_plotter_image(filename):
-    return send_from_directory('plotter', filename)
+@app.route('/plotter.html')
+def serve_plotter_html():
+    return send_from_directory(os.path.dirname(__file__), 'plotter.html')
 
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
