@@ -251,5 +251,9 @@ def make_map():
     # Return the URL for the new map image
     return jsonify({'url': '/plotter/world_map.png'})
 
+@app.route('/plotter/world_map.png')
+def serve_plotter_map():
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'plotter'), 'world_map.png')
+
 if __name__ == '__main__':
     app.run(debug=True)
