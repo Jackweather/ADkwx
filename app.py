@@ -51,10 +51,11 @@ IMAGE_ROUTE_MAP = {
     'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
     'northeast_precip_pngs': ['GFS', 'static', 'northeast_precip_pngs'],
     'northeast_12hour_precip_pngs': ['GFS', 'static', 'northeast_12hour_precip_pngs'],
-    'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngs'],
+    'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngps'],
     'northeast_total_precip_pngs': ['GFS', 'static', 'northeast_total_precip_pngs'],
     'northeast_gust_pngs': ['GDAS', 'static', 'GUST_NE'],
     'GFS/static/TMP850': ['GFS', 'static', 'TMP850'],
+    'TMP850': ['GFS', 'static', 'TMP850'],
 }
 
 @app.route('/')
