@@ -54,6 +54,7 @@ IMAGE_ROUTE_MAP = {
     'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngs'],
     'northeast_total_precip_pngs': ['GFS', 'static', 'northeast_total_precip_pngs'],
     'northeast_gust_pngs': ['GDAS', 'static', 'GUST_NE'],
+    'GFS/static/TMP850': ['GFS', 'static', 'TMP850'],
 }
 
 @app.route('/')
@@ -166,6 +167,7 @@ def run_task1():
             ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
         for script, cwd in scripts:
