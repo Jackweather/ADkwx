@@ -127,6 +127,7 @@
           <option value="DZDT850">850mb VV</option>
           <option value="vort850_surface">850mb Vorticity</option>
           <option value="LFTX">Lifted Index</option>
+          <option value="TMP850">Frontogenesis_850</option>
         </select>
         <!-- Upper Level dropdown (now includes Total Cloud Cover) -->
         <label for="usa-upperlevel-select" style="color:#fff;margin-left:18px;margin-top:12px;">Upper Level:</label>
@@ -202,6 +203,7 @@
       else if (folder === 'DZDT850') prefix = 'dzdt850_gfs';
       else if (folder === 'vort850_surface') prefix = 'vort850pva';
       else if (folder === 'LFTX') prefix = 'lftx_surface_gfs';
+      else if (folder === 'TMP850') prefix = 'tmp850_frontogen_gfs';
       return `/${folder}/${prefix}_${paddedHour}.png`;
     }
 
