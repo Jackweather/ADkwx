@@ -236,10 +236,9 @@
     <div id="map-container">
       <img id="custom-map-img" src="" alt="Custom Map">
     </div>
-    <!-- use a persistent thumbnail that should never be overwritten -->
-    <img id="map-img" src="plotter/world_map_thumb.png" alt="World Map" tabindex="0">
+    <img id="map-img" src="plotter/world_map.png" alt="World Map" tabindex="0">
     <div id="fullscreen-modal" onclick="closeModal()" tabindex="-1">
-      <img src="plotter/world_map_thumb.png" alt="World Map">
+      <img src="plotter/world_map.png" alt="World Map">
     </div>
   </div>
   <script>
@@ -247,9 +246,28 @@
     const mapImg = document.getElementById('map-img');
     const modal = document.getElementById('fullscreen-modal');
     const customMapImg = document.getElementById('custom-map-img');
+
+    // Keep a permanent in-memory copy of the original world_map.png
+    let originalBlobUrl = null;
+    async function preloadOriginalMap() {
+      try {
+        const resp = await fetch('plotter/world_map.png');
+        const blob = await resp.blob();
+        originalBlobUrl = URL.createObjectURL(blob);
+        // Use the in-memory copy for the main small image and the modal default image
+        mapImg.src = originalBlobUrl;
+        modal.querySelector('img').src = originalBlobUrl;
+      } catch (err) {
+        console.warn('Failed to preload original world_map.png', err);
+        // fallback: leave the existing src (the HTML src attribute)
+      }
+    }
+    preloadOriginalMap();
+
     mapImg.onclick = function() {
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
+      // Always open the modal showing whatever image the clicked element currently has
       modal.querySelector('img').src = mapImg.src;
     };
     function closeModal() {
@@ -259,6 +277,7 @@
     modal.onkeydown = function(e) {
       if (e.key === "Escape") closeModal();
     };
+
     document.getElementById('extent-form').onsubmit = async function(e) {
       e.preventDefault();
       const form = e.target;
@@ -275,9 +294,30 @@
       });
       if (res.ok) {
         const result = await res.json();
-        customMapImg.src = result.url + '?t=' + Date.now();
+
+        // If the returned URL points to the same world_map.png, fetch it and create a separate blob URL
+        // so we don't replace or depend on the original in-memory copy.
+        const returnedUrl = result.url;
+        try {
+          if (returnedUrl && returnedUrl.includes('world_map.png')) {
+            // fetch the generated file and create a unique object URL for the custom image
+            const fetched = await fetch(returnedUrl + '?t=' + Date.now());
+            const b = await fetched.blob();
+            const customBlob = URL.createObjectURL(b);
+            customMapImg.src = customBlob;
+          } else {
+            // normal case: server returns a distinct URL for the generated map
+            customMapImg.src = returnedUrl + '?t=' + Date.now();
+          }
+        } catch (err) {
+          // fallback to using returned URL directly if fetch fails
+          customMapImg.src = returnedUrl + '?t=' + Date.now();
+        }
+
         customMapImg.style.display = 'block';
-        // Also update fullscreen modal to show custom map if opened from custom map
+
+        // Clicking the custom map opens the modal showing that custom image,
+        // leaving the originalBlobUrl untouched.
         customMapImg.onclick = function() {
           modal.style.display = 'flex';
           document.body.style.overflow = 'hidden';
@@ -287,6 +327,7 @@
         alert('Error creating map');
       }
     };
+
     // Preset extent button logic
     document.querySelectorAll('.preset-btn').forEach(btn => {
       btn.onclick = function() {
