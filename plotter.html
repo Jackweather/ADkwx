@@ -236,9 +236,10 @@
     <div id="map-container">
       <img id="custom-map-img" src="" alt="Custom Map">
     </div>
-    <img id="map-img" src="plotter/world_map.png" alt="World Map" tabindex="0">
+    <!-- use a persistent thumbnail that should never be overwritten -->
+    <img id="map-img" src="plotter/world_map_thumb.png" alt="World Map" tabindex="0">
     <div id="fullscreen-modal" onclick="closeModal()" tabindex="-1">
-      <img src="plotter/world_map.png" alt="World Map">
+      <img src="plotter/world_map_thumb.png" alt="World Map">
     </div>
   </div>
   <script>
