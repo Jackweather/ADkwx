@@ -242,24 +242,52 @@
     </div>
   </div>
   <script>
-    // filepath: c:\Users\jacfo\Downloads\weathermodelwebpage3.0\plotter.html
     const mapImg = document.getElementById('map-img');
     const modal = document.getElementById('fullscreen-modal');
     const customMapImg = document.getElementById('custom-map-img');
 
-    // Keep a permanent in-memory copy of the original world_map.png
-    let originalBlobUrl = null;
+    // Use localStorage key (versioned) to store the original image dataURL
+    const CACHE_KEY = 'originalWorldMap_v1';
+
+    // generate a short unique id per frontend plot request
+    function generateUniqueId() {
+      return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+    }
+
+    async function fetchBlobAsDataURL(url) {
+      const resp = await fetch(url + '?t=' + Date.now());
+      const blob = await resp.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
     async function preloadOriginalMap() {
       try {
-        const resp = await fetch('plotter/world_map.png');
-        const blob = await resp.blob();
-        originalBlobUrl = URL.createObjectURL(blob);
-        // Use the in-memory copy for the main small image and the modal default image
-        mapImg.src = originalBlobUrl;
-        modal.querySelector('img').src = originalBlobUrl;
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          // use cached dataURL (this prevents server replacements from showing)
+          mapImg.src = cached;
+          modal.querySelector('img').src = cached;
+          return;
+        }
+        // no cache -> fetch original from server and cache it
+        const dataURL = await fetchBlobAsDataURL('plotter/world_map.png');
+        // try to store in localStorage (may fail if too large)
+        try {
+          localStorage.setItem(CACHE_KEY, dataURL);
+        } catch (err) {
+          // storage may be full or blocked; proceed without caching
+          console.warn('Could not save original map to localStorage', err);
+        }
+        mapImg.src = dataURL;
+        modal.querySelector('img').src = dataURL;
       } catch (err) {
         console.warn('Failed to preload original world_map.png', err);
-        // fallback: leave the existing src (the HTML src attribute)
+        // fallback: leave existing src attribute (will make a network request on load)
       }
     }
     preloadOriginalMap();
@@ -267,7 +295,6 @@
     mapImg.onclick = function() {
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
-      // Always open the modal showing whatever image the clicked element currently has
       modal.querySelector('img').src = mapImg.src;
     };
     function closeModal() {
@@ -287,6 +314,11 @@
         min_lon: parseFloat(form.min_lon.value),
         max_lon: parseFloat(form.max_lon.value)
       };
+
+      // create a client-side unique id and include it in the request
+      const clientId = generateUniqueId();
+      data.client_id = clientId;
+
       const res = await fetch('/make-map', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -294,30 +326,24 @@
       });
       if (res.ok) {
         const result = await res.json();
-
-        // If the returned URL points to the same world_map.png, fetch it and create a separate blob URL
-        // so we don't replace or depend on the original in-memory copy.
         const returnedUrl = result.url;
         try {
-          if (returnedUrl && returnedUrl.includes('world_map.png')) {
-            // fetch the generated file and create a unique object URL for the custom image
-            const fetched = await fetch(returnedUrl + '?t=' + Date.now());
-            const b = await fetched.blob();
-            const customBlob = URL.createObjectURL(b);
-            customMapImg.src = customBlob;
-          } else {
-            // normal case: server returns a distinct URL for the generated map
-            customMapImg.src = returnedUrl + '?t=' + Date.now();
-          }
+          // Always fetch the generated file as a blob and create a unique object URL.
+          // Append our client_id as a query param to help avoid caching and to
+          // make the request unique on the frontend (server may ignore it but it's safe).
+          const fetchUrl = (returnedUrl || 'plotter/world_map.png') + (returnedUrl && returnedUrl.includes('?') ? '&' : '?') + 'client=' + encodeURIComponent(clientId) + '&t=' + Date.now();
+          const fetched = await fetch(fetchUrl);
+          const b = await fetched.blob();
+          const customBlob = URL.createObjectURL(b);
+          customMapImg.src = customBlob;
+          // attach client id to the element for debugging / identification
+          customMapImg.dataset.clientId = clientId;
         } catch (err) {
           // fallback to using returned URL directly if fetch fails
-          customMapImg.src = returnedUrl + '?t=' + Date.now();
+          customMapImg.src = (returnedUrl ? returnedUrl : 'plotter/world_map.png') + '?client=' + encodeURIComponent(clientId) + '&t=' + Date.now();
+          customMapImg.dataset.clientId = clientId;
         }
-
         customMapImg.style.display = 'block';
-
-        // Clicking the custom map opens the modal showing that custom image,
-        // leaving the originalBlobUrl untouched.
         customMapImg.onclick = function() {
           modal.style.display = 'flex';
           document.body.style.overflow = 'hidden';
