@@ -10,7 +10,6 @@ from datetime import datetime
 import pytz
 import time
 from werkzeug.utils import secure_filename
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
@@ -172,38 +171,21 @@ def run_task1():
             ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
-
-        def run_script(script, cwd):
+        for script, cwd in scripts:
             try:
                 result = subprocess.run(
                     ["python", script],
                     check=True, cwd=cwd,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
                 )
-                return (script, True, result.stdout, result.stderr, None)
+                print(f"{os.path.basename(script)} ran successfully!")
+                print("STDOUT:", result.stdout)
+                print("STDERR:", result.stderr)
             except subprocess.CalledProcessError as e:
-                return (script, False, e.stdout, e.stderr, traceback.format_exc())
-
-        # Run with a pool of 2 workers so two scripts run concurrently
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            future_to_script = {executor.submit(run_script, s, c): (s, c) for s, c in scripts}
-            for future in as_completed(future_to_script):
-                script, success, stdout, stderr, tb = future.result()
-                if success:
-                    print(f"{os.path.basename(script)} ran successfully!")
-                    if stdout:
-                        print("STDOUT:", stdout)
-                    if stderr:
-                        print("STDERR:", stderr)
-                else:
-                    print(f"Error running {os.path.basename(script)}:")
-                    if tb:
-                        print(tb)
-                    if stdout:
-                        print("STDOUT:", stdout)
-                    if stderr:
-                        print("STDERR:", stderr)
-
+                error_trace = traceback.format_exc()
+                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
+                print("STDOUT:", e.stdout)
+                print("STDERR:", e.stderr)
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
 
