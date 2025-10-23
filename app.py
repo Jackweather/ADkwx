@@ -10,6 +10,7 @@ from datetime import datetime
 import pytz
 import time
 from werkzeug.utils import secure_filename
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
@@ -171,21 +172,38 @@ def run_task1():
             ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
-        for script, cwd in scripts:
+
+        def run_script(script, cwd):
             try:
                 result = subprocess.run(
                     ["python", script],
                     check=True, cwd=cwd,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
                 )
-                print(f"{os.path.basename(script)} ran successfully!")
-                print("STDOUT:", result.stdout)
-                print("STDERR:", result.stderr)
+                return (script, True, result.stdout, result.stderr, None)
             except subprocess.CalledProcessError as e:
-                error_trace = traceback.format_exc()
-                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
-                print("STDOUT:", e.stdout)
-                print("STDERR:", e.stderr)
+                return (script, False, e.stdout, e.stderr, traceback.format_exc())
+
+        # Run with a pool of 2 workers so two scripts run concurrently
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_to_script = {executor.submit(run_script, s, c): (s, c) for s, c in scripts}
+            for future in as_completed(future_to_script):
+                script, success, stdout, stderr, tb = future.result()
+                if success:
+                    print(f"{os.path.basename(script)} ran successfully!")
+                    if stdout:
+                        print("STDOUT:", stdout)
+                    if stderr:
+                        print("STDERR:", stderr)
+                else:
+                    print(f"Error running {os.path.basename(script)}:")
+                    if tb:
+                        print(tb)
+                    if stdout:
+                        print("STDOUT:", stdout)
+                    if stderr:
+                        print("STDERR:", stderr)
+
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
 
@@ -236,8 +254,10 @@ def make_map():
         max_lon = float(max_lon)
     except Exception:
         return jsonify({'error': 'Invalid coordinates'}), 400
-    # Output file path
-    out_path = os.path.join('plotter', 'world_map.png')
+    # Output file path: create a timestamped filename so the top-right world_map.png is never overwritten
+    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+    filename = f"world_map_{timestamp}.png"
+    out_path = os.path.join('plotter', filename)
     # Call the map generator script
     try:
         result = subprocess.run(
@@ -252,11 +272,11 @@ def make_map():
         print("Map generation error:", e)
         return jsonify({'error': 'Map generation failed'}), 500
     # Return the URL for the new map image
-    return jsonify({'url': '/plotter/world_map.png'})
+    return jsonify({'url': f'/plotter/{filename}'})
 
-@app.route('/plotter/world_map.png')
-def serve_plotter_map():
-    return send_from_directory(os.path.join(os.path.dirname(__file__), 'plotter'), 'world_map.png')
+@app.route('/plotter/<path:filename>')
+def serve_plotter_map(filename):
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'plotter'), filename)
 
 if __name__ == '__main__':
     app.run(debug=True)
