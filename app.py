@@ -142,123 +142,67 @@ def serve_gif(filename):
 
 @app.route("/run-task1")
 def run_task1():
-    def run_all_scripts():
-        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
-        scripts = [
-            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
-        ]
-        for script, cwd in scripts:
-            try:
-                result = subprocess.run(
-                    ["python", script],
-                    check=True, cwd=cwd,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-                )
-                print(f"{os.path.basename(script)} ran successfully!")
-                print("STDOUT:", result.stdout)
-                print("STDERR:", result.stderr)
-            except subprocess.CalledProcessError as e:
-                error_trace = traceback.format_exc()
-                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
-                print("STDOUT:", e.stdout)
-                print("STDERR:", e.stderr)
-    threading.Thread(target=run_all_scripts).start()
-    return "Task started in background! Check logs folder for output.", 200
+	def run_all_scripts_round_robin():
+		print("Flask is running as user:", getpass.getuser())  # Print user for debugging
 
-@app.route('/save-chat', methods=['POST'])
-def save_chat():
-    data = request.get_json()
-    text = data.get('text', '').strip()
-    if text:
-        # Get current time in US Eastern Time and format as "h:mm AM/PM"
-        eastern = pytz.timezone('America/New_York')
-        now = datetime.now(eastern)
-        ts = now.strftime('%I:%M %p').lstrip('0')  # e.g., "3:45 PM"
-        msg_obj = {'text': text, 'timestamp': ts}
-        with open('chatlog.txt', 'a', encoding='utf-8') as f:
-            f.write(json.dumps(msg_obj) + '\n')
-        return jsonify({'status': 'ok'}), 200
-    return jsonify({'status': 'error', 'message': 'No text'}), 400
+		# Script tuples: (script_path, working_dir, accepts_hour_arg)
+		scripts = [
+			("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel", True),
+			("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs", False),  # gif generator likely does not take hour arg
+		]
 
-@app.route('/get-chats', methods=['GET'])
-def get_chats():
-    messages = []
-    if os.path.exists('chatlog.txt'):
-        with open('chatlog.txt', 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    msg_obj = json.loads(line)
-                    messages.append(msg_obj)
-                except Exception:
-                    # fallback for old format
-                    messages.append({'text': line, 'timestamp': ''})
-    return jsonify({'messages': messages})
+		# Forecast hours: 000, 006, 012, ..., 384
+		step_hours = 6
+		max_hour = 384
+		hours = [f"{h:03d}" for h in range(0, max_hour + 1, step_hours)]
 
-@app.route('/make-map', methods=['POST'])
-def make_map():
-    data = request.get_json()
-    min_lat = data.get('min_lat')
-    max_lat = data.get('max_lat')
-    min_lon = data.get('min_lon')
-    max_lon = data.get('max_lon')
-    # Validate input
-    try:
-        min_lat = float(min_lat)
-        max_lat = float(max_lat)
-        min_lon = float(min_lon)
-        max_lon = float(max_lon)
-    except Exception:
-        return jsonify({'error': 'Invalid coordinates'}), 400
-    # Output file path: create a timestamped filename so the top-right world_map.png is never overwritten
-    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-    filename = f"world_map_{timestamp}.png"
-    out_path = os.path.join('plotter', filename)
-    # Call the map generator script
-    try:
-        result = subprocess.run(
-            ["python", "make_map.py", str(min_lat), str(max_lat), str(min_lon), str(max_lon), out_path],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        print("Map generated:", result.stdout)
-    except Exception as e:
-        print("Map generation error:", e)
-        return jsonify({'error': 'Map generation failed'}), 500
-    # Return the URL for the new map image
-    return jsonify({'url': f'/plotter/{filename}'})
-
-@app.route('/plotter/<path:filename>')
-def serve_plotter_map(filename):
-    return send_from_directory(os.path.join(os.path.dirname(__file__), 'plotter'), filename)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+		# Round-robin: for each forecast hour, run each script (if it accepts hours, pass the hour)
+		for hour in hours:
+			print(f"[SCHEDULE] Starting pass for hour {hour}")
+			for script, cwd, accepts_hour in scripts:
+				cmd = ["python", script]
+				if accepts_hour:
+					cmd.append(hour)
+				try:
+					print(f"[RUNNING] {' '.join(cmd)} (cwd={cwd})")
+					result = subprocess.run(
+						cmd,
+						check=True,
+						cwd=cwd,
+						stdout=subprocess.PIPE,
+						stderr=subprocess.PIPE,
+						text=True,
+					)
+					print(f"[OK] {os.path.basename(script)} hour={hour}")
+					if result.stdout:
+						print("STDOUT:", result.stdout)
+					if result.stderr:
+						print("STDERR:", result.stderr)
+				except subprocess.CalledProcessError as e:
+					# Log and continue with next script/hour
+					print(f"[ERROR] {os.path.basename(script)} hour={hour} returned non-zero")
+					print("STDOUT:", getattr(e, "stdout", ""))
+				
