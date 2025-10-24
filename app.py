@@ -42,19 +42,10 @@ IMAGE_ROUTE_MAP = {
     'THICKNESS': ['GFS', 'static', 'THICKNESS'],
     'usa_pngs': ['GFS', 'static', 'usa_pngs'],
     'northeast_pngs': ['GFS', 'static', 'northeast_pngs'],
-    'WIND_200': ['GFS', 'static', 'WIND_200'],
-    'sunsd_surface': ['GFS', 'static', 'sunsd_surface'],
-    'gfs_850mb': ['GFS', 'static', 'gfs_850mb'],
-    'vort850_surface': ['GFS', 'static', 'vort850_surface'],
-    'DZDT850': ['GFS', 'static', 'DZDT850'],
-    'LFTX': ['GFS', 'static', 'LFTX'],
-    'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
-    'northeast_precip_pngs': ['GFS', 'static', 'northeast_precip_pngs'],
     'northeast_12hour_precip_pngs': ['GFS', 'static', 'northeast_12hour_precip_pngs'],
-    'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngps'],
+    'northeast_24hour_precip_pngps': ['GFS', 'static', 'northeast_24hour_precip_pngps'],
     'northeast_total_precip_pngs': ['GFS', 'static', 'northeast_total_precip_pngs'],
     'northeast_gust_pngs': ['GDAS', 'static', 'GUST_NE'],
-    'GFS/static/TMP850': ['GFS', 'static', 'TMP850'],
     'TMP850': ['GFS', 'static', 'TMP850'],
 }
 
@@ -83,12 +74,12 @@ def serve_image(prefix, filename):
         if matched_subpath:
             filename = os.path.join(matched_subpath, filename)
         abs_path = os.path.join(directory, filename)
-        print(f"[DEBUG] Trying to serve: {abs_path}")  # <--- Add this line
+        print(f"[DEBUG] Trying to serve: {abs_path}")
         if not os.path.isfile(abs_path):
-            print(f"[DEBUG] File not found: {abs_path}")  # <--- Add this line
+            print(f"[DEBUG] File not found: {abs_path}")
             abort(404, description=f"File not found: {abs_path}")
         return send_from_directory(directory, filename)
-    print(f"[DEBUG] No mapping for prefix: {prefix}")  # <--- Add this line
+    print(f"[DEBUG] No mapping for prefix: {prefix}")
     abort(404, description=f"No mapping for prefix: {prefix}")
 
 @app.route('/GFS/static/<path:filename>')
@@ -134,7 +125,7 @@ def serve_plotter_html():
 
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
-    directory = '/var/data'  # GIFs are saved here
+    directory = '/var/data'
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -142,67 +133,72 @@ def serve_gif(filename):
 
 @app.route("/run-task1")
 def run_task1():
-	def run_all_scripts_round_robin():
-		print("Flask is running as user:", getpass.getuser())  # Print user for debugging
+    def run_all_scripts_round_robin():
+        print("Flask is running as user:", getpass.getuser())
 
-		# Script tuples: (script_path, working_dir, accepts_hour_arg)
-		scripts = [
-			("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel", True),
-			("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs", False),  # gif generator likely does not take hour arg
-		]
+        scripts = [
+            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel", True),
+            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs", False),
+        ]
 
-		# Forecast hours: 000, 006, 012, ..., 384
-		step_hours = 6
-		max_hour = 384
-		hours = [f"{h:03d}" for h in range(0, max_hour + 1, step_hours)]
+        step_hours = 6
+        max_hour = 384
+        hours = [f"{h:03d}" for h in range(0, max_hour + 1, step_hours)]
 
-		# Round-robin: for each forecast hour, run each script (if it accepts hours, pass the hour)
-		for hour in hours:
-			print(f"[SCHEDULE] Starting pass for hour {hour}")
-			for script, cwd, accepts_hour in scripts:
-				cmd = ["python", script]
-				if accepts_hour:
-					cmd.append(hour)
-				try:
-					print(f"[RUNNING] {' '.join(cmd)} (cwd={cwd})")
-					result = subprocess.run(
-						cmd,
-						check=True,
-						cwd=cwd,
-						stdout=subprocess.PIPE,
-						stderr=subprocess.PIPE,
-						text=True,
-					)
-					print(f"[OK] {os.path.basename(script)} hour={hour}")
-					if result.stdout:
-						print("STDOUT:", result.stdout)
-					if result.stderr:
-						print("STDERR:", result.stderr)
-				except subprocess.CalledProcessError as e:
-					# Log and continue with next script/hour
-					print(f"[ERROR] {os.path.basename(script)} hour={hour} returned non-zero")
-					print("STDOUT:", getattr(e, "stdout", ""))
-				
+        for hour in hours:
+            print(f"[SCHEDULE] Starting pass for hour {hour}")
+            for script, cwd, accepts_hour in scripts:
+                cmd = ["python", script]
+                if accepts_hour:
+                    cmd.append(hour)
+                try:
+                    print(f"[RUNNING] {' '.join(cmd)} (cwd={cwd})")
+                    result = subprocess.run(
+                        cmd,
+                        check=True,
+                        cwd=cwd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                    )
+                    print(f"[OK] {os.path.basename(script)} hour={hour}")
+                    if result.stdout:
+                        print("STDOUT:", result.stdout)
+                    if result.stderr:
+                        print("STDERR:", result.stderr)
+                except subprocess.CalledProcessError as e:
+                    print(f"[ERROR] {os.path.basename(script)} hour={hour} returned non-zero")
+                    print("STDOUT:", getattr(e, "stdout", ""))
+                    print("STDERR:", getattr(e, "stderr", ""))
+
+    # Run the function in a background thread
+    threading.Thread(target=run_all_scripts_round_robin, daemon=True).start()
+
+    # Respond immediately
+    return jsonify({"message": "Task 1 started running in background"}), 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
