@@ -42,10 +42,19 @@ IMAGE_ROUTE_MAP = {
     'THICKNESS': ['GFS', 'static', 'THICKNESS'],
     'usa_pngs': ['GFS', 'static', 'usa_pngs'],
     'northeast_pngs': ['GFS', 'static', 'northeast_pngs'],
+    'WIND_200': ['GFS', 'static', 'WIND_200'],
+    'sunsd_surface': ['GFS', 'static', 'sunsd_surface'],
+    'gfs_850mb': ['GFS', 'static', 'gfs_850mb'],
+    'vort850_surface': ['GFS', 'static', 'vort850_surface'],
+    'DZDT850': ['GFS', 'static', 'DZDT850'],
+    'LFTX': ['GFS', 'static', 'LFTX'],
+    'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
+    'northeast_precip_pngs': ['GFS', 'static', 'northeast_precip_pngs'],
     'northeast_12hour_precip_pngs': ['GFS', 'static', 'northeast_12hour_precip_pngs'],
-    'northeast_24hour_precip_pngps': ['GFS', 'static', 'northeast_24hour_precip_pngps'],
+    'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngps'],
     'northeast_total_precip_pngs': ['GFS', 'static', 'northeast_total_precip_pngs'],
     'northeast_gust_pngs': ['GDAS', 'static', 'GUST_NE'],
+    'GFS/static/TMP850': ['GFS', 'static', 'TMP850'],
     'TMP850': ['GFS', 'static', 'TMP850'],
 }
 
@@ -74,12 +83,12 @@ def serve_image(prefix, filename):
         if matched_subpath:
             filename = os.path.join(matched_subpath, filename)
         abs_path = os.path.join(directory, filename)
-        print(f"[DEBUG] Trying to serve: {abs_path}")
+        print(f"[DEBUG] Trying to serve: {abs_path}")  # <--- Add this line
         if not os.path.isfile(abs_path):
-            print(f"[DEBUG] File not found: {abs_path}")
+            print(f"[DEBUG] File not found: {abs_path}")  # <--- Add this line
             abort(404, description=f"File not found: {abs_path}")
         return send_from_directory(directory, filename)
-    print(f"[DEBUG] No mapping for prefix: {prefix}")
+    print(f"[DEBUG] No mapping for prefix: {prefix}")  # <--- Add this line
     abort(404, description=f"No mapping for prefix: {prefix}")
 
 @app.route('/GFS/static/<path:filename>')
@@ -125,7 +134,7 @@ def serve_plotter_html():
 
 @app.route('/Gifs/<path:filename>')
 def serve_gif(filename):
-    directory = '/var/data'
+    directory = '/var/data'  # GIFs are saved here
     abs_path = os.path.join(directory, filename)
     if not os.path.isfile(abs_path):
         abort(404)
@@ -133,72 +142,123 @@ def serve_gif(filename):
 
 @app.route("/run-task1")
 def run_task1():
-    def run_all_scripts_round_robin():
-        print("Flask is running as user:", getpass.getuser())
-
+    def run_all_scripts():
+        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
         scripts = [
-            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel", True),
-            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs", False),
+            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
+        for script, cwd in scripts:
+            try:
+                result = subprocess.run(
+                    ["python", script],
+                    check=True, cwd=cwd,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                )
+                print(f"{os.path.basename(script)} ran successfully!")
+                print("STDOUT:", result.stdout)
+                print("STDERR:", result.stderr)
+            except subprocess.CalledProcessError as e:
+                error_trace = traceback.format_exc()
+                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
+                print("STDOUT:", e.stdout)
+                print("STDERR:", e.stderr)
+    threading.Thread(target=run_all_scripts).start()
+    return "Task started in background! Check logs folder for output.", 200
 
-        step_hours = 6
-        max_hour = 384
-        hours = [f"{h:03d}" for h in range(0, max_hour + 1, step_hours)]
+@app.route('/save-chat', methods=['POST'])
+def save_chat():
+    data = request.get_json()
+    text = data.get('text', '').strip()
+    if text:
+        # Get current time in US Eastern Time and format as "h:mm AM/PM"
+        eastern = pytz.timezone('America/New_York')
+        now = datetime.now(eastern)
+        ts = now.strftime('%I:%M %p').lstrip('0')  # e.g., "3:45 PM"
+        msg_obj = {'text': text, 'timestamp': ts}
+        with open('chatlog.txt', 'a', encoding='utf-8') as f:
+            f.write(json.dumps(msg_obj) + '\n')
+        return jsonify({'status': 'ok'}), 200
+    return jsonify({'status': 'error', 'message': 'No text'}), 400
 
-        for hour in hours:
-            print(f"[SCHEDULE] Starting pass for hour {hour}")
-            for script, cwd, accepts_hour in scripts:
-                cmd = ["python", script]
-                if accepts_hour:
-                    cmd.append(hour)
+@app.route('/get-chats', methods=['GET'])
+def get_chats():
+    messages = []
+    if os.path.exists('chatlog.txt'):
+        with open('chatlog.txt', 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
                 try:
-                    print(f"[RUNNING] {' '.join(cmd)} (cwd={cwd})")
-                    result = subprocess.run(
-                        cmd,
-                        check=True,
-                        cwd=cwd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                    )
-                    print(f"[OK] {os.path.basename(script)} hour={hour}")
-                    if result.stdout:
-                        print("STDOUT:", result.stdout)
-                    if result.stderr:
-                        print("STDERR:", result.stderr)
-                except subprocess.CalledProcessError as e:
-                    print(f"[ERROR] {os.path.basename(script)} hour={hour} returned non-zero")
-                    print("STDOUT:", getattr(e, "stdout", ""))
-                    print("STDERR:", getattr(e, "stderr", ""))
+                    msg_obj = json.loads(line)
+                    messages.append(msg_obj)
+                except Exception:
+                    # fallback for old format
+                    messages.append({'text': line, 'timestamp': ''})
+    return jsonify({'messages': messages})
 
-    # Run the function in a background thread
-    threading.Thread(target=run_all_scripts_round_robin, daemon=True).start()
+@app.route('/make-map', methods=['POST'])
+def make_map():
+    data = request.get_json()
+    min_lat = data.get('min_lat')
+    max_lat = data.get('max_lat')
+    min_lon = data.get('min_lon')
+    max_lon = data.get('max_lon')
+    # Validate input
+    try:
+        min_lat = float(min_lat)
+        max_lat = float(max_lat)
+        min_lon = float(min_lon)
+        max_lon = float(max_lon)
+    except Exception:
+        return jsonify({'error': 'Invalid coordinates'}), 400
+    # Output file path: create a timestamped filename so the top-right world_map.png is never overwritten
+    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+    filename = f"world_map_{timestamp}.png"
+    out_path = os.path.join('plotter', filename)
+    # Call the map generator script
+    try:
+        result = subprocess.run(
+            ["python", "make_map.py", str(min_lat), str(max_lat), str(min_lon), str(max_lon), out_path],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        print("Map generated:", result.stdout)
+    except Exception as e:
+        print("Map generation error:", e)
+        return jsonify({'error': 'Map generation failed'}), 500
+    # Return the URL for the new map image
+    return jsonify({'url': f'/plotter/{filename}'})
 
-    # Respond immediately
-    return jsonify({"message": "Task 1 started running in background"}), 200
+@app.route('/plotter/<path:filename>')
+def serve_plotter_map(filename):
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'plotter'), filename)
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(debug=True)
