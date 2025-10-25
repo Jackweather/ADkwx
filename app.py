@@ -190,6 +190,9 @@ def run_task1():
 
         def run_sequence(label, entries):
             for idx, script, cwd in entries:
+                # EVENS start immediately. ODDS wait 10s before each run (including first)
+                if label == "ODD":
+                    time.sleep(10)
                 task_label = f"{idx}/{total}"
                 print(f"[{label}][{task_label}] Running: {os.path.basename(script)} (cwd: {cwd})")
                 try:
@@ -211,11 +214,11 @@ def run_task1():
                     if hasattr(e, "stderr") and e.stderr:
                         print(f"[{label}][{task_label}] STDERR: {e.stderr}")
 
-        # start two threads: one for odds, one for evens (they run sequentially within each thread)
-        thread_odd = threading.Thread(target=run_sequence, args=("ODD", odds))
+        # start two threads: evens first, then odds (odds will wait 10s before each run)
         thread_even = threading.Thread(target=run_sequence, args=("EVEN", evens))
-        thread_odd.start()
+        thread_odd = threading.Thread(target=run_sequence, args=("ODD", odds))
         thread_even.start()
+        thread_odd.start()
         # wait for both to finish
         thread_odd.join()
         thread_even.join()
@@ -237,11 +240,11 @@ def run_task1():
                 print(f"[GIF][{gif_label}] STDERR: {result.stderr}")
         except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
-            print(f"[GIF][{gif_label}] Error running {os.path.basename(gif_script)}:\n{error_trace}")
+            print(f"[GIF][gif_label] Error running {os.path.basename(gif_script)}:\n{error_trace}")
             if hasattr(e, "stdout") and e.stdout:
-                print(f"[GIF][{gif_label}] STDOUT: {e.stdout}")
+                print(f"[GIF][gif_label] STDOUT: {e.stdout}")
             if hasattr(e, "stderr") and e.stderr:
-                print(f"[GIF][{gif_label}] STDERR: {e.stderr}")
+                print(f"[GIF][gif_label] STDERR: {e.stderr}")
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
 
