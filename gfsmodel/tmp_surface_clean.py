@@ -1,178 +1,346 @@
-from flask import Flask, send_from_directory, abort, request, jsonify
 import os
-import subprocess
-import traceback
-import getpass
-import logging
-import threading
-import json
-from datetime import datetime
-import pytz
+import requests
+from datetime import datetime, timedelta
+import xarray as xr
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+import numpy as np
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 import time
-from werkzeug.utils import secure_filename
+import gc
+from PIL import Image
 
-app = Flask(__name__)
+BASE_DIR = '/var/data'
 
-# Suppress 404 logging for /PRATEGFS/ and /tmp_surface/ image requests in werkzeug logger
-logging.getLogger('werkzeug').addFilter(
-    lambda record: not (
-        (('GET /PRATEGFS/' in record.getMessage() or 'GET /tmp_surface/' in record.getMessage()) and '404' in record.getMessage())
-    )
+# --- Clean up old files in grib_files, pngs, and tmp_surface directories ---
+for folder in [
+    os.path.join(BASE_DIR, "GFS", "static", "tmp_surface", "grib_files"),
+    os.path.join(BASE_DIR, "GFS", "static", "pngs"),
+    os.path.join(BASE_DIR, "GFS", "static", "tmp_surface")
+]:
+    if os.path.exists(folder):
+        for f in os.listdir(folder):
+            file_path = os.path.join(folder, f)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
+# Directories
+output_dir = os.path.join(BASE_DIR, "GFS")
+tmp_surface_dir = os.path.join(output_dir, "static", "tmp_surface")
+grib_dir = os.path.join(tmp_surface_dir, "grib_files")
+png_dir = tmp_surface_dir
+os.makedirs(grib_dir, exist_ok=True)
+os.makedirs(png_dir, exist_ok=True)
+
+# GFS NOMADS URL and variable
+base_url = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
+variable_tmp = "TMP"
+current_utc_time = datetime.utcnow() - timedelta(hours=6)
+date_str = current_utc_time.strftime("%Y%m%d")
+hour_str = str(current_utc_time.hour // 6 * 6).zfill(2)
+
+# Custom colormap and levels for temperature (°F)
+temp_levels = [-20, 0, 10, 20, 32, 40, 50, 60, 70, 80, 90, 100]
+custom_cmap = LinearSegmentedColormap.from_list(
+    "temp_cmap",
+    [
+        "#08306b", "#2171b5", "#6baed6", "#b3cde3", "#ffffff",
+        "#ffffb2", "#fecc5c", "#fd8d3c", "#f03b20", "#bd0026"
+    ],
+    N=256
 )
 
-BASE_DATA_DIR = '/var/data'
-
-# Mapping of URL prefix to subdirectory path
-IMAGE_ROUTE_MAP = {
-    'PRATEGFS': ['GFS', 'static', 'PRATEGFS'],
-    'tmp_surface': ['GFS', 'static', 'tmp_surface'],
-    '6hour_precip_total': ['GFS', 'static', '6hour_precip_total'],
-    '24hour_precip_total': ['GFS', 'static', '24hour_precip_total'],
-    '12hour_precip_total': ['GFS', 'static', '12hour_precip_total'],
-    'total_precip': ['GFS', 'static', 'total_precip'],
-    'total_lcdc': ['GFS', 'static', 'total_lcdc'],
-    'GFS/static/snow_depth': ['GFS', 'static', 'snow_depth'],
-    'GFS/static/totalsnowfall_10to1': ['GFS', 'static', 'totalsnowfall_10to1'],
-    'GFS/static/totalsnowfall_3to1': ['GFS', 'static', 'totalsnowfall_3to1'],
-    'GFS/static/totalsnowfall_5to1': ['GFS', 'static', 'totalsnowfall_5to1'],
-    'GFS/static/totalsnowfall_20to1': ['GFS', 'static', 'totalsnowfall_20to1'],
-    'GFS/static/totalsnowfall_8to1': ['GFS', 'static', 'totalsnowfall_8to1'],
-    'GFS/static/totalsnowfall_12to1': ['GFS', 'static', 'totalsnowfall_12to1'],
-    'GFS/static/totalsnowfall_15to1': ['GFS', 'static', 'totalsnowfall_15to1'],
-    'THICKNESS': ['GFS', 'static', 'THICKNESS'],
-    'usa_pngs': ['GFS', 'static', 'usa_pngs'],
-    'northeast_pngs': ['GFS', 'static', 'northeast_pngs'],
-    'WIND_200': ['GFS', 'static', 'WIND_200'],
-    'sunsd_surface': ['GFS', 'static', 'sunsd_surface'],
-    'gfs_850mb': ['GFS', 'static', 'gfs_850mb'],
-    'vort850_surface': ['GFS', 'static', 'vort850_surface'],
-    'DZDT850': ['GFS', 'static', 'DZDT850'],
-    'LFTX': ['GFS', 'static', 'LFTX'],
-    'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
-    'northeast_precip_pngs': ['GFS', 'static', 'northeast_precip_pngs'],
-    'northeast_12hour_precip_pngs': ['GFS', 'static', 'northeast_12hour_precip_pngs'],
-    'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngps'],
-    'northeast_total_precip_pngs': ['GFS', 'static', 'northeast_total_precip_pngs'],
-    'northeast_gust_pngs': ['GDAS', 'static', 'GUST_NE'],
-    'GFS/static/TMP850': ['GFS', 'static', 'TMP850'],
-    'TMP850': ['GFS', 'static', 'TMP850'],
-}
-
-@app.route('/')
-def index():
-    with open('parent.html', 'r', encoding='utf-8') as f:
-        html = f.read()
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static', 'PRATEGFS')
-    images_html = ''.join(
-        f'<img src="/PRATEGFS/{png}" alt="{png}"><br>\n'
-        for png in sorted(f for f in os.listdir(directory) if f.endswith('.png'))
+def download_file(hour_str, step):
+    file_name = f"gfs.t{hour_str}z.pgrb2.0p25.f{step:03d}"
+    file_path = os.path.join(grib_dir, file_name)
+    url_tmp = (
+        f"{base_url}?file={file_name}"
+        f"&lev_2_m_above_ground=on&var_{variable_tmp}=on"
+        f"&subregion=&leftlon=220&rightlon=300&toplat=55&bottomlat=20"
+        f"&dir=%2Fgfs.{date_str}%2F{hour_str}%2Fatmos"
     )
-    return html.replace('<!--IMAGES-->', images_html)
+    response = requests.get(url_tmp, stream=True)
+    if response.status_code == 200:
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        print(f"Downloaded {file_name}")
+        return file_path
+    else:
+        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
+        return None
 
-@app.route('/<path:prefix>/<path:filename>')
-def serve_image(prefix, filename):
-    matched_key = None
-    matched_subpath = None
-    for key in sorted(IMAGE_ROUTE_MAP.keys(), key=lambda x: -len(x)):
-        if prefix == key or prefix.startswith(key + '/'):
-            matched_key = key
-            matched_subpath = prefix[len(key):].lstrip('/')
-            break
-    if matched_key:
-        directory = os.path.join(BASE_DATA_DIR, *IMAGE_ROUTE_MAP[matched_key])
-        if matched_subpath:
-            filename = os.path.join(matched_subpath, filename)
-        abs_path = os.path.join(directory, filename)
-        print(f"[DEBUG] Trying to serve: {abs_path}")  # <--- Add this line
-        if not os.path.isfile(abs_path):
-            print(f"[DEBUG] File not found: {abs_path}")  # <--- Add this line
-            abort(404, description=f"File not found: {abs_path}")
-        return send_from_directory(directory, filename)
-    print(f"[DEBUG] No mapping for prefix: {prefix}")  # <--- Add this line
-    abort(404, description=f"No mapping for prefix: {prefix}")
+def generate_clean_png(file_path, step):
+    ds = xr.open_dataset(file_path, engine="cfgrib")
+    data = ds['t2m'].values - 273.15  # Kelvin to Celsius
 
-@app.route('/GFS/static/<path:filename>')
-def serve_gfs_static(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
+    fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
+    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
+    extent = [-130, -65, 20, 54]
+    ax.set_extent(extent, crs=ccrs.PlateCarree())
 
-@app.route('/gifs.html')
-def gifs_html():
-    with open('gifs.html', 'r', encoding='utf-8') as f:
-        return f.read()
+    # --- Add map features as in mslp_prate.py ---
+    ax.add_feature(cfeature.LAND, facecolor='lightgray')
+    ax.add_feature(cfeature.OCEAN, facecolor='white')
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
+    ax.add_feature(cfeature.STATES, linewidth=0.3)
+    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
+    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
+    # --- End map features ---
 
-@app.route('/gfs.html')
-def serve_gfs_html():
-    return send_from_directory(os.path.dirname(__file__), 'gfs.html')
+    # --- Title block (same logic as mslp_prate.py) ---
+    run_hour_map = {
+        "00": 20,  # 00z run: f000 = 8pm previous day
+        "06": 2,   # 06z run: f000 = 2am
+        "12": 8,   # 12z run: f000 = 8am
+        "18": 14   # 18z run: f000 = 2pm
+    }
+    base_hour = run_hour_map.get(hour_str, 8)
+    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
+    valid_time = base_time + timedelta(hours=step)
+    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
+    day_of_week = valid_time.strftime('%A')
+    run_str = f"{hour_str}z"
+    title_str = (
+        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
+        f"2m Temperature (°F)"
+    )
+    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
 
-@app.route('/updates.html')
-def serve_updates_html():
-    return send_from_directory(os.path.dirname(__file__), 'updates.html')
+    # --- Plot temperature ---
+    if 'latitude' in ds and 'longitude' in ds:
+        lats = ds['latitude'].values
+        lons = ds['longitude'].values
+        lons_plot = np.where(lons > 180, lons - 360, lons)
+        if lats.ndim == 1 and lons.ndim == 1:
+            Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
+            data2d = data.squeeze()
+        else:
+            Lon2d, Lat2d = lons_plot, lats
+            data2d = data.squeeze()
+        mesh = ax.contourf(
+            Lon2d, Lat2d, data2d * 9/5 + 32,
+            levels=temp_levels,
+            cmap=custom_cmap,
+            extend='both',
+            transform=ccrs.PlateCarree()
+        )
 
-@app.route('/community.html')
-def serve_community_html():
-    return send_from_directory(os.path.dirname(__file__), 'community.html')
+        # --- Add 1-degree grid with temperature numbers ---
+        # Only plot for integer lat/lon within extent
+        for lat in range(int(extent[2]), int(extent[3]) + 1):
+            for lon in range(int(extent[0]), int(extent[1]) + 1):
+                # Find nearest grid point
+                iy = np.abs(lats - lat).argmin() if lats.ndim == 1 else np.abs(lats[:,0] - lat).argmin()
+                ix = np.abs(lons_plot - lon).argmin() if lons_plot.ndim == 1 else np.abs(lons_plot[0,:] - lon).argmin()
+                temp_c = data2d[iy, ix]
+                temp_f = temp_c * 9/5 + 32
+                ax.text(
+                    lon, lat, f"{int(round(temp_f))}",
+                    color='black', fontsize=4, fontweight='bold',
+                    ha='center', va='center', transform=ccrs.PlateCarree(),
+                    zorder=10
+                    # removed bbox for transparent background
+                )
+    else:
+        leaflet_extent = extent
+        mesh = ax.imshow(
+            data.squeeze() * 9/5 + 32,
+            cmap=custom_cmap,
+            extent=leaflet_extent,
+            origin='lower',
+            interpolation='bilinear',
+            aspect='auto',
+            transform=ccrs.PlateCarree()
+        )
+        # No grid overlay for imshow fallback
 
-@app.route('/snow.html')
-def serve_snow_html():
-    return send_from_directory(os.path.dirname(__file__), 'snow.html')
+    # --- Add colorbar below plot, styled like mslp_prate.py ---
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
+    cbar = plt.colorbar(
+        mesh, ax=ax, orientation='horizontal',
+        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,
+        anchor=(0.5, 0.0), location='bottom'
+    )
+    cbar.set_label("2m Temperature (°F)", fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+    cbar.ax.set_facecolor('white')
+    cbar.outline.set_edgecolor('black')
 
-@app.route('/parent.html')
-def serve_parent_html():
-    return send_from_directory(os.path.dirname(__file__), 'parent.html')
+    # Add ADKWX.com to bottom right
+    fig.text(
+        0.99, 0.01, "adkwx.com",
+        fontsize=10, color="black", ha="right", va="bottom",
+        alpha=0.7, fontweight="bold"
+    )
 
-@app.route('/snowparent.html')
-def serve_snowparent_html():
-    return send_from_directory(os.path.dirname(__file__), 'snowparent.html')
+    ax.set_axis_off()
+    png_path = os.path.join(png_dir, f"2mtemp_{step:03d}.png")
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
+    plt.close(fig)
+    print(f"Generated clean PNG: {png_path}")
+    return png_path
 
-@app.route('/plotter.html')
-def serve_plotter_html():
-    return send_from_directory(os.path.dirname(__file__), 'plotter.html')
+# Add Northeast TMP PNG output directory (matches frontend)
+northeast_tmp_dir = os.path.join(BASE_DIR, "GFS", "static", "northeast_tmp_pngs")
+os.makedirs(northeast_tmp_dir, exist_ok=True)
 
-@app.route('/Gifs/<path:filename>')
-def serve_gif(filename):
-    directory = '/var/data'  # GIFs are saved here
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
+def generate_northeast_tmp_png(file_path, step):
+    ds = xr.open_dataset(file_path, engine="cfgrib")
+    data = ds['t2m'].values - 273.15  # Kelvin to Celsius
 
-@app.route("/run-task1")
-def run_task1():
-    def run_all_scripts():
-        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
-        scripts_raw = [
-            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),                 # 1
-            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),          # 2
-            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel"),            # 3
-            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel"),             # 4
-            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel"),             # 5
-            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel"),              # 6
-            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel"),         # 7
-            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel"),                 # 8
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel"),       # 9
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel"),       # 10
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel"),      # 11
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel"),       # 12
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel"),      # 13
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel"),      # 14
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel"),      # 15
-            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel"),       # 16
-            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel"),                  # 17
-            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel"),       # 18
-            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),            # 19
-            ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),    # 20
-            ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),                  # 21
-            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),             # 22
-            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),       # 23
-            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),        # 24
-            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),                              # 25 (GIF)
-        ]
-        # tag with original indices
-        scripts = [(i, s, c) for i, (s, c) in enumerate(scripts_raw, start=1)]
-        total = len(scripts)
+    fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
+    ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
+    extent = [-82, -66, 38, 48]  # Northeast US
+    ax.set_extent(extent, crs=ccrs.PlateCarree())
 
-        # show numbered list
+    # Add counties
+    import cartopy.io.shapereader as shapereader
+    county_shp = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip"
+    try:
+        counties = shapereader.Reader(county_shp)
+        ax.add_geometries(counties.geometries(), ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
+    except Exception as e:
+        print(f"Could not load counties shapefile: {e}")
+
+    # Add primary roads
+    primary_shp = "https://www2.census.gov/geo/tiger/TIGER2018/PRIMARYROADS/tl_2018_us_primaryroads.zip"
+    try:
+        primary_roads = shapereader.Reader(primary_shp)
+        ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2)
+    except Exception as e:
+        print(f"Could not load primary roads shapefile: {e}")
+
+    # Basemap features
+    ax.add_feature(cfeature.LAND, facecolor='lightgray')
+    ax.add_feature(cfeature.OCEAN, facecolor='white')
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.7)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5)
+    ax.add_feature(cfeature.STATES, linewidth=0.3)
+    ax.add_feature(cfeature.RIVERS, linewidth=0.4, edgecolor='blue')
+    ax.add_feature(cfeature.LAKES, facecolor='lightblue', edgecolor='blue', linewidth=0.3)
+
+    # Title block (same logic as USA)
+    run_hour_map = {
+        "00": 20,
+        "06": 2,
+        "12": 8,
+        "18": 14
+    }
+    base_hour = run_hour_map.get(hour_str, 8)
+    base_time = datetime.strptime(date_str + f"{base_hour:02d}", "%Y%m%d%H")
+    valid_time = base_time + timedelta(hours=step)
+    hour_str_fmt = valid_time.strftime('%I%p').lstrip('0').lower()
+    day_of_week = valid_time.strftime('%A')
+    run_str = f"{hour_str}z"
+    title_str = (
+        f"GFS Model {valid_time.strftime('%y%m%d')} {hour_str_fmt}  {day_of_week}  Forecast Hour: {step}  Run: {run_str}\n"
+        f"2m Temperature (°F)"
+    )
+    plt.title(title_str, fontsize=12, fontweight='bold', y=1.03)
+
+    # Plot temperature
+    if 'latitude' in ds and 'longitude' in ds:
+        lats = ds['latitude'].values
+        lons = ds['longitude'].values
+        lons_plot = np.where(lons > 180, lons - 360, lons)
+        if lats.ndim == 1 and lons.ndim == 1:
+            Lon2d, Lat2d = np.meshgrid(lons_plot, lats)
+            data2d = data.squeeze()
+        else:
+            Lon2d, Lat2d = lons_plot, lats
+            data2d = data.squeeze()
+        mesh = ax.contourf(
+            Lon2d, Lat2d, data2d * 9/5 + 32,
+            levels=temp_levels,
+            cmap=custom_cmap,
+            extend='both',
+            transform=ccrs.PlateCarree()
+        )
+
+        # Add 0.5-degree grid with temperature numbers
+        for lat in np.arange(extent[2], extent[3]+0.01, 0.5):
+            for lon in np.arange(extent[0], extent[1]+0.01, 0.5):
+                iy = np.abs(lats - lat).argmin() if lats.ndim == 1 else np.abs(lats[:,0] - lat).argmin()
+                ix = np.abs(lons_plot - lon).argmin() if lons_plot.ndim == 1 else np.abs(lons_plot[0,:] - lon).argmin()
+                temp_c = data2d[iy, ix]
+                temp_f = temp_c * 9/5 + 32
+                ax.text(
+                    lon, lat, f"{int(round(temp_f))}",
+                    color='black', fontsize=6, fontweight='bold',
+                    ha='center', va='center', transform=ccrs.PlateCarree(),
+                    zorder=10
+                )
+    else:
+        leaflet_extent = extent
+        mesh = ax.imshow(
+            data.squeeze() * 9/5 + 32,
+            cmap=custom_cmap,
+            extent=leaflet_extent,
+            origin='lower',
+            interpolation='bilinear',
+            aspect='auto',
+            transform=ccrs.PlateCarree()
+        )
+
+    # Colorbar
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0.01)
+    cbar = plt.colorbar(
+        mesh, ax=ax, orientation='horizontal',
+        pad=0.01, aspect=25, shrink=0.65, fraction=0.035,
+        anchor=(0.5, 0.0), location='bottom'
+    )
+    cbar.set_label("2m Temperature (°F)", fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+    cbar.ax.set_facecolor('white')
+    cbar.outline.set_edgecolor('black')
+
+    # Add ADKWX.com to bottom right
+    fig.text(
+        0.99, 0.01, "adkwx.com",
+        fontsize=10, color="black", ha="right", va="bottom",
+        alpha=0.7, fontweight="bold"
+    )
+
+    ax.set_axis_off()
+    png_path = os.path.join(northeast_tmp_dir, f"northeast_tmp_{step:03d}.png")
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=False, dpi=600, facecolor='white')
+    plt.close(fig)
+    print(f"Generated Northeast TMP PNG: {png_path}")
+    return png_path
+
+# Main process: Download and plot
+forecast_steps = list(range(6, 385, 6))
+if 264 not in forecast_steps:
+    forecast_steps.append(264)
+for step in forecast_steps:
+    grib_file = download_file(hour_str, step)
+    if grib_file:
+        generate_clean_png(grib_file, step)
+        generate_northeast_tmp_png(grib_file, step)
+        gc.collect()
+        time.sleep(3)
+
+print("All GRIB file download and PNG creation tasks complete!")
+
+# --- Delete all GRIB files in grib_dir after PNGs are made ---
+for f in os.listdir(grib_dir):
+    file_path = os.path.join(grib_dir, f)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+print("All GRIB files deleted from grib_dir.")
+
+# --- Optimize all PNGs in the output directories ---
+for f in os.listdir(png_dir):
+    if f.lower().endswith('.png'):
+        optimize_png(os.path.join(png_dir, f))
+for f in os.listdir(northeast_tmp_dir):
+    if f.lower().endswith('.png'):
+        optimize_png(os.path.join(northeast_tmp_dir, f))
+
+print("All PNGs optimized.")
