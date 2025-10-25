@@ -144,66 +144,108 @@ def serve_gif(filename):
 def run_task1():
     def run_all_scripts():
         print("Flask is running as user:", getpass.getuser())  # Print user for debugging
-        scripts = [
-            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
-            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
+        scripts_raw = [
+            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),                 # 1
+            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),          # 2
+            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel"),            # 3
+            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel"),             # 4
+            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel"),             # 5
+            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel"),              # 6
+            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel"),         # 7
+            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel"),                 # 8
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel"),       # 9
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel"),       # 10
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel"),      # 11
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel"),       # 12
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel"),      # 13
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel"),      # 14
+            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel"),      # 15
+            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel"),       # 16
+            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel"),                  # 17
+            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel"),       # 18
+            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),            # 19
+            ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),    # 20
+            ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),                  # 21
+            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),             # 22
+            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),       # 23
+            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),        # 24
+            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),                              # 25 (GIF)
         ]
-        for script, cwd in scripts:
-            try:
-                result = subprocess.run(
-                    ["python", script],
-                    check=True, cwd=cwd,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-                )
-                print(f"{os.path.basename(script)} ran successfully!")
-                print("STDOUT:", result.stdout)
-                print("STDERR:", result.stderr)
-            except subprocess.CalledProcessError as e:
-                error_trace = traceback.format_exc()
-                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
-                print("STDOUT:", e.stdout)
-                print("STDERR:", e.stderr)
+        # tag with original indices
+        scripts = [(i, s, c) for i, (s, c) in enumerate(scripts_raw, start=1)]
+        total = len(scripts)
+
+        # show numbered list before running
+        print("Scripts to run:")
+        for idx, s, _ in scripts:
+            print(f"{idx}. {os.path.basename(s)}")
+
+        # separate GIF (last entry) to run after parallel sequences
+        gif_entry = scripts[-1]  # (idx, path, cwd)
+        work_entries = scripts[:-1]
+
+        # split into odds and evens by original index
+        odds = [entry for entry in work_entries if entry[0] % 2 == 1]
+        evens = [entry for entry in work_entries if entry[0] % 2 == 0]
+
+        def run_sequence(label, entries):
+            for idx, script, cwd in entries:
+                task_label = f"{idx}/{total}"
+                print(f"[{label}][{task_label}] Running: {os.path.basename(script)} (cwd: {cwd})")
+                try:
+                    result = subprocess.run(
+                        ["python", script],
+                        check=True, cwd=cwd,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                    )
+                    print(f"[{label}][{task_label}] {os.path.basename(script)} ran successfully!")
+                    if result.stdout:
+                        print(f"[{label}][{task_label}] STDOUT: {result.stdout}")
+                    if result.stderr:
+                        print(f"[{label}][{task_label}] STDERR: {result.stderr}")
+                except subprocess.CalledProcessError as e:
+                    error_trace = traceback.format_exc()
+                    print(f"[{label}][{task_label}] Error running {os.path.basename(script)}:\n{error_trace}")
+                    if hasattr(e, "stdout") and e.stdout:
+                        print(f"[{label}][{task_label}] STDOUT: {e.stdout}")
+                    if hasattr(e, "stderr") and e.stderr:
+                        print(f"[{label}][{task_label}] STDERR: {e.stderr}")
+
+        # start two threads: one for odds, one for evens (they run sequentially within each thread)
+        thread_odd = threading.Thread(target=run_sequence, args=("ODD", odds))
+        thread_even = threading.Thread(target=run_sequence, args=("EVEN", evens))
+        thread_odd.start()
+        thread_even.start()
+        # wait for both to finish
+        thread_odd.join()
+        thread_even.join()
+
+        # finally run the GIF script (last)
+        gif_idx, gif_script, gif_cwd = gif_entry
+        gif_label = f"{gif_idx}/{total}"
+        print(f"[GIF][{gif_label}] Running GIF: {os.path.basename(gif_script)} (cwd: {gif_cwd})")
+        try:
+            result = subprocess.run(
+                ["python", gif_script],
+                check=True, cwd=gif_cwd,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print(f"[GIF][{gif_label}] {os.path.basename(gif_script)} ran successfully!")
+            if result.stdout:
+                print(f"[GIF][{gif_label}] STDOUT: {result.stdout}")
+            if result.stderr:
+                print(f"[GIF][{gif_label}] STDERR: {result.stderr}")
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"[GIF][{gif_label}] Error running {os.path.basename(gif_script)}:\n{error_trace}")
+            if hasattr(e, "stdout") and e.stdout:
+                print(f"[GIF][{gif_label}] STDOUT: {e.stdout}")
+            if hasattr(e, "stderr") and e.stderr:
+                print(f"[GIF][{gif_label}] STDERR: {e.stderr}")
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
 
-@app.route('/save-chat', methods=['POST'])
-def save_chat():
-    data = request.get_json()
-    text = data.get('text', '').strip()
-    if text:
-        # Get current time in US Eastern Time and format as "h:mm AM/PM"
-        eastern = pytz.timezone('America/New_York')
-        now = datetime.now(eastern)
-        ts = now.strftime('%I:%M %p').lstrip('0')  # e.g., "3:45 PM"
-        msg_obj = {'text': text, 'timestamp': ts}
-        with open('chatlog.txt', 'a', encoding='utf-8') as f:
-            f.write(json.dumps(msg_obj) + '\n')
-        return jsonify({'status': 'ok'}), 200
-    return jsonify({'status': 'error', 'message': 'No text'}), 400
-
+# Ensure chat retrieval and map routes are defined (matches your snippet)
 @app.route('/get-chats', methods=['GET'])
 def get_chats():
     messages = []
