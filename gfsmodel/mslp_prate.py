@@ -742,10 +742,10 @@ for step in forecast_steps:
         plot_combined(mslp_grib, prate_grib, step, csnow_grib)
         plot_northeast(mslp_grib, prate_grib, step, csnow_grib)
         gc.collect()
-        time.sleep(3)
+        time.sleep(1)
 
         print("All combined PNG creation tasks complete!")
-        time.sleep(3)
+        time.sleep(1)
 
 # --- Delete all GRIB files in grib_dir after PNGs are made ---
 for f in os.listdir(grib_dir):
@@ -754,7 +754,7 @@ for f in os.listdir(grib_dir):
         os.remove(file_path)
         print("All GRIB files deleted from grib_dir.")
         gc.collect()
-        time.sleep(3)
+        time.sleep(1)
         print("All combined PNG creation tasks complete!")
 
 # --- Optimize all PNGs in the output directories ---
