@@ -10,6 +10,7 @@ from datetime import datetime
 import pytz
 import time
 from werkzeug.utils import secure_filename
+import shutil
 
 app = Flask(__name__)
 
@@ -171,21 +172,69 @@ def run_task1():
             ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
-        for script, cwd in scripts:
+
+        # Helper to run a single script with CPU affinity (cpu 0) and lower niceness.
+        def run_script(script, cwd, cpu=0):
+            base_cmd = ["python", script]
+            # Prefer preexec_fn approach (os.sched_setaffinity), fallback to taskset wrapper if needed.
+            preexec = None
+            cmd = list(base_cmd)
+            if hasattr(os, "sched_setaffinity"):
+                def _preexec():
+                    try:
+                        # bind child to single CPU and lower priority
+                        os.sched_setaffinity(0, {cpu})
+                    except Exception as e:
+                        print("sched_setaffinity failed:", e)
+                    try:
+                        os.nice(10)
+                    except Exception:
+                        pass
+                preexec = _preexec
+            elif shutil.which("taskset"):
+                # use taskset and nice if sched_setaffinity not available
+                cmd = ["taskset", "-c", str(cpu), "nice", "-n", "10"] + base_cmd
+            else:
+                # no affinity mechanism available; just lower niceness
+                try:
+                    os.nice(10)
+                except Exception:
+                    pass
+
             try:
-                result = subprocess.run(
-                    ["python", script],
-                    check=True, cwd=cwd,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                proc = subprocess.Popen(
+                    cmd,
+                    cwd=cwd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    preexec_fn=preexec
                 )
-                print(f"{os.path.basename(script)} ran successfully!")
-                print("STDOUT:", result.stdout)
-                print("STDERR:", result.stderr)
-            except subprocess.CalledProcessError as e:
-                error_trace = traceback.format_exc()
-                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
-                print("STDOUT:", e.stdout)
-                print("STDERR:", e.stderr)
+                out, err = proc.communicate()
+                return proc.returncode, out, err
+            except Exception as e:
+                return 1, "", f"Exception launching process: {e}"
+
+        # Run at most 2 scripts concurrently; all processes are affined to CPU 0 so combined usage ~1 CPU
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        results = []
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            futures = {ex.submit(run_script, script, cwd): (script, cwd) for script, cwd in scripts}
+            for fut in as_completed(futures):
+                script, cwd = futures[fut]
+                try:
+                    rc, out, err = fut.result()
+                    if rc == 0:
+                        print(f"{os.path.basename(script)} ran successfully!")
+                    else:
+                        print(f"{os.path.basename(script)} failed with rc={rc}")
+                    if out:
+                        print("STDOUT:", out)
+                    if err:
+                        print("STDERR:", err)
+                except Exception as e:
+                    print(f"Error running {os.path.basename(script)}: {e}")
+
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
 
