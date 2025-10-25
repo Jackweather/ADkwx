@@ -10,7 +10,6 @@ from datetime import datetime
 import pytz
 import time
 from werkzeug.utils import secure_filename
-import shutil
 
 app = Flask(__name__)
 
@@ -172,115 +171,21 @@ def run_task1():
             ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
-
-        # Helper to run a single script with CPU affinity (cpu 0) and lower niceness.
-        def run_script(script, cwd, cpu=0):
-            base_cmd = ["python", script]
-            # Prefer preexec_fn approach (os.sched_setaffinity), fallback to taskset wrapper if needed.
-            preexec = None
-            cmd = list(base_cmd)
-            if hasattr(os, "sched_setaffinity"):
-                def _preexec():
-                    try:
-                        # bind child to single CPU and lower priority
-                        os.sched_setaffinity(0, {cpu})
-                    except Exception as e:
-                        print("sched_setaffinity failed:", e)
-                    try:
-                        os.nice(10)
-                    except Exception:
-                        pass
-                preexec = _preexec
-            elif shutil.which("taskset"):
-                # use taskset and nice if sched_setaffinity not available
-                cmd = ["taskset", "-c", str(cpu), "nice", "-n", "10"] + base_cmd
-            else:
-                # no affinity mechanism available; just lower niceness
-                try:
-                    os.nice(10)
-                except Exception:
-                    pass
-
-            def _launch(cmd, preexec, cwd):
-                try:
-                    proc = subprocess.Popen(
-                        cmd,
-                        cwd=cwd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        preexec_fn=preexec
-                    )
-                    out, err = proc.communicate()
-                    return proc.returncode, out, err
-                except Exception as e:
-                    return 1, "", f"Exception launching process: {e}"
-
-            # First attempt
-            rc, out, err = _launch(cmd, preexec, cwd)
-            # Detect cartopy/shapefile corruption or incomplete downloads (common symptom: struct.error unpack)
-            bad_signals = ("unpack requires a buffer", "struct.error", "Downloading:", "DownloadWarning", "shapereader")
-            def _is_cartopy_error(text):
-                if not text:
-                    return False
-                low = text.lower()
-                return any(s in low for s in [b.lower() for b in bad_signals])
-
-            if rc != 0 and _is_cartopy_error(err):
-                print(f"[DEBUG] Detected possible corrupted cartopy data when running {os.path.basename(script)}. Cleaning cache and retrying...")
-                # common cartopy cache locations to remove
-                home = os.path.expanduser("~")
-                candidates = [
-                    os.path.join(home, ".local", "share", "cartopy"),
-                    os.path.join(home, ".cache", "cartopy"),
-                    os.path.join(home, ".local", "share", "natural_earth"),
-                    os.path.join("/opt/render", ".cache", "cartopy"),
-                    os.path.join("/tmp", "cartopy"),
-                ]
-                for path in candidates:
-                    try:
-                        if os.path.exists(path):
-                            print(f"[DEBUG] Removing cartopy cache: {path}")
-                            shutil.rmtree(path, ignore_errors=True)
-                    except Exception as e:
-                        print(f"[DEBUG] Failed to remove {path}: {e}")
-                # small delay to let remote downloads stabilize
-                time.sleep(2)
-                # retry once
-                rc2, out2, err2 = _launch(cmd, preexec, cwd)
-                # If retry still shows a cartopy-related failure, log and treat as non-fatal (return success)
-                if rc2 != 0 and _is_cartopy_error(err2):
-                    print(f"[WARNING] {os.path.basename(script)} failed due to cartopy/shapefile issue after retry. Continuing pipeline.")
-                    # return success but include stderr so logs show the issue
-                    return 0, out2 or out, err2 or err
-                # otherwise return retry result
-                return rc2, out2, err2
-            # If initial error was cartopy-related but didn't enter retry block (edge cases), treat non-fatal
-            if rc != 0 and _is_cartopy_error(err):
-                print(f"[WARNING] {os.path.basename(script)} failed due to cartopy/shapefile issue. Continuing pipeline.")
-                return 0, out, err
-            return rc, out, err
-
-        # Run at most 2 scripts concurrently; all processes are affined to CPU 0 so combined usage ~1 CPU
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        results = []
-        with ThreadPoolExecutor(max_workers=2) as ex:
-            futures = {ex.submit(run_script, script, cwd): (script, cwd) for script, cwd in scripts}
-            for fut in as_completed(futures):
-                script, cwd = futures[fut]
-                try:
-                    rc, out, err = fut.result()
-                    if rc == 0:
-                        print(f"{os.path.basename(script)} ran successfully!")
-                    else:
-                        print(f"{os.path.basename(script)} failed with rc={rc}")
-                    if out:
-                        print("STDOUT:", out)
-                    if err:
-                        print("STDERR:", err)
-                except Exception as e:
-                    print(f"Error running {os.path.basename(script)}: {e}")
-
+        for script, cwd in scripts:
+            try:
+                result = subprocess.run(
+                    ["python", script],
+                    check=True, cwd=cwd,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                )
+                print(f"{os.path.basename(script)} ran successfully!")
+                print("STDOUT:", result.stdout)
+                print("STDERR:", result.stderr)
+            except subprocess.CalledProcessError as e:
+                error_trace = traceback.format_exc()
+                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
+                print("STDOUT:", e.stdout)
+                print("STDERR:", e.stderr)
     threading.Thread(target=run_all_scripts).start()
     return "Task started in background! Check logs folder for output.", 200
 
