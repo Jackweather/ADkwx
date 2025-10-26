@@ -11,9 +11,10 @@ import cartopy.crs as ccrs
 from filelock import FileLock
 import cartopy
 import importlib
+import gc
 
 # Ensure a stable cartopy data directory and create it
-cartopy.config['data_dir'] = '/opt/render/project/src/cartopy_data'
+cartopy.config['data_dir'] = '/opt/render/project/src/cartopy_data1'
 os.makedirs(cartopy.config['data_dir'], exist_ok=True)
 
 # Use a file lock so only one process downloads Cartopy data at a time.
