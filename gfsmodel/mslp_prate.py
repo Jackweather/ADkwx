@@ -13,8 +13,21 @@ import scipy.ndimage as ndimage
 import scipy.interpolate as interp  # <-- add this import
 import time
 import gc
-import cartopy.io.shapereader as shpreader
-import cartopy.feature as cfeature
+from filelock import FileLock
+import cartopy
+import importlib
+
+# Ensure a stable cartopy data directory and create it
+cartopy.config['data_dir'] = '/opt/render/project/src/cartopy_data'
+os.makedirs(cartopy.config['data_dir'], exist_ok=True)
+
+# Use a file lock so only one process downloads Cartopy data at a time.
+# Other processes will wait until the lock is released.
+lock = FileLock(os.path.join(cartopy.config['data_dir'], 'cartopy.lock'))
+with lock:
+	# import modules while holding the lock
+	shpreader = importlib.import_module('cartopy.io.shapereader')
+	cfeature = importlib.import_module('cartopy.feature')
 
 BASE_DIR = '/var/data'
 
@@ -537,19 +550,45 @@ def plot_northeast(mslp_path, prate_path, step, csnow_path=None):
     margin = 1.0  # match USA margin
 
     # --- Add counties ---
-    import cartopy.io.shapereader as shapereader
-    county_shp = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip"
+    # load local GeoJSON (only plot NE states)
+    county_json = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "cb_2018_us_county_20m.json"))
+    # NE state FIPS to include (CT, ME, MA, NH, NJ, NY, PA, RI, VT)
+    ne_state_fips = {"09", "23", "25", "33", "34", "36", "42", "44", "50"}
     try:
-        counties = shapereader.Reader(county_shp)
-        ax.add_geometries(counties.geometries(), ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
+        if not os.path.exists(county_json):
+            raise FileNotFoundError(county_json)
+        with open(county_json, "r", encoding="utf-8") as fh:
+            gj = json.load(fh)
+        geoms = []
+        for feat in gj.get("features", []):
+            props = feat.get("properties", {}) or {}
+            if props.get("STATEFP") in ne_state_fips:
+                geom = feat.get("geometry")
+                if geom:
+                    try:
+                        geoms.append(shape(geom))
+                    except Exception:
+                        # skip invalid geometry
+                        continue
+        if geoms:
+            ax.add_geometries(geoms, ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
+        else:
+            print("No NE county geometries found in local GeoJSON.")
     except Exception as e:
-        print(f"Could not load counties shapefile: {e}")
+        print(f"Could not load local county GeoJSON: {e}")
 
-    # --- Add primary (major) roads ---
+    # --- Add primary (major) roads (Northeast only) ---
     primary_shp = "https://www2.census.gov/geo/tiger/TIGER2018/PRIMARYROADS/tl_2018_us_primaryroads.zip"
     try:
-        primary_roads = shapereader.Reader(primary_shp)
-        ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2, label="Primary Roads")
+        primary_roads = shpreader.Reader(primary_shp)
+        ax.add_geometries(
+            primary_roads.geometries(),
+            ccrs.PlateCarree(),
+            edgecolor="brown",
+            facecolor="none",
+            linewidth=1.0,
+            zorder=4
+        )
     except Exception as e:
         print(f"Could not load primary roads shapefile: {e}")
 
