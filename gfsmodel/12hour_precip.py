@@ -1,4 +1,7 @@
+import importlib
 import os
+import cartopy
+from filelock import FileLock
 import requests
 from datetime import datetime, timedelta
 import xarray as xr
@@ -12,6 +15,19 @@ import cartopy.feature as cfeature
 import time
 import gc
 from PIL import Image
+
+# Ensure a stable cartopy data directory and create it
+cartopy.config['data_dir'] = '/opt/render/project/src/cartopy_data'
+os.makedirs(cartopy.config['data_dir'], exist_ok=True)
+
+# Use a file lock so only one process downloads Cartopy data at a time.
+# Other processes wait until the lock is released.
+lock = FileLock(os.path.join(cartopy.config['data_dir'], 'cartopy.lock2'))
+with lock:
+    # import modules while holding the lock so only one process fetches data files
+    shpreader = importlib.import_module('cartopy.io.shapereader')
+    cfeature = importlib.import_module('cartopy.feature')
+
 
 BASE_DIR = '/var/data'
 
@@ -400,7 +416,7 @@ for step in range(12, 385, 12):
         generate_clean_png_sum(file_paths, step)
         generate_northeast_precip_png_sum(file_paths, step)
         gc.collect()
-        time.sleep(3)
+        time.sleep(1)
 
 print("All GRIB file download and PNG creation tasks complete!")
 
