@@ -11,6 +11,7 @@ import pytz
 import time
 from werkzeug.utils import secure_filename
 from queue import Queue, Empty
+import sys
 
 app = Flask(__name__)
 
@@ -191,8 +192,9 @@ def _worker_thread_fn(worker_id):
         task_label = f"{idx}/{total}"
         print(f"[WORKER-{worker_id}][{task_label}] Running: {os.path.basename(script)} (cwd: {cwd})")
         try:
+            # Use the current Python executable to run scripts (more reliable than calling "python")
             result = subprocess.run(
-                ["python", script],
+                [sys.executable, script],
                 check=True, cwd=cwd,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
@@ -201,9 +203,17 @@ def _worker_thread_fn(worker_id):
                 print(f"[WORKER-{worker_id}][{task_label}] STDOUT: {result.stdout}")
             if result.stderr:
                 print(f"[WORKER-{worker_id}][{task_label}] STDERR: {result.stderr}")
-        except Exception as e:
+        except subprocess.CalledProcessError as cpe:
+            # Script exited with non-zero status; print stdout/stderr to help debugging
+            print(f"[WORKER-{worker_id}][{task_label}] {os.path.basename(script)} failed with return code {cpe.returncode}")
+            if hasattr(cpe, "stdout") and cpe.stdout:
+                print(f"[WORKER-{worker_id}][{task_label}] STDOUT: {cpe.stdout}")
+            if hasattr(cpe, "stderr") and cpe.stderr:
+                print(f"[WORKER-{worker_id}][{task_label}] STDERR: {cpe.stderr}")
+        except Exception:
+            # unexpected error: include traceback
             error_trace = traceback.format_exc()
-            print(f"[WORKER-{worker_id}][{task_label}] Error running {os.path.basename(script)}:\n{error_trace}")
+            print(f"[WORKER-{worker_id}][{task_label}] Unexpected error running {os.path.basename(script)}:\n{error_trace}")
         finally:
             TASK_QUEUE.task_done()
 
@@ -278,25 +288,4 @@ def make_map():
     timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
     filename = f"world_map_{timestamp}.png"
     out_path = os.path.join('plotter', filename)
-    # Call the map generator script
-    try:
-        result = subprocess.run(
-            ["python", "make_map.py", str(min_lat), str(max_lat), str(min_lon), str(max_lon), out_path],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        print("Map generated:", result.stdout)
-    except Exception as e:
-        print("Map generation error:", e)
-        return jsonify({'error': 'Map generation failed'}), 500
-    # Return the URL for the new map image
-    return jsonify({'url': f'/plotter/{filename}'})
-
-@app.route('/plotter/<path:filename>')
-def serve_plotter_map(filename):
-    return send_from_directory(os.path.join(os.path.dirname(__file__), 'plotter'), filename)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    # Call the map generator
