@@ -1,4 +1,7 @@
+import importlib
 import os
+import cartopy
+from filelock import FileLock
 import requests
 from datetime import datetime, timedelta
 import pytz
@@ -13,6 +16,18 @@ import cartopy.feature as cfeature
 import time
 import gc
 from PIL import Image
+
+# Ensure a stable cartopy data directory and create it
+cartopy.config['data_dir'] = '/opt/render/project/src/cartopy_data'
+os.makedirs(cartopy.config['data_dir'], exist_ok=True)
+
+# Use a file lock so only one process downloads Cartopy data at a time.
+# Other processes wait until the lock is released.
+lock = FileLock(os.path.join(cartopy.config['data_dir'], 'cartopy.lock20'))
+with lock:
+    # import modules while holding the lock so only one process fetches data files
+    shpreader = importlib.import_module('cartopy.io.shapereader')
+    cfeature = importlib.import_module('cartopy.feature')
 
 BASE_DIR = '/var/data'
 gust_dir = os.path.join(BASE_DIR, "GDAS", "static", "GUST_NE")
@@ -93,7 +108,7 @@ def plot_gust_surface(grib_path, step):
 
     fig = plt.figure(figsize=(10, 7), dpi=600, facecolor='white')
     ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='white')
-    extent = [-80, -65, 37, 47]  # Northeast US
+    extent = [-82, -66, 38, 48]  # Northeast US
     ax.set_extent(extent, crs=ccrs.PlateCarree())
 
     ax.add_feature(cfeature.LAND, facecolor='lightgray')
@@ -163,7 +178,7 @@ def plot_gust_surface(grib_path, step):
         label.set_ha('right')
 
     ax.set_axis_off()
-    png_path = os.path.join(gust_dir, f"gust_surface_gdas_{step:03d}.png")
+    png_path = os.path.join(gust_dir, f"gust_surface_gfs_{step:03d}.png")
     plt.savefig(png_path, bbox_inches='tight', pad_inches=0.05, transparent=False, dpi=600, facecolor='white')
     plt.close(fig)
     print(f"Generated Gust Surface PNG: {png_path}")
@@ -184,7 +199,7 @@ for step in forecast_steps:
     if gust_grib:
         plot_gust_surface(gust_grib, step)
         gc.collect()
-        time.sleep(2)
+        time.sleep(1)
 
 # Delete all GRIB files after PNGs are made
 for f in os.listdir(grib_dir):
