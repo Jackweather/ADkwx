@@ -8,10 +8,21 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import time
-import gc
-from PIL import Image
+from filelock import FileLock
+import cartopy
+import importlib
+
+# Ensure a stable cartopy data directory and create it
+cartopy.config['data_dir'] = '/opt/render/project/src/cartopy_data'
+os.makedirs(cartopy.config['data_dir'], exist_ok=True)
+
+# Use a file lock so only one process downloads Cartopy data at a time.
+# Other processes wait until the lock is released.
+lock = FileLock(os.path.join(cartopy.config['data_dir'], 'cartopy.lock'))
+with lock:
+    # import modules while holding the lock so only one process fetches data files
+    shpreader = importlib.import_module('cartopy.io.shapereader')
+    cfeature = importlib.import_module('cartopy.feature')
 
 BASE_DIR = '/var/data'
 
@@ -199,11 +210,10 @@ def generate_northeast_tmp_png(file_path, step):
     extent = [-82, -66, 38, 48]  # Northeast US
     ax.set_extent(extent, crs=ccrs.PlateCarree())
 
-    # Add counties
-    import cartopy.io.shapereader as shapereader
+    # --- Add counties ---
     county_shp = "https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip"
     try:
-        counties = shapereader.Reader(county_shp)
+        counties = shpreader.Reader(county_shp)
         ax.add_geometries(counties.geometries(), ccrs.PlateCarree(), edgecolor="black", facecolor="none", linewidth=0.3)
     except Exception as e:
         print(f"Could not load counties shapefile: {e}")
@@ -211,7 +221,7 @@ def generate_northeast_tmp_png(file_path, step):
     # Add primary roads
     primary_shp = "https://www2.census.gov/geo/tiger/TIGER2018/PRIMARYROADS/tl_2018_us_primaryroads.zip"
     try:
-        primary_roads = shapereader.Reader(primary_shp)
+        primary_roads = shpreader.Reader(primary_shp)
         ax.add_geometries(primary_roads.geometries(), ccrs.PlateCarree(), edgecolor="brown", facecolor="none", linewidth=1.2)
     except Exception as e:
         print(f"Could not load primary roads shapefile: {e}")
@@ -324,7 +334,7 @@ for step in forecast_steps:
         generate_clean_png(grib_file, step)
         generate_northeast_tmp_png(grib_file, step)
         gc.collect()
-        time.sleep(3)
+        time.sleep(1)
 
 print("All GRIB file download and PNG creation tasks complete!")
 
