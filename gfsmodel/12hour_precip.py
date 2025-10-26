@@ -22,7 +22,7 @@ os.makedirs(cartopy.config['data_dir'], exist_ok=True)
 
 # Use a file lock so only one process downloads Cartopy data at a time.
 # Other processes wait until the lock is released.
-lock = FileLock(os.path.join(cartopy.config['data_dir'], 'cartopy.lock2'))
+lock = FileLock(os.path.join(cartopy.config['data_dir'], 'cartopy.lock3'))
 with lock:
     # import modules while holding the lock so only one process fetches data files
     shpreader = importlib.import_module('cartopy.io.shapereader')
