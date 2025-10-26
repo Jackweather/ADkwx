@@ -15,12 +15,12 @@ import gc
 import time
 
 # Ensure a stable cartopy data directory and create it
-cartopy.config['data_dir'] = '/opt/render/project/src/cartopy_data1'
+cartopy.config['data_dir'] = '/opt/render/project/src/cartopy_data'
 os.makedirs(cartopy.config['data_dir'], exist_ok=True)
 
 # Use a file lock so only one process downloads Cartopy data at a time.
 # Other processes wait until the lock is released.
-lock = FileLock(os.path.join(cartopy.config['data_dir'], 'cartopy.lock'))
+lock = FileLock(os.path.join(cartopy.config['data_dir'], 'cartopy.lock1'))
 with lock:
     # import modules while holding the lock so only one process fetches data files
     shpreader = importlib.import_module('cartopy.io.shapereader')
