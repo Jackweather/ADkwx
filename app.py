@@ -10,6 +10,7 @@ from datetime import datetime
 import pytz
 import time
 from werkzeug.utils import secure_filename
+from queue import Queue, Empty
 
 app = Flask(__name__)
 
@@ -140,113 +141,105 @@ def serve_gif(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
-@app.route("/run-task1")
-def run_task1():
-    def run_all_scripts():
-        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
-        scripts_raw = [
-            ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),                 # 1
-            ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),          # 2
-            ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel"),            # 3
-            ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel"),             # 4
-            ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel"),             # 5
-            ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel"),              # 6
-            ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel"),         # 7
-            ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel"),                 # 8
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel"),       # 9
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel"),       # 10
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel"),      # 11
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel"),       # 12
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel"),      # 13
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel"),      # 14
-            ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel"),      # 15
-            ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel"),       # 16
-            ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel"),                  # 17
-            ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel"),       # 18
-            ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),            # 19
-            ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),    # 20
-            ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),                  # 21
-            ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),             # 22
-            ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),       # 23
-            ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),        # 24
-            ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),                              # 25 (GIF)
-        ]
-        # tag with original indices
-        scripts = [(i, s, c) for i, (s, c) in enumerate(scripts_raw, start=1)]
-        total = len(scripts)
+# Worker pool globals
+TASK_QUEUE = Queue()
+WORKER_THREADS = []
+WORKER_LOCK = threading.Lock()
+WORKER_COUNT = 2
 
-        # show numbered list before running
-        print("Scripts to run:")
-        for idx, s, _ in scripts:
-            print(f"{idx}. {os.path.basename(s)}")
+# Define the scripts list as tuples (idx, script_path, cwd). GIF should be last.
+SCRIPTS_RAW = [
+    ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/6hourmaxprecip.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/12hour_precip.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/24hour_precip.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/total_precip.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/total_cloud_cover.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/snowdepth.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/totalsnowfall_3to1.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/totalsnowfall_5to1.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/totalsnowfall_20to1.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/totalsnowfall_8to1.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/totalsnowfall_12to1.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/totalsnowfall_15to1.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/totalsnowfall_10to1.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/thickness_1000_500.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/wind_200.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/sunsd_surface_clean.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/gfs_850mb_plot.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/vort850_surface_clean.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
+    ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),  # GIF last
+]
 
-        # separate GIF (last entry) to run after parallel sequences
-        gif_entry = scripts[-1]  # (idx, path, cwd)
-        work_entries = scripts[:-1]
+def _worker_thread_fn(worker_id):
+    """Worker loop: pull tasks until queue is empty for a short timeout."""
+    print(f"[WORKER-{worker_id}] starting")
+    while True:
+        try:
+            task = TASK_QUEUE.get(timeout=5)  # wait for a task
+        except Empty:
+            # no more tasks for now -> exit
+            print(f"[WORKER-{worker_id}] no tasks; exiting")
+            break
 
-        # split into odds and evens by original index
-        odds = [entry for entry in work_entries if entry[0] % 2 == 1]
-        evens = [entry for entry in work_entries if entry[0] % 2 == 0]
-
-        def run_sequence(label, entries):
-            for idx, script, cwd in entries:
-                # EVENS start immediately. ODDS wait 10s before each run (including first)
-                if label == "ODD":
-                    time.sleep(10)
-                task_label = f"{idx}/{total}"
-                print(f"[{label}][{task_label}] Running: {os.path.basename(script)} (cwd: {cwd})")
-                try:
-                    result = subprocess.run(
-                        ["python", script],
-                        check=True, cwd=cwd,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-                    )
-                    print(f"[{label}][{task_label}] {os.path.basename(script)} ran successfully!")
-                    if result.stdout:
-                        print(f"[{label}][{task_label}] STDOUT: {result.stdout}")
-                    if result.stderr:
-                        print(f"[{label}][{task_label}] STDERR: {result.stderr}")
-                except subprocess.CalledProcessError as e:
-                    error_trace = traceback.format_exc()
-                    print(f"[{label}][{task_label}] Error running {os.path.basename(script)}:\n{error_trace}")
-                    if hasattr(e, "stdout") and e.stdout:
-                        print(f"[{label}][{task_label}] STDOUT: {e.stdout}")
-                    if hasattr(e, "stderr") and e.stderr:
-                        print(f"[{label}][{task_label}] STDERR: {e.stderr}")
-
-        # start two threads: evens first, then odds (odds will wait 10s before each run)
-        thread_even = threading.Thread(target=run_sequence, args=("EVEN", evens))
-        thread_odd = threading.Thread(target=run_sequence, args=("ODD", odds))
-        thread_even.start()
-        thread_odd.start()
-        # wait for both to finish
-        thread_odd.join()
-        thread_even.join()
-
-        # finally run the GIF script (last)
-        gif_idx, gif_script, gif_cwd = gif_entry
-        gif_label = f"{gif_idx}/{total}"
-        print(f"[GIF][{gif_label}] Running GIF: {os.path.basename(gif_script)} (cwd: {gif_cwd})")
+        idx, script, cwd, total = task
+        task_label = f"{idx}/{total}"
+        print(f"[WORKER-{worker_id}][{task_label}] Running: {os.path.basename(script)} (cwd: {cwd})")
         try:
             result = subprocess.run(
-                ["python", gif_script],
-                check=True, cwd=gif_cwd,
+                ["python", script],
+                check=True, cwd=cwd,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
-            print(f"[GIF][{gif_label}] {os.path.basename(gif_script)} ran successfully!")
+            print(f"[WORKER-{worker_id}][{task_label}] {os.path.basename(script)} ran successfully!")
             if result.stdout:
-                print(f"[GIF][{gif_label}] STDOUT: {result.stdout}")
+                print(f"[WORKER-{worker_id}][{task_label}] STDOUT: {result.stdout}")
             if result.stderr:
-                print(f"[GIF][{gif_label}] STDERR: {result.stderr}")
-        except subprocess.CalledProcessError as e:
+                print(f"[WORKER-{worker_id}][{task_label}] STDERR: {result.stderr}")
+        except Exception as e:
             error_trace = traceback.format_exc()
-            print(f"[GIF][gif_label] Error running {os.path.basename(gif_script)}:\n{error_trace}")
-            if hasattr(e, "stdout") and e.stdout:
-                print(f"[GIF][gif_label] STDOUT: {e.stdout}")
-            if hasattr(e, "stderr") and e.stderr:
-                print(f"[GIF][gif_label] STDERR: {e.stderr}")
-    threading.Thread(target=run_all_scripts).start()
-    return "Task started in background! Check logs folder for output.", 200
+            print(f"[WORKER-{worker_id}][{task_label}] Error running {os.path.basename(script)}:\n{error_trace}")
+        finally:
+            TASK_QUEUE.task_done()
+
+    print(f"[WORKER-{worker_id}] stopped")
+
+
+def _ensure_workers_running():
+    """Start worker threads if none are running."""
+    with WORKER_LOCK:
+        # remove threads that are no longer alive
+        alive = [t for t in WORKER_THREADS if t.is_alive()]
+        WORKER_THREADS[:] = alive
+        # start missing workers up to WORKER_COUNT
+        while len(WORKER_THREADS) < WORKER_COUNT:
+            wid = len(WORKER_THREADS) + 1
+            t = threading.Thread(target=_worker_thread_fn, args=(wid,), daemon=True)
+            WORKER_THREADS.append(t)
+            t.start()
+
+
+@app.route("/run-task1")
+def run_task1():
+    # Enqueue tasks and ensure two workers are running
+    print("Enqueueing run-task1 jobs (called by user):", getpass.getuser())
+    # prepare tasks with indices
+    scripts = [(i, s, c) for i, (s, c) in enumerate(SCRIPTS_RAW, start=1)]
+    total = len(scripts)
+
+    # enqueue each script (GIF is already last in SCRIPTS_RAW)
+    for idx, script, cwd in scripts:
+        TASK_QUEUE.put((idx, script, cwd, total))
+
+    # start workers if needed
+    _ensure_workers_running()
+
+    return jsonify({'status': 'enqueued', 'count': TASK_QUEUE.qsize()}), 200
 
 # Ensure chat retrieval and map routes are defined (matches your snippet)
 @app.route('/get-chats', methods=['GET'])
