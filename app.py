@@ -87,6 +87,7 @@ def serve_image(prefix, filename):
 
 @app.route("/run-task1")
 def run_task1():
+    import concurrent.futures
     def run_all_scripts():
         print("Flask is running as user:", getpass.getuser())
         scripts = [
@@ -117,21 +118,30 @@ def run_task1():
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
 
-        processes = []
-        for script, cwd in scripts:
+        def run_script(script, cwd):
+            name = os.path.basename(script)
             try:
-                print(f"[RUNNING] {os.path.basename(script)} ...")
-                p = subprocess.Popen(["python", script], cwd=cwd)
-                processes.append((script, p))
+                print(f"[RUNNING] {name} ...")
+                # Use run to block inside the worker so executor limits concurrency
+                result = subprocess.run(["python", script], cwd=cwd)
+                rc = result.returncode
+                print(f"[FINISHED] {name} (rc={rc})")
             except Exception as e:
-                print(f"[ERROR] Could not start {script}: {e}")
+                print(f"[ERROR] {name}: {e}")
 
-        for script, p in processes:
-            p.wait()
-            print(f"[FINISHED] {os.path.basename(script)} (rc={p.returncode})")
+        # Limit parallel workers to 3
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(run_script, script, cwd) for script, cwd in scripts]
+            # wait for all to complete
+            for fut in concurrent.futures.as_completed(futures):
+                # exceptions are already printed in run_script; re-raise if needed
+                try:
+                    fut.result()
+                except Exception as e:
+                    print(f"[ERROR] Worker raised exception: {e}")
 
-    threading.Thread(target=run_all_scripts).start()
-    return "All scripts started in parallel! Check logs for progress.", 200
+    threading.Thread(target=run_all_scripts, daemon=True).start()
+    return "All scripts started with max 3 concurrent workers! Check logs for progress.", 200
 
 @app.route('/save-chat', methods=['POST'])
 def save_chat():
