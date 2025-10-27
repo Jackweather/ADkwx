@@ -185,7 +185,7 @@ def run_task1():
                 print(f"[BATCH COMPLETE] {pinfo['name']} (final rc={p.returncode})")
 
         # Process scripts in batches of 3
-        batch_size = 3
+        batch_size = 2
         for i in range(0, len(scripts), batch_size):
             batch = scripts[i:i + batch_size]
             print(f"[BATCH START] processing scripts {i + 1}..{i + len(batch)}")
