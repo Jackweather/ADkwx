@@ -17,7 +17,7 @@ from collections import deque
 
 app = Flask(__name__)
 
-# Suppress 404 logging for /PRATEGFS/ and /tmp_surface/ image requests in werkzeug logger
+# Suppress 404 logging for image directories
 logging.getLogger('werkzeug').addFilter(
     lambda record: not (
         (('GET /PRATEGFS/' in record.getMessage() or 'GET /tmp_surface/' in record.getMessage()) and '404' in record.getMessage())
@@ -26,7 +26,6 @@ logging.getLogger('werkzeug').addFilter(
 
 BASE_DATA_DIR = '/var/data'
 
-# Mapping of URL prefix to subdirectory path
 IMAGE_ROUTE_MAP = {
     'PRATEGFS': ['GFS', 'static', 'PRATEGFS'],
     'tmp_surface': ['GFS', 'static', 'tmp_surface'],
@@ -46,16 +45,10 @@ IMAGE_ROUTE_MAP = {
     'THICKNESS': ['GFS', 'static', 'THICKNESS'],
     'usa_pngs': ['GFS', 'static', 'usa_pngs'],
     'northeast_pngs': ['GFS', 'static', 'northeast_pngs'],
-    'WIND_200': ['GFS', 'static', 'WIND_200'],
-    'sunsd_surface': ['GFS', 'static', 'sunsd_surface'],
-    'gfs_850mb': ['GFS', 'static', 'gfs_850mb'],
-    'vort850_surface': ['GFS', 'static', 'vort850_surface'],
-    'DZDT850': ['GFS', 'static', 'DZDT850'],
-    'LFTX': ['GFS', 'static', 'LFTX'],
     'northeast_tmp_pngs': ['GFS', 'static', 'northeast_tmp_pngs'],
     'northeast_precip_pngs': ['GFS', 'static', 'northeast_precip_pngs'],
     'northeast_12hour_precip_pngs': ['GFS', 'static', 'northeast_12hour_precip_pngs'],
-    'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngps'],
+    'northeast_24hour_precip_pngs': ['GFS', 'static', 'northeast_24hour_precip_pngs'],
     'northeast_total_precip_pngs': ['GFS', 'static', 'northeast_total_precip_pngs'],
     'northeast_gust_pngs': ['GDAS', 'static', 'GUST_NE'],
     'GFS/static/TMP850': ['GFS', 'static', 'TMP850'],
@@ -87,72 +80,22 @@ def serve_image(prefix, filename):
         if matched_subpath:
             filename = os.path.join(matched_subpath, filename)
         abs_path = os.path.join(directory, filename)
-        print(f"[DEBUG] Trying to serve: {abs_path}")  # <--- Add this line
+        print(f"[DEBUG] Trying to serve: {abs_path}")
         if not os.path.isfile(abs_path):
-            print(f"[DEBUG] File not found: {abs_path}")  # <--- Add this line
+            print(f"[DEBUG] File not found: {abs_path}")
             abort(404, description=f"File not found: {abs_path}")
         return send_from_directory(directory, filename)
-    print(f"[DEBUG] No mapping for prefix: {prefix}")  # <--- Add this line
+    print(f"[DEBUG] No mapping for prefix: {prefix}")
     abort(404, description=f"No mapping for prefix: {prefix}")
 
-@app.route('/GFS/static/<path:filename>')
-def serve_gfs_static(filename):
-    directory = os.path.join(BASE_DATA_DIR, 'GFS', 'static')
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-@app.route('/gifs.html')
-def gifs_html():
-    with open('gifs.html', 'r', encoding='utf-8') as f:
-        return f.read()
-
-@app.route('/gfs.html')
-def serve_gfs_html():
-    return send_from_directory(os.path.dirname(__file__), 'gfs.html')
-
-@app.route('/updates.html')
-def serve_updates_html():
-    return send_from_directory(os.path.dirname(__file__), 'updates.html')
-
-@app.route('/community.html')
-def serve_community_html():
-    return send_from_directory(os.path.dirname(__file__), 'community.html')
-
-@app.route('/snow.html')
-def serve_snow_html():
-    return send_from_directory(os.path.dirname(__file__), 'snow.html')
-
-@app.route('/parent.html')
-def serve_parent_html():
-    return send_from_directory(os.path.dirname(__file__), 'parent.html')
-
-@app.route('/snowparent.html')
-def serve_snowparent_html():
-    return send_from_directory(os.path.dirname(__file__), 'snowparent.html')
-
-@app.route('/plotter.html')
-def serve_plotter_html():
-    return send_from_directory(os.path.dirname(__file__), 'plotter.html')
-
-@app.route('/Gifs/<path:filename>')
-def serve_gif(filename):
-    directory = '/var/data'  # GIFs are saved here
-    abs_path = os.path.join(directory, filename)
-    if not os.path.isfile(abs_path):
-        abort(404)
-    return send_from_directory(directory, filename)
-
-# Scheduler globals for timesliced execution
+# --- Scheduler Section ---
 SCHEDULER_THREAD = None
 SCHEDULER_LOCK = threading.Lock()
-TIMESLICE_SECONDS = 30  # run each process for 30s before switching
-# keep a flag so repeated /run-task1 calls don't start multiple schedulers
+TIMESLICE_SECONDS = 30
 SCHEDULER_RUNNING = False
-
-# Worker count and scripts list (GIF last)
 WORKER_COUNT = 2
+MAX_PROCESS_RUNTIME = 600  # 10 minutes safety limit
+
 SCRIPTS_RAW = [
     ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),
     ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),
@@ -178,47 +121,30 @@ SCRIPTS_RAW = [
     ("/opt/render/project/src/gfsmodel/lftx_surface.py", "/opt/render/project/src/gfsmodel"),
     ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),
     ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
-    ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),  # GIF last
+    ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
 ]
-
-
-def _start_process_entry(entry):
-    idx, script, cwd, total = entry
-    try:
-        # start process; preexec_fn to create new session so signals can be sent to process group if needed
-        proc = subprocess.Popen(
-            [sys.executable, script],
-            cwd=cwd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            preexec_fn=os.setsid  # Unix only; safe on POSIX
-        )
-        print(f"[SCHED] Started PID {proc.pid} for {os.path.basename(script)} ({idx}/{total})")
-        return {'proc': proc, 'idx': idx, 'script': script, 'cwd': cwd, 'total': total}
-    except Exception:
-        print(f"[SCHED] Failed to start {script}:\n{traceback.format_exc()}")
-        return None
-
 
 def _safe_signal(proc, sig):
     try:
         if proc and proc.poll() is None and proc.pid:
             os.kill(proc.pid, sig)
     except Exception:
-        # ignore platform or process gone errors
         pass
 
-
 def _collect_finished(active_list):
-    """Check active_list for finished processes, collect outputs, remove finished entries."""
+    """Collect finished processes and kill stuck ones."""
     still_active = []
+    now = time.time()
     for entry in active_list:
         proc = entry['proc']
+        start_time = entry.setdefault('start_time', now)
         if proc.poll() is None:
-            still_active.append(entry)
+            if now - start_time > MAX_PROCESS_RUNTIME:
+                print(f"[SCHED] Killing stuck PID {proc.pid}")
+                _safe_signal(proc, signal.SIGKILL)
+            else:
+                still_active.append(entry)
         else:
-            # process finished: collect output
             try:
                 out, err = proc.communicate(timeout=2)
             except Exception:
@@ -226,127 +152,99 @@ def _collect_finished(active_list):
             rc = proc.returncode
             print(f"[SCHED][{entry['idx']}/{entry['total']}] {os.path.basename(entry['script'])} finished (rc={rc})")
             if out:
-                print(f"[SCHED][{entry['idx']}/{entry['total']}] STDOUT: {out}")
+                print(out)
             if err:
-                print(f"[SCHED][{entry['idx']}/{entry['total']}] STDERR: {err}")
+                print(err)
     return still_active
 
+def _start_process_entry(entry):
+    idx, script, cwd, total = entry
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, script],
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            preexec_fn=os.setsid
+        )
+        print(f"[SCHED] Started PID {proc.pid} for {os.path.basename(script)} ({idx}/{total})")
+        return {'proc': proc, 'idx': idx, 'script': script, 'cwd': cwd, 'total': total}
+    except Exception:
+        print(f"[SCHED] Failed to start {script}:\n{traceback.format_exc()}")
+        return None
 
 def _timeslice_scheduler(tasks):
-    """Main scheduler: start up to WORKER_COUNT processes and rotate execution every TIMESLICE_SECONDS."""
     global SCHEDULER_RUNNING, SCHEDULER_THREAD
-    with SCHEDULER_LOCK:
-        if SCHEDULER_RUNNING:
-            print("[SCHED] Scheduler already running; ignoring new request")
-            return
-        SCHEDULER_RUNNING = True
-
-    pending = deque(tasks)
-    active = []
-    current_idx = 0  # index in active that is currently running
-
-    # start initial processes up to WORKER_COUNT
-    while len(active) < WORKER_COUNT and pending:
-        entry = pending.popleft()
-        started = _start_process_entry(entry)
-        if started:
-            active.append(started)
-    # ensure only first active is running
-    for i, e in enumerate(active):
-        if i == 0:
-            _safe_signal(e['proc'], signal.SIGCONT)
-        else:
-            _safe_signal(e['proc'], signal.SIGSTOP)
-
     try:
-        while active or pending:
-            # sleep for a timeslice while the current process runs
-            time.sleep(TIMESLICE_SECONDS)
+        print("[SCHED] Scheduler started with", len(tasks), "tasks")
+        pending = deque(tasks)
+        active = []
+        current_idx = 0
 
-            # collect any finished processes
+        while len(active) < WORKER_COUNT and pending:
+            entry = pending.popleft()
+            started = _start_process_entry(entry)
+            if started:
+                active.append(started)
+
+        for i, e in enumerate(active):
+            if i == 0:
+                _safe_signal(e['proc'], signal.SIGCONT)
+            else:
+                _safe_signal(e['proc'], signal.SIGSTOP)
+
+        while active or pending:
+            time.sleep(TIMESLICE_SECONDS)
             active = _collect_finished(active)
 
-            # fill empty slots
             while len(active) < WORKER_COUNT and pending:
                 entry = pending.popleft()
                 started = _start_process_entry(entry)
                 if started:
-                    # new started process should be paused by default (we'll rotate it in)
                     _safe_signal(started['proc'], signal.SIGSTOP)
                     active.append(started)
 
             if not active:
-                # nothing active right now; loop will start new ones if pending exists
-                while len(active) < WORKER_COUNT and pending:
-                    entry = pending.popleft()
-                    started = _start_process_entry(entry)
-                    if started:
-                        active.append(started)
-                # ensure only first is resumed
-                for i, e in enumerate(active):
-                    if i == 0:
-                        _safe_signal(e['proc'], signal.SIGCONT)
-                    else:
-                        _safe_signal(e['proc'], signal.SIGSTOP)
-                current_idx = 0
                 continue
 
-            # rotate if more than one active; otherwise keep running the single active
             if len(active) > 1:
                 prev = current_idx % len(active)
                 next_idx = (current_idx + 1) % len(active)
-                # pause previous and resume next
                 _safe_signal(active[prev]['proc'], signal.SIGSTOP)
                 _safe_signal(active[next_idx]['proc'], signal.SIGCONT)
                 current_idx = next_idx
             else:
-                # only one active; ensure it's running
                 _safe_signal(active[0]['proc'], signal.SIGCONT)
 
-            # small loop to immediately collect any that finished while we were switching
             active = _collect_finished(active)
 
+        print("[SCHED] All tasks finished; exiting scheduler.")
+
+    except Exception as e:
+        print("[SCHED] CRASHED:", e)
+        traceback.print_exc()
     finally:
-        # ensure we clean up and print any remaining outputs
-        for e in active:
-            p = e['proc']
-            try:
-                # resume so it can finish if paused
-                _safe_signal(p, signal.SIGCONT)
-                out, err = p.communicate(timeout=5)
-            except Exception:
-                try:
-                    out, err = p.communicate(timeout=1)
-                except Exception:
-                    out, err = ("", "")
-            rc = p.returncode
-            print(f"[SCHED][FINAL][{e['idx']}/{e['total']}] {os.path.basename(e['script'])} rc={rc}")
-            if out:
-                print(f"[SCHED][FINAL][{e['idx']}/{e['total']}] STDOUT: {out}")
-            if err:
-                print(f"[SCHED][FINAL][{e['idx']}/{e['total']}] STDERR: {err}")
         with SCHEDULER_LOCK:
             SCHEDULER_RUNNING = False
             SCHEDULER_THREAD = None
-        print("[SCHED] All tasks complete; scheduler exiting.")
-
+        print("[SCHED] Scheduler reset complete.")
 
 @app.route("/run-task1")
 def run_task1():
-    """Start the timesliced scheduler for SCRIPTS_RAW. Safe to call repeatedly; only one scheduler runs at a time."""
-    global SCHEDULER_THREAD
-    print("Request to run run-task1 received by", getpass.getuser())
+    global SCHEDULER_THREAD, SCHEDULER_RUNNING
+    print("RUN-TASK1 triggered by", getpass.getuser())
     with SCHEDULER_LOCK:
+        print("SCHEDULER_RUNNING =", SCHEDULER_RUNNING)
         if SCHEDULER_RUNNING:
             return jsonify({'status': 'scheduler_already_running'}), 200
-        # prepare tasks with indices
+        SCHEDULER_RUNNING = True
         scripts = [(i, s, c, len(SCRIPTS_RAW)) for i, (s, c) in enumerate(SCRIPTS_RAW, start=1)]
-        # start scheduler thread
-        SCHEDULER_THREAD = threading.Thread(target=_timeslice_scheduler, args=(scripts,), daemon=True)
+        SCHEDULER_THREAD = threading.Thread(target=_timeslice_scheduler, args=(scripts,))
         SCHEDULER_THREAD.start()
         return jsonify({'status': 'scheduler_started', 'tasks': len(scripts), 'timeslice_seconds': TIMESLICE_SECONDS}), 200
 
-# Ensure chat retrieval and map routes are defined (matches your snippet)
+# --- Extra routes ---
 @app.route('/get-chats', methods=['GET'])
 def get_chats():
     messages = []
@@ -360,27 +258,8 @@ def get_chats():
                     msg_obj = json.loads(line)
                     messages.append(msg_obj)
                 except Exception:
-                    # fallback for old format
                     messages.append({'text': line, 'timestamp': ''})
     return jsonify({'messages': messages})
 
-@app.route('/make-map', methods=['POST'])
-def make_map():
-    data = request.get_json()
-    min_lat = data.get('min_lat')
-    max_lat = data.get('max_lat')
-    min_lon = data.get('min_lon')
-    max_lon = data.get('max_lon')
-    # Validate input
-    try:
-        min_lat = float(min_lat)
-        max_lat = float(max_lat)
-        min_lon = float(min_lon)
-        max_lon = float(max_lon)
-    except Exception:
-        return jsonify({'error': 'Invalid coordinates'}), 400
-    # Output file path: create a timestamped filename so the top-right world_map.png is never overwritten
-    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-    filename = f"world_map_{timestamp}.png"
-    out_path = os.path.join('plotter', filename)
-    # Call the map generator
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
