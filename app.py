@@ -12,6 +12,8 @@ import time
 from werkzeug.utils import secure_filename
 from queue import Queue, Empty
 import sys
+import signal
+from collections import deque
 
 app = Flask(__name__)
 
@@ -142,13 +144,15 @@ def serve_gif(filename):
         abort(404)
     return send_from_directory(directory, filename)
 
-# Worker pool globals
-TASK_QUEUE = Queue()
-WORKER_THREADS = []
-WORKER_LOCK = threading.Lock()
-WORKER_COUNT = 2
+# Scheduler globals for timesliced execution
+SCHEDULER_THREAD = None
+SCHEDULER_LOCK = threading.Lock()
+TIMESLICE_SECONDS = 30  # run each process for 30s before switching
+# keep a flag so repeated /run-task1 calls don't start multiple schedulers
+SCHEDULER_RUNNING = False
 
-# Define the scripts list as tuples (idx, script_path, cwd). GIF should be last.
+# Worker count and scripts list (GIF last)
+WORKER_COUNT = 2
 SCRIPTS_RAW = [
     ("/opt/render/project/src/gfsmodel/mslp_prate.py", "/opt/render/project/src/gfsmodel"),
     ("/opt/render/project/src/gfsmodel/tmp_surface_clean.py", "/opt/render/project/src/gfsmodel"),
@@ -177,79 +181,170 @@ SCRIPTS_RAW = [
     ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),  # GIF last
 ]
 
-def _worker_thread_fn(worker_id):
-    """Worker loop: pull tasks until queue is empty for a short timeout."""
-    print(f"[WORKER-{worker_id}] starting")
-    while True:
-        try:
-            task = TASK_QUEUE.get(timeout=5)  # wait for a task
-        except Empty:
-            # no more tasks for now -> exit
-            print(f"[WORKER-{worker_id}] no tasks; exiting")
-            break
 
-        idx, script, cwd, total = task
-        task_label = f"{idx}/{total}"
-        print(f"[WORKER-{worker_id}][{task_label}] Running: {os.path.basename(script)} (cwd: {cwd})")
-        try:
-            # Use the current Python executable to run scripts (more reliable than calling "python")
-            result = subprocess.run(
-                [sys.executable, script],
-                check=True, cwd=cwd,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            print(f"[WORKER-{worker_id}][{task_label}] {os.path.basename(script)} ran successfully!")
-            if result.stdout:
-                print(f"[WORKER-{worker_id}][{task_label}] STDOUT: {result.stdout}")
-            if result.stderr:
-                print(f"[WORKER-{worker_id}][{task_label}] STDERR: {result.stderr}")
-        except subprocess.CalledProcessError as cpe:
-            # Script exited with non-zero status; print stdout/stderr to help debugging
-            print(f"[WORKER-{worker_id}][{task_label}] {os.path.basename(script)} failed with return code {cpe.returncode}")
-            if hasattr(cpe, "stdout") and cpe.stdout:
-                print(f"[WORKER-{worker_id}][{task_label}] STDOUT: {cpe.stdout}")
-            if hasattr(cpe, "stderr") and cpe.stderr:
-                print(f"[WORKER-{worker_id}][{task_label}] STDERR: {cpe.stderr}")
-        except Exception:
-            # unexpected error: include traceback
-            error_trace = traceback.format_exc()
-            print(f"[WORKER-{worker_id}][{task_label}] Unexpected error running {os.path.basename(script)}:\n{error_trace}")
-        finally:
-            TASK_QUEUE.task_done()
-
-    print(f"[WORKER-{worker_id}] stopped")
+def _start_process_entry(entry):
+    idx, script, cwd, total = entry
+    try:
+        # start process; preexec_fn to create new session so signals can be sent to process group if needed
+        proc = subprocess.Popen(
+            [sys.executable, script],
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            preexec_fn=os.setsid  # Unix only; safe on POSIX
+        )
+        print(f"[SCHED] Started PID {proc.pid} for {os.path.basename(script)} ({idx}/{total})")
+        return {'proc': proc, 'idx': idx, 'script': script, 'cwd': cwd, 'total': total}
+    except Exception:
+        print(f"[SCHED] Failed to start {script}:\n{traceback.format_exc()}")
+        return None
 
 
-def _ensure_workers_running():
-    """Start worker threads if none are running."""
-    with WORKER_LOCK:
-        # remove threads that are no longer alive
-        alive = [t for t in WORKER_THREADS if t.is_alive()]
-        WORKER_THREADS[:] = alive
-        # start missing workers up to WORKER_COUNT
-        while len(WORKER_THREADS) < WORKER_COUNT:
-            wid = len(WORKER_THREADS) + 1
-            t = threading.Thread(target=_worker_thread_fn, args=(wid,), daemon=True)
-            WORKER_THREADS.append(t)
-            t.start()
+def _safe_signal(proc, sig):
+    try:
+        if proc and proc.poll() is None and proc.pid:
+            os.kill(proc.pid, sig)
+    except Exception:
+        # ignore platform or process gone errors
+        pass
+
+
+def _collect_finished(active_list):
+    """Check active_list for finished processes, collect outputs, remove finished entries."""
+    still_active = []
+    for entry in active_list:
+        proc = entry['proc']
+        if proc.poll() is None:
+            still_active.append(entry)
+        else:
+            # process finished: collect output
+            try:
+                out, err = proc.communicate(timeout=2)
+            except Exception:
+                out, err = ("", "")
+            rc = proc.returncode
+            print(f"[SCHED][{entry['idx']}/{entry['total']}] {os.path.basename(entry['script'])} finished (rc={rc})")
+            if out:
+                print(f"[SCHED][{entry['idx']}/{entry['total']}] STDOUT: {out}")
+            if err:
+                print(f"[SCHED][{entry['idx']}/{entry['total']}] STDERR: {err}")
+    return still_active
+
+
+def _timeslice_scheduler(tasks):
+    """Main scheduler: start up to WORKER_COUNT processes and rotate execution every TIMESLICE_SECONDS."""
+    global SCHEDULER_RUNNING, SCHEDULER_THREAD
+    with SCHEDULER_LOCK:
+        if SCHEDULER_RUNNING:
+            print("[SCHED] Scheduler already running; ignoring new request")
+            return
+        SCHEDULER_RUNNING = True
+
+    pending = deque(tasks)
+    active = []
+    current_idx = 0  # index in active that is currently running
+
+    # start initial processes up to WORKER_COUNT
+    while len(active) < WORKER_COUNT and pending:
+        entry = pending.popleft()
+        started = _start_process_entry(entry)
+        if started:
+            active.append(started)
+    # ensure only first active is running
+    for i, e in enumerate(active):
+        if i == 0:
+            _safe_signal(e['proc'], signal.SIGCONT)
+        else:
+            _safe_signal(e['proc'], signal.SIGSTOP)
+
+    try:
+        while active or pending:
+            # sleep for a timeslice while the current process runs
+            time.sleep(TIMESLICE_SECONDS)
+
+            # collect any finished processes
+            active = _collect_finished(active)
+
+            # fill empty slots
+            while len(active) < WORKER_COUNT and pending:
+                entry = pending.popleft()
+                started = _start_process_entry(entry)
+                if started:
+                    # new started process should be paused by default (we'll rotate it in)
+                    _safe_signal(started['proc'], signal.SIGSTOP)
+                    active.append(started)
+
+            if not active:
+                # nothing active right now; loop will start new ones if pending exists
+                while len(active) < WORKER_COUNT and pending:
+                    entry = pending.popleft()
+                    started = _start_process_entry(entry)
+                    if started:
+                        active.append(started)
+                # ensure only first is resumed
+                for i, e in enumerate(active):
+                    if i == 0:
+                        _safe_signal(e['proc'], signal.SIGCONT)
+                    else:
+                        _safe_signal(e['proc'], signal.SIGSTOP)
+                current_idx = 0
+                continue
+
+            # rotate if more than one active; otherwise keep running the single active
+            if len(active) > 1:
+                prev = current_idx % len(active)
+                next_idx = (current_idx + 1) % len(active)
+                # pause previous and resume next
+                _safe_signal(active[prev]['proc'], signal.SIGSTOP)
+                _safe_signal(active[next_idx]['proc'], signal.SIGCONT)
+                current_idx = next_idx
+            else:
+                # only one active; ensure it's running
+                _safe_signal(active[0]['proc'], signal.SIGCONT)
+
+            # small loop to immediately collect any that finished while we were switching
+            active = _collect_finished(active)
+
+    finally:
+        # ensure we clean up and print any remaining outputs
+        for e in active:
+            p = e['proc']
+            try:
+                # resume so it can finish if paused
+                _safe_signal(p, signal.SIGCONT)
+                out, err = p.communicate(timeout=5)
+            except Exception:
+                try:
+                    out, err = p.communicate(timeout=1)
+                except Exception:
+                    out, err = ("", "")
+            rc = p.returncode
+            print(f"[SCHED][FINAL][{e['idx']}/{e['total']}] {os.path.basename(e['script'])} rc={rc}")
+            if out:
+                print(f"[SCHED][FINAL][{e['idx']}/{e['total']}] STDOUT: {out}")
+            if err:
+                print(f"[SCHED][FINAL][{e['idx']}/{e['total']}] STDERR: {err}")
+        with SCHEDULER_LOCK:
+            SCHEDULER_RUNNING = False
+            SCHEDULER_THREAD = None
+        print("[SCHED] All tasks complete; scheduler exiting.")
 
 
 @app.route("/run-task1")
 def run_task1():
-    # Enqueue tasks and ensure two workers are running
-    print("Enqueueing run-task1 jobs (called by user):", getpass.getuser())
-    # prepare tasks with indices
-    scripts = [(i, s, c) for i, (s, c) in enumerate(SCRIPTS_RAW, start=1)]
-    total = len(scripts)
-
-    # enqueue each script (GIF is already last in SCRIPTS_RAW)
-    for idx, script, cwd in scripts:
-        TASK_QUEUE.put((idx, script, cwd, total))
-
-    # start workers if needed
-    _ensure_workers_running()
-
-    return jsonify({'status': 'enqueued', 'count': TASK_QUEUE.qsize()}), 200
+    """Start the timesliced scheduler for SCRIPTS_RAW. Safe to call repeatedly; only one scheduler runs at a time."""
+    global SCHEDULER_THREAD
+    print("Request to run run-task1 received by", getpass.getuser())
+    with SCHEDULER_LOCK:
+        if SCHEDULER_RUNNING:
+            return jsonify({'status': 'scheduler_already_running'}), 200
+        # prepare tasks with indices
+        scripts = [(i, s, c, len(SCRIPTS_RAW)) for i, (s, c) in enumerate(SCRIPTS_RAW, start=1)]
+        # start scheduler thread
+        SCHEDULER_THREAD = threading.Thread(target=_timeslice_scheduler, args=(scripts,), daemon=True)
+        SCHEDULER_THREAD.start()
+        return jsonify({'status': 'scheduler_started', 'tasks': len(scripts), 'timeslice_seconds': TIMESLICE_SECONDS}), 200
 
 # Ensure chat retrieval and map routes are defined (matches your snippet)
 @app.route('/get-chats', methods=['GET'])
