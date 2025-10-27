@@ -10,6 +10,7 @@ from datetime import datetime
 import pytz
 import time
 from werkzeug.utils import secure_filename
+import signal
 
 app = Flask(__name__)
 
@@ -87,7 +88,6 @@ def serve_image(prefix, filename):
 
 @app.route("/run-task1")
 def run_task1():
-    import concurrent.futures
     def run_all_scripts():
         print("Flask is running as user:", getpass.getuser())
         scripts = [
@@ -118,30 +118,82 @@ def run_task1():
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
 
-        def run_script(script, cwd):
-            name = os.path.basename(script)
-            try:
-                print(f"[RUNNING] {name} ...")
-                # Use run to block inside the worker so executor limits concurrency
-                result = subprocess.run(["python", script], cwd=cwd)
-                rc = result.returncode
-                print(f"[FINISHED] {name} (rc={rc})")
-            except Exception as e:
-                print(f"[ERROR] {name}: {e}")
-
-        # Limit parallel workers to 3
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            futures = [executor.submit(run_script, script, cwd) for script, cwd in scripts]
-            # wait for all to complete
-            for fut in concurrent.futures.as_completed(futures):
-                # exceptions are already printed in run_script; re-raise if needed
+        def run_batch(batch):
+            # Start processes and immediately pause them
+            procs = []
+            for script, cwd in batch:
+                name = os.path.basename(script)
                 try:
-                    fut.result()
+                    p = subprocess.Popen(["python", script], cwd=cwd)
+                    procs.append({'proc': p, 'name': name, 'script': script})
+                    # pause immediately (best-effort)
+                    try:
+                        os.kill(p.pid, signal.SIGSTOP)
+                    except Exception:
+                        pass
+                    print(f"[STARTED & PAUSED] {name} (pid={p.pid})")
                 except Exception as e:
-                    print(f"[ERROR] Worker raised exception: {e}")
+                    print(f"[ERROR] Could not start {script}: {e}")
+
+            # Round-robin resume each proc for 60s until all finish
+            unfinished = {i for i in range(len(procs))}
+            while unfinished:
+                for i in list(unfinished):
+                    pinfo = procs[i]
+                    p = pinfo['proc']
+                    name = pinfo['name']
+                    if p.poll() is not None:
+                        print(f"[FINISHED] {name} (rc={p.returncode})")
+                        unfinished.discard(i)
+                        continue
+                    try:
+                        # resume
+                        os.kill(p.pid, signal.SIGCONT)
+                        print(f"[RESUME] {name} (pid={p.pid}) for 60s")
+                    except Exception as e:
+                        print(f"[ERROR] Could not resume {name}: {e}")
+                        # if cannot resume, check if finished
+                        if p.poll() is not None:
+                            unfinished.discard(i)
+                        continue
+
+                    # run time slice, monitoring if process exits early
+                    start = time.time()
+                    while time.time() - start < 60:
+                        if p.poll() is not None:
+                            print(f"[FINISHED DURING SLICE] {name} (rc={p.returncode})")
+                            break
+                        time.sleep(1)
+
+                    # if still running, pause it again
+                    if p.poll() is None:
+                        try:
+                            os.kill(p.pid, signal.SIGSTOP)
+                            print(f"[PAUSED] {name} (pid={p.pid}) after 60s")
+                        except Exception as e:
+                            print(f"[ERROR] Could not pause {name}: {e}")
+                    else:
+                        unfinished.discard(i)
+
+            # Ensure any remaining processes are waited on
+            for pinfo in procs:
+                p = pinfo['proc']
+                try:
+                    p.wait()
+                except Exception:
+                    pass
+                print(f"[BATCH COMPLETE] {pinfo['name']} (final rc={p.returncode})")
+
+        # Process scripts in batches of 3
+        batch_size = 3
+        for i in range(0, len(scripts), batch_size):
+            batch = scripts[i:i + batch_size]
+            print(f"[BATCH START] processing scripts {i + 1}..{i + len(batch)}")
+            run_batch(batch)
+            print(f"[BATCH DONE] scripts {i + 1}..{i + len(batch)} finished")
 
     threading.Thread(target=run_all_scripts, daemon=True).start()
-    return "All scripts started with max 3 concurrent workers! Check logs for progress.", 200
+    return "All scripts started in batched round-robin (3 at a time, 60s slices). Check logs.", 200
 
 @app.route('/save-chat', methods=['POST'])
 def save_chat():
