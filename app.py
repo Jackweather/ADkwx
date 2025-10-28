@@ -121,6 +121,7 @@ def run_task1():
         def run_batch(batch):
             # Start processes and immediately pause them
             procs = []
+            next_allowed = []  # timestamp when each proc may next be resumed
             for script, cwd in batch:
                 name = os.path.basename(script)
                 try:
@@ -131,6 +132,8 @@ def run_task1():
                         os.kill(p.pid, signal.SIGSTOP)
                     except Exception:
                         pass
+                    # allow immediate resume on first round
+                    next_allowed.append(time.time())
                     print(f"[STARTED & PAUSED] {name} (pid={p.pid})")
                 except Exception as e:
                     print(f"[ERROR] Could not start {script}: {e}")
@@ -138,7 +141,12 @@ def run_task1():
             # Round-robin resume each proc for 60s until all finish
             unfinished = {i for i in range(len(procs))}
             while unfinished:
+                progressed = False
                 for i in list(unfinished):
+                    # skip if still in cooldown
+                    if time.time() < next_allowed[i]:
+                        continue
+
                     pinfo = procs[i]
                     p = pinfo['proc']
                     name = pinfo['name']
@@ -150,9 +158,9 @@ def run_task1():
                         # resume
                         os.kill(p.pid, signal.SIGCONT)
                         print(f"[RESUME] {name} (pid={p.pid}) for 60s")
+                        progressed = True
                     except Exception as e:
                         print(f"[ERROR] Could not resume {name}: {e}")
-                        # if cannot resume, check if finished
                         if p.poll() is not None:
                             unfinished.discard(i)
                         continue
@@ -165,15 +173,20 @@ def run_task1():
                             break
                         time.sleep(1)
 
-                    # if still running, pause it again
+                    # if still running, pause it again and set cooldown of 8s before it can be resumed
                     if p.poll() is None:
                         try:
                             os.kill(p.pid, signal.SIGSTOP)
-                            print(f"[PAUSED] {name} (pid={p.pid}) after 60s")
+                            next_allowed[i] = time.time() + 8  # 8 second delay before next resume
+                            print(f"[PAUSED] {name} (pid={p.pid}) after 60s; next resume after {next_allowed[i]:.1f}")
                         except Exception as e:
                             print(f"[ERROR] Could not pause {name}: {e}")
                     else:
                         unfinished.discard(i)
+
+                # avoid busy-wait if nothing was progressed this pass
+                if not progressed:
+                    time.sleep(0.5)
 
             # Ensure any remaining processes are waited on
             for pinfo in procs:
@@ -193,7 +206,7 @@ def run_task1():
             print(f"[BATCH DONE] scripts {i + 1}..{i + len(batch)} finished")
 
     threading.Thread(target=run_all_scripts, daemon=True).start()
-    return "All scripts started in batched round-robin (3 at a time, 60s slices). Check logs.", 200
+    return "All scripts started in batched round-robin (3 at a time, 60s slices, 8s cooldown). Check logs.", 200
 
 @app.route('/save-chat', methods=['POST'])
 def save_chat():
