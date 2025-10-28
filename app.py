@@ -301,7 +301,7 @@ def run_task1():
             return final_requeue, procs
 
         # Process scripts in batches of 3
-        batch_size = 2
+        batch_size = 10
         while pending and not abort_all:
             batch = pending[:batch_size]
             pending = pending[batch_size:]
@@ -366,3 +366,4 @@ def get_chats():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
