@@ -118,46 +118,124 @@ def run_task1():
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
 
+        # persistent run-log file and limits
+        LOG_FILE = 'script_runs.json'
+        MAX_ATTEMPTS = 3
+        SLICE_SECONDS = 60
+        COOLDOWN_SECONDS = 8
+
+        def load_runs():
+            if os.path.exists(LOG_FILE):
+                try:
+                    with open(LOG_FILE, 'r', encoding='utf-8') as fh:
+                        return json.load(fh)
+                except Exception:
+                    return {}
+            return {}
+
+        def save_runs(runs):
+            try:
+                with open(LOG_FILE, 'w', encoding='utf-8') as fh:
+                    json.dump(runs, fh)
+            except Exception as e:
+                print(f"[ERROR] saving runs log: {e}")
+
+        runs = load_runs()
+
+        # Build pending list: skip scripts already completed
+        pending = []
+        for script, cwd in scripts:
+            info = runs.get(script, {})
+            if info.get('completed'):
+                print(f"[SKIP] already completed: {script}")
+                continue
+            attempts = info.get('attempts', 0)
+            if attempts >= MAX_ATTEMPTS:
+                print(f"[ABORT] script {script} already reached max attempts ({attempts}). Not starting run.")
+                return  # do not start if any script already exhausted attempts
+            pending.append((script, cwd))
+
+        abort_all = False
+
         def run_batch(batch):
-            # Start processes and immediately pause them
+            nonlocal abort_all, runs
+            # start processes and pause them immediately
             procs = []
-            next_allowed = []  # timestamp when each proc may next be resumed
+            next_allowed = []
             for script, cwd in batch:
                 name = os.path.basename(script)
+                info = runs.get(script, {})
+                attempts = info.get('attempts', 0)
+                if attempts >= MAX_ATTEMPTS:
+                    print(f"[ABORT-DET] {script} already at max attempts ({attempts}) - aborting batch")
+                    abort_all = True
+                    break
                 try:
                     p = subprocess.Popen(["python", script], cwd=cwd)
                     procs.append({'proc': p, 'name': name, 'script': script})
-                    # pause immediately (best-effort)
                     try:
                         os.kill(p.pid, signal.SIGSTOP)
                     except Exception:
                         pass
-                    # allow immediate resume on first round
-                    next_allowed.append(time.time())
+                    next_allowed.append(time.time())  # allow immediate resume on first round
                     print(f"[STARTED & PAUSED] {name} (pid={p.pid})")
                 except Exception as e:
                     print(f"[ERROR] Could not start {script}: {e}")
+                    # treat as failed attempt
+                    info = runs.setdefault(script, {})
+                    info['attempts'] = info.get('attempts', 0) + 1
+                    info['last_attempt'] = time.time()
+                    save_runs(runs)
+                    if info['attempts'] >= MAX_ATTEMPTS:
+                        abort_all = True
 
-            # Round-robin resume each proc for 60s until all finish
+            if abort_all:
+                # kill any started procs
+                for pinfo in procs:
+                    try:
+                        pinfo['proc'].terminate()
+                    except Exception:
+                        pass
+                return [], []  # no requeue
+
+            # Round-robin with slices until all in this batch finish
             unfinished = {i for i in range(len(procs))}
-            while unfinished:
+            requeue = []  # scripts that failed but still have attempts left
+            while unfinished and not abort_all:
                 progressed = False
                 for i in list(unfinished):
-                    # skip if still in cooldown
                     if time.time() < next_allowed[i]:
                         continue
-
                     pinfo = procs[i]
                     p = pinfo['proc']
                     name = pinfo['name']
+                    script = pinfo['script']
                     if p.poll() is not None:
-                        print(f"[FINISHED] {name} (rc={p.returncode})")
+                        rc = p.returncode
+                        if rc == 0:
+                            print(f"[FINISHED] {name} (rc={rc})")
+                            runs.setdefault(script, {})['completed'] = True
+                            runs.setdefault(script, {})['attempts'] = runs.get(script, {}).get('attempts', 0)
+                            save_runs(runs)
+                        else:
+                            # failed attempt
+                            info = runs.setdefault(script, {})
+                            info['attempts'] = info.get('attempts', 0) + 1
+                            info['last_attempt'] = time.time()
+                            save_runs(runs)
+                            print(f"[FAILED] {name} (rc={rc}) attempts={info['attempts']}")
+                            if info['attempts'] >= MAX_ATTEMPTS:
+                                print(f"[ABORT-CONDITION] {script} reached max attempts -> aborting all")
+                                abort_all = True
+                            else:
+                                requeue.append((script, cwd))
                         unfinished.discard(i)
                         continue
+
+                    # resume process
                     try:
-                        # resume
                         os.kill(p.pid, signal.SIGCONT)
-                        print(f"[RESUME] {name} (pid={p.pid}) for 60s")
+                        print(f"[RESUME] {name} (pid={p.pid}) for {SLICE_SECONDS}s")
                         progressed = True
                     except Exception as e:
                         print(f"[ERROR] Could not resume {name}: {e}")
@@ -165,48 +243,96 @@ def run_task1():
                             unfinished.discard(i)
                         continue
 
-                    # run time slice, monitoring if process exits early
                     start = time.time()
-                    while time.time() - start < 60:
+                    while time.time() - start < SLICE_SECONDS:
                         if p.poll() is not None:
-                            print(f"[FINISHED DURING SLICE] {name} (rc={p.returncode})")
+                            rc = p.returncode
+                            print(f"[FINISHED DURING SLICE] {name} (rc={rc})")
                             break
                         time.sleep(1)
 
-                    # if still running, pause it again and set cooldown of 8s before it can be resumed
                     if p.poll() is None:
                         try:
                             os.kill(p.pid, signal.SIGSTOP)
-                            next_allowed[i] = time.time() + 8  # 8 second delay before next resume
-                            print(f"[PAUSED] {name} (pid={p.pid}) after 60s; next resume after {next_allowed[i]:.1f}")
+                            next_allowed[i] = time.time() + COOLDOWN_SECONDS
+                            print(f"[PAUSED] {name} (pid={p.pid}) after {SLICE_SECONDS}s; next resume after {next_allowed[i]:.1f}")
                         except Exception as e:
                             print(f"[ERROR] Could not pause {name}: {e}")
                     else:
-                        unfinished.discard(i)
+                        # process finished during slice; will be processed in next iteration
+                        pass
 
-                # avoid busy-wait if nothing was progressed this pass
                 if not progressed:
                     time.sleep(0.5)
 
-            # Ensure any remaining processes are waited on
+            # finalize batch: gather requeue list (only those with attempts < MAX_ATTEMPTS)
+            final_requeue = []
             for pinfo in procs:
                 p = pinfo['proc']
+                script = pinfo['script']
+                name = pinfo['name']
+                # ensure waited
                 try:
-                    p.wait()
+                    p.wait(timeout=1)
                 except Exception:
                     pass
-                print(f"[BATCH COMPLETE] {pinfo['name']} (final rc={p.returncode})")
+                rc = p.returncode
+                if rc is None:
+                    # if still running and we're aborting, try to terminate
+                    if abort_all:
+                        try:
+                            p.terminate()
+                            time.sleep(0.5)
+                            if p.poll() is None:
+                                p.kill()
+                        except Exception:
+                            pass
+                    else:
+                        # should not happen, but wait
+                        try:
+                            p.wait()
+                        except Exception:
+                            pass
+                        rc = p.returncode
+                if rc != 0 and not runs.get(script, {}).get('completed'):
+                    attempts = runs.get(script, {}).get('attempts', 0)
+                    if attempts < MAX_ATTEMPTS:
+                        final_requeue.append((script, cwd))
+            return final_requeue, procs
 
         # Process scripts in batches of 3
         batch_size = 2
-        for i in range(0, len(scripts), batch_size):
-            batch = scripts[i:i + batch_size]
-            print(f"[BATCH START] processing scripts {i + 1}..{i + len(batch)}")
-            run_batch(batch)
-            print(f"[BATCH DONE] scripts {i + 1}..{i + len(batch)} finished")
+        while pending and not abort_all:
+            batch = pending[:batch_size]
+            pending = pending[batch_size:]
+            print(f"[BATCH START] processing {len(batch)} scripts")
+            requeue, procs = run_batch(batch)
+            if abort_all:
+                print("[ABORT] aborting run_all_scripts due to failure threshold")
+                # ensure all procs killed
+                for pinfo in (procs or []):
+                    try:
+                        p = pinfo['proc']
+                        if p.poll() is None:
+                            p.terminate()
+                            time.sleep(0.5)
+                            if p.poll() is None:
+                                p.kill()
+                    except Exception:
+                        pass
+                break
+            # append requeue scripts to pending end (retry later)
+            if requeue:
+                pending.extend(requeue)
+            print(f"[BATCH DONE] batch complete; pending remaining: {len(pending)}")
+
+        if abort_all:
+            print("[RUN ABORTED] One or more scripts exceeded max retries. Exiting run_all_scripts.")
+        else:
+            print("[RUN COMPLETE] All scripts processed.")
 
     threading.Thread(target=run_all_scripts, daemon=True).start()
-    return "All scripts started in batched round-robin (3 at a time, 60s slices, 8s cooldown). Check logs.", 200
+    return "All scripts started in batched round-robin with retry and abort-on-failure logic. Check logs.", 200
 
 @app.route('/save-chat', methods=['POST'])
 def save_chat():
