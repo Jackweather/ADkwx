@@ -51,6 +51,7 @@ IMAGE_ROUTE_MAP = {
     'northeast_gust_pngs': ['GDAS', 'static', 'GUST_NE'],
     'GFS/static/TMP850': ['GFS', 'static', 'TMP850'],
     'TMP850': ['GFS', 'static', 'TMP850'],
+    'vort850pva': ['GFS', 'static', 'vort850pva'],
 }
 
 @app.route('/')
@@ -111,6 +112,7 @@ def run_task1():
             ("/opt/render/project/src/gfsmodel/dzdt_850.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/gfsmodel/gfs_gust_northeast.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/gfsmodel/Fronto_gensis_850.py", "/opt/render/project/src/gfsmodel"),
+            ("/opt/render/project/src/gfsmodel/vort850pva.py", "/opt/render/project/src/gfsmodel"),
             ("/opt/render/project/src/Gifs/gif.py", "/opt/render/project/src/Gifs"),
         ]
 
