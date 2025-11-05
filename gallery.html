@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Folder Gallery</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;display:flex;min-height:100vh;background:#f5f7fa}
+    #sidebar{width:220px;background:#263159;color:#fff;padding:18px;box-shadow:2px 0 8px rgba(0,0,0,.08)}
+    .folder-btn{display:block;width:100%;margin:6px 0;padding:10px;border-radius:8px;border:none;background:#e6b800;color:#263159;cursor:pointer;text-align:left}
+    .folder-btn:hover{background:#ffd84d}
+    #main{flex:1;padding:18px;overflow:auto}
+    #controls{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    #progress{font-weight:bold;color:#263159}
+    #gallery{display:flex;flex-wrap:wrap;gap:8px}
+    .thumb{width:200px;height:140px;object-fit:cover;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+    .info{color:#263159;margin-bottom:8px}
+    a.toplink{color:#263159;background:#fff;border-radius:6px;padding:6px 10px;text-decoration:none;border:1px solid #ddd}
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div style="font-weight:bold;font-size:1.1em;margin-bottom:12px">Folders</div>
+    <!-- Only the folders from your script list -->
+    <button class="folder-btn" data-folder="PRATEGFS">PRATEGFS — mslp_prate.py</button>
+    <button class="folder-btn" data-folder="tmp_surface">tmp_surface — tmp_surface_clean.py</button>
+    <button class="folder-btn" data-folder="6hour_precip_total">6hour_precip_total — 6hourmaxprecip.py</button>
+    <button class="folder-btn" data-folder="12hour_precip_total">12hour_precip_total — 12hour_precip.py</button>
+    <button class="folder-btn" data-folder="24hour_precip_total">24hour_precip_total — 24hour_precip.py</button>
+    <button class="folder-btn" data-folder="total_precip">total_precip — total_precip.py</button>
+    <button class="folder-btn" data-folder="total_lcdc">total_lcdc — total_cloud_cover.py</button>
+
+    <div style="margin-top:18px;font-size:0.9em;opacity:.9">
+      Click a folder to scan expected PNG names and show the ones that exist.
+    </div>
+  </div>
+
+  <main id="main">
+    <div id="controls">
+      <a class="toplink" href="parent.html">Back</a>
+      <div id="current" class="info">No folder selected</div>
+      <div id="progress"></div>
+      <button id="clearBtn" style="margin-left:auto;padding:6px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">Clear</button>
+    </div>
+    <div id="gallery"></div>
+  </main>
+
+  <script>
+    // Mapping and image name builder for only the listed folders
+    function getImageName(folder, hour) {
+      const padded = hour.toString().padStart(3,'0');
+      let prefix = '';
+      if (folder === 'PRATEGFS') prefix = 'usa_gfs';
+      else if (folder === 'tmp_surface') prefix = '2mtemp';
+      else if (folder === '6hour_precip_total') prefix = 'precip6';
+      else if (folder === '12hour_precip_total') prefix = 'precip12';
+      else if (folder === '24hour_precip_total') prefix = 'precip24';
+      else if (folder === 'total_precip') prefix = 'totalprecip';
+      else if (folder === 'total_lcdc') prefix = 'total_lcdc';
+      return `/${folder}/${prefix}_${padded}.png`;
+    }
+
+    // Build hours array depending on folder
+    function hoursFor(folder) {
+      const hours = [];
+      if (folder === '12hour_precip_total') {
+        for (let h=12; h<=384; h+=12) hours.push(h);
+      } else if (folder === '24hour_precip_total') {
+        for (let h=24; h<=384; h+=24) hours.push(h);
+      } else {
+        for (let h=0; h<=384; h+=6) hours.push(h);
+      }
+      return hours;
+    }
+
+    const gallery = document.getElementById('gallery');
+    const progressEl = document.getElementById('progress');
+    const currentEl = document.getElementById('current');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // Click handlers for folder buttons
+    document.querySelectorAll('.folder-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=> startScan(btn.dataset.folder));
+    });
+
+    clearBtn.addEventListener('click', ()=> {
+      gallery.innerHTML = '';
+      progressEl.textContent = '';
+      currentEl.textContent = 'Cleared';
+    });
+
+    // Try loading each expected PNG and append those that load successfully
+    function startScan(folder) {
+      gallery.innerHTML = '';
+      const hours = hoursFor(folder);
+      let tried = 0, found = 0;
+      currentEl.textContent = `Scanning: ${folder} (${hours.length} candidates)`;
+      progressEl.textContent = `0 / ${hours.length}`;
+
+      // Limit concurrency to avoid spamming server (small pool)
+      const concurrency = 8;
+      let idx = 0;
+      let active = 0;
+
+      function next() {
+        if (idx >= hours.length && active === 0) {
+          progressEl.textContent = `Found ${found} / ${hours.length}`;
+          currentEl.textContent = `Done: ${folder}`;
+          return;
+        }
+        while (active < concurrency && idx < hours.length) {
+          const hour = hours[idx++];
+          active++;
+          const url = getImageName(folder, hour);
+          const img = new Image();
+          img.onload = () => {
+            found++;
+            const el = document.createElement('img');
+            el.src = url;
+            el.className = 'thumb';
+            el.title = `${folder} ${hour}`;
+            gallery.appendChild(el);
+            tried++;
+            active--;
+            progressEl.textContent = `${tried} / ${hours.length}`;
+            next();
+          };
+          img.onerror = () => {
+            tried++;
+            active--;
+            progressEl.textContent = `${tried} / ${hours.length}`;
+            next();
+          };
+          // start load
+          img.src = url;
+        }
+      }
+      next();
+    }
+  </script>
+</body>
+</html>
