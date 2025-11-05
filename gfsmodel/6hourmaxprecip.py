@@ -405,7 +405,7 @@ for step in forecast_steps:
         generate_clean_png(grib_file, step)
         generate_northeast_precip_png(grib_file, step)
         gc.collect()
-        time.sleep(1)
+        time.sleep(0)
 
 print("All GRIB file download and PNG creation tasks complete!")
 
@@ -436,4 +436,5 @@ for f in os.listdir(northeast_precip_dir):
 print("All PNGs optimized.")
 
 print("All PNGs optimized.")
+
 
