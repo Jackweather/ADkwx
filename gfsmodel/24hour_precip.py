@@ -231,7 +231,7 @@ def generate_clean_png_sum(file_paths, step):
         label.set_ha('right')
 
     fig.text(
-        0.99, 0.01, "adkwx.com",
+        0.99, 0.01, "",
         fontsize=10, color="black", ha="right", va="bottom",
         alpha=0.7, fontweight="bold"
     )
@@ -388,7 +388,7 @@ def generate_northeast_precip_png_sum(file_paths, step):
         label.set_ha('right')
 
     fig.text(
-        0.99, 0.01, "adkwx.com",
+        0.99, 0.01, "",
         fontsize=10, color="black", ha="right", va="bottom",
         alpha=0.7, fontweight="bold"
     )
@@ -416,7 +416,7 @@ for step in range(24, 385, 24):
         generate_clean_png_sum(file_paths, step)
         generate_northeast_precip_png_sum(file_paths, step)
         gc.collect()
-        time.sleep(0)
+        time.sleep(1)
 
 print("All GRIB file download and PNG creation tasks complete!")
 
@@ -445,4 +445,3 @@ for f in os.listdir(northeast_precip_dir):
         optimize_png(os.path.join(northeast_precip_dir, f))
 
 print("All PNGs optimized.")
-
