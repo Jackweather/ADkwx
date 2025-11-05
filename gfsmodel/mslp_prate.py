@@ -793,7 +793,7 @@ for f in os.listdir(grib_dir):
         os.remove(file_path)
         print("All GRIB files deleted from grib_dir.")
         gc.collect()
-        time.sleep(1)
+        time.sleep(0)
         print("All combined PNG creation tasks complete!")
 
 # --- Optimize all PNGs in the output directories ---
