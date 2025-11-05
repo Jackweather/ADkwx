@@ -232,7 +232,7 @@ def generate_clean_png(file_path, step):
 
     # Add ADKWX.com to bottom right
     fig.text(
-        0.99, 0.01, "adkwx.com",
+        0.99, 0.01, "",
         fontsize=10, color="black", ha="right", va="bottom",
         alpha=0.7, fontweight="bold"
     )
@@ -383,7 +383,7 @@ def generate_northeast_precip_png(file_path, step):
 
     # Add ADKWX.com to bottom right
     fig.text(
-        0.99, 0.01, "adkwx.com",
+        0.99, 0.01, "",
         fontsize=10, color="black", ha="right", va="bottom",
         alpha=0.7, fontweight="bold"
     )
@@ -405,7 +405,7 @@ for step in forecast_steps:
         generate_clean_png(grib_file, step)
         generate_northeast_precip_png(grib_file, step)
         gc.collect()
-        time.sleep(0)
+        time.sleep(1)
 
 print("All GRIB file download and PNG creation tasks complete!")
 
@@ -436,5 +436,4 @@ for f in os.listdir(northeast_precip_dir):
 print("All PNGs optimized.")
 
 print("All PNGs optimized.")
-
 
