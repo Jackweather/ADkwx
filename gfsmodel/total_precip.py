@@ -181,7 +181,7 @@ def plot_total_precip(total_precip_in, lats, lons, step):
         label.set_ha('right')
 
     fig.text(
-        0.99, 0.01, "adkwx.com",
+        0.99, 0.01, "",
         fontsize=10, color="black", ha="right", va="bottom",
         alpha=0.7, fontweight="bold"
     )
@@ -305,7 +305,7 @@ def plot_northeast_total_precip(total_precip_in, lats, lons, step):
         label.set_ha('right')
 
     fig.text(
-        0.99, 0.01, "adkwx.com",
+        0.99, 0.01, "",
         fontsize=10, color="black", ha="right", va="bottom",
         alpha=0.7, fontweight="bold"
     )
@@ -345,7 +345,7 @@ for step in forecast_steps:
         plot_total_precip(total_precip_in, lats, lons, step)
         plot_northeast_total_precip(total_precip_in, lats, lons, step)
         gc.collect()
-        time.sleep(0)
+        time.sleep(1)
 
 print("All GRIB file download and total precipitation PNG creation tasks complete!")
 
@@ -375,4 +375,3 @@ for f in os.listdir(northeast_total_precip_dir):
         optimize_png(os.path.join(northeast_total_precip_dir, f))
 
 print("All PNGs optimized.")
-
