@@ -193,7 +193,7 @@ for step in forecast_steps:
         lons = ds['longitude'].values
         plot_total_lcdc(lcdc_percent, lats, lons, step)
         gc.collect()
-        time.sleep(1)
+        time.sleep(0)
 
 print("All GRIB file download and total LCDC PNG creation tasks complete!")
 
@@ -219,3 +219,4 @@ for f in os.listdir(png_dir):
         optimize_png(os.path.join(png_dir, f))
 
 print("All PNGs optimized.")
+
