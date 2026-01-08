@@ -12,8 +12,8 @@ Werkzeug
 psutil
 pillow
 filelock
-geopandas
 shapely
 fiona
 pyproj
 rtree
+
